@@ -103,7 +103,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
-              <TableHead>State</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
               <TableHead>Company Domain</TableHead>
@@ -113,7 +112,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -123,7 +122,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.email || "—"}</TableCell>
                   <TableCell>{lead.company || "—"}</TableCell>
-                  <TableCell>{lead.state || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
                   <TableCell>
