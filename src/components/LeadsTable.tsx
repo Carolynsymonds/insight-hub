@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 interface Lead {
@@ -92,7 +92,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
               <TableHead>
-                Company Domain <ExternalLink className="h-3 w-3" />
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Company Domain
+                </div>
               </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
