@@ -59,15 +59,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api") {
-      if (confidence === 95) return "High confidence: Domain from primary_domain field";
-      if (confidence === 90) return "High confidence: Domain parsed from website URL";
-      if (confidence === 85) return "Good confidence: Domain extracted from website field";
-      return "No domain found";
+      if (confidence === 95) return "95% - When primary_domain field exists (most reliable)";
+      if (confidence === 90) return "90% - When website_url exists and can be parsed as valid URL";
+      if (confidence === 85) return "85% - When website_url exists but URL parsing fails (used as-is)";
+      return "0% - No domain found";
     }
     if (source === "google_knowledge_graph") {
       return confidence === 100 
-        ? "Maximum confidence: Domain from Google Knowledge Graph" 
-        : "No knowledge graph found";
+        ? "100% - When knowledge_graph.website exists in SerpAPI response" 
+        : "0% - No knowledge graph found";
     }
     return "Confidence score indicates data quality";
   };
