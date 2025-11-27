@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -137,15 +137,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      <Drawer>
+                        <DrawerTrigger asChild>
                           <Button size="sm" variant="outline">
                             <Search className="h-4 w-4" />
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 bg-background border-border">
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm">Enrichments</h4>
+                        </DrawerTrigger>
+                        <DrawerContent className="bg-background">
+                          <DrawerHeader>
+                            <DrawerTitle>Enrichments</DrawerTitle>
+                          </DrawerHeader>
+                          <div className="px-4 pb-8">
                             <Accordion type="single" collapsible className="w-full">
                               <AccordionItem value="company-domain" className="border-border">
                                 <AccordionTrigger className="text-sm hover:no-underline">
@@ -207,8 +209,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                               </AccordionItem>
                             </Accordion>
                           </div>
-                        </PopoverContent>
-                      </Popover>
+                        </DrawerContent>
+                      </Drawer>
                     </div>
                   </TableCell>
                 </TableRow>
