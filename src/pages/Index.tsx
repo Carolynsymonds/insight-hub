@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import LeadUpload from "@/components/LeadUpload";
 import LeadsTable from "@/components/LeadsTable";
 import { useToast } from "@/hooks/use-toast";
-import logo from "@/assets/logo.png";
+import { DashboardLayout } from "@/components/DashboardLayout";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState("home");
 
   useEffect(() => {
     checkAuth();
@@ -58,9 +57,9 @@ const Index = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+  const handleUploadComplete = () => {
+    fetchLeads();
+    setActiveView("home");
   };
 
   if (loading) {
@@ -75,33 +74,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <img src={logo} alt="LeadFlow" className="h-10" />
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Lead Enrichment Dashboard</h1>
-          <p className="text-muted-foreground">
-            Upload leads and enrich them with company domain information
-          </p>
-        </div>
-
-        <LeadUpload onUploadComplete={fetchLeads} />
-
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Your Leads</h2>
-          <LeadsTable leads={leads} onEnrichComplete={fetchLeads} />
-        </div>
-      </main>
-    </div>
+    <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
+      {activeView === "home" ? (
+        <LeadsTable leads={leads} onEnrichComplete={fetchLeads} />
+      ) : (
+        <LeadUpload onUploadComplete={handleUploadComplete} />
+      )}
+    </DashboardLayout>
   );
 };
 
