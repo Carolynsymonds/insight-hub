@@ -1,5 +1,5 @@
 import { Home, UserPlus, LogOut } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function AppSidebar({
   };
   return <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <img src={logo} alt="LeadFlow" className={open ? "h-10" : "h-8"} />
+        <img src={logo} alt="Smart Leads" className={open ? "h-10" : "h-8"} />
       </SidebarHeader>
 
       <SidebarContent>
