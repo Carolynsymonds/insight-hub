@@ -8,7 +8,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Search, Sparkles, Loader2, Trash2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
 interface Lead {
   id: string;
   full_name: string;
@@ -25,77 +24,73 @@ interface Lead {
   enrichment_confidence: number | null;
   enriched_at: string | null;
 }
-
 interface LeadsTableProps {
   leads: Lead[];
   onEnrichComplete: () => void;
 }
-
-const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
-  const { toast } = useToast();
+const LeadsTable = ({
+  leads,
+  onEnrichComplete
+}: LeadsTableProps) => {
+  const {
+    toast
+  } = useToast();
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-
   const handleEnrich = async (lead: Lead) => {
     setEnrichingId(lead.id);
-
     try {
-      const { data, error } = await supabase.functions.invoke("enrich-lead", {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("enrich-lead", {
         body: {
           leadId: lead.id,
           company: lead.company,
-          email: lead.email,
-        },
+          email: lead.email
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Enrichment Complete!",
-        description: `Found domain: ${data.domain}`,
+        description: `Found domain: ${data.domain}`
       });
-
       onEnrichComplete();
     } catch (error: any) {
       toast({
         title: "Enrichment Failed",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setEnrichingId(null);
     }
   };
-
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("leads").delete().eq("id", id);
-
+      const {
+        error
+      } = await supabase.from("leads").delete().eq("id", id);
       if (error) throw error;
-
       toast({
         title: "Success",
-        description: "Lead deleted successfully.",
+        description: "Lead deleted successfully."
       });
-
       onEnrichComplete();
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const showLeadDetails = (lead: Lead) => {
     setSelectedLead(lead);
     setShowDetails(true);
   };
-
-  return (
-    <>
+  return <>
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
@@ -110,37 +105,23 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.length === 0 ? (
-              <TableRow>
+            {leads.length === 0 ? <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
-              </TableRow>
-            ) : (
-              leads.map((lead) => (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => showLeadDetails(lead)}>
+              </TableRow> : leads.map(lead => <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => showLeadDetails(lead)}>
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.email || "—"}</TableCell>
                   <TableCell>{lead.company || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
                   <TableCell>
-                    {lead.domain ? (
-                      <a
-                        href={`https://${lead.domain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                    {lead.domain ? <a href={`https://${lead.domain}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         {lead.domain}
                         <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
+                      </a> : "—"}
                   </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <Popover>
                         <PopoverTrigger asChild>
@@ -158,56 +139,33 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <div className="space-y-3 pt-2">
-                                    {lead.domain ? (
-                                      <div className="space-y-2">
+                                    {lead.domain ? <div className="space-y-2">
                                         <div className="flex items-center gap-2">
                                           <Badge variant="default">Enriched</Badge>
-                                          {lead.enrichment_confidence && (
-                                            <span className="text-xs text-muted-foreground">
+                                          {lead.enrichment_confidence && <span className="text-xs text-muted-foreground">
                                               {lead.enrichment_confidence}% confidence
-                                            </span>
-                                          )}
+                                            </span>}
                                         </div>
                                         <div>
                                           <p className="text-xs text-muted-foreground mb-1">Domain:</p>
-                                          <a
-                                            href={`https://${lead.domain}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-primary hover:underline"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
+                                          <a href={`https://${lead.domain}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline" onClick={e => e.stopPropagation()}>
                                             {lead.domain}
                                           </a>
                                         </div>
-                                        {lead.enrichment_source && (
-                                          <p className="text-xs text-muted-foreground">
+                                        {lead.enrichment_source && <p className="text-xs text-muted-foreground">
                                             Source: {lead.enrichment_source}
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground">
+                                          </p>}
+                                      </div> : <p className="text-sm text-muted-foreground">
                                         No domain found yet
-                                      </p>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleEnrich(lead)}
-                                      disabled={enrichingId === lead.id || !lead.company}
-                                      className="w-full"
-                                    >
-                                      {enrichingId === lead.id ? (
-                                        <>
+                                      </p>}
+                                    <Button size="sm" onClick={() => handleEnrich(lead)} disabled={enrichingId === lead.id || !lead.company} className="w-full">
+                                      {enrichingId === lead.id ? <>
                                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                           Enriching...
-                                        </>
-                                      ) : (
-                                        <>
+                                        </> : <>
                                           <Sparkles className="mr-2 h-4 w-4" />
                                           {lead.domain ? "Re-enrich" : "Enrich"}
-                                        </>
-                                      )}
+                                        </>}
                                     </Button>
                                   </div>
                                 </AccordionContent>
@@ -216,18 +174,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                           </div>
                         </PopoverContent>
                       </Popover>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(lead.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      
                     </div>
                   </TableCell>
-                </TableRow>
-              ))
-            )}
+                </TableRow>)}
           </TableBody>
         </Table>
       </div>
@@ -238,8 +188,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
             <DialogTitle>Lead Details</DialogTitle>
             <DialogDescription>Complete information for this lead</DialogDescription>
           </DialogHeader>
-          {selectedLead && (
-            <div className="space-y-4">
+          {selectedLead && <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Full Name</p>
@@ -274,8 +223,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <p className="text-sm">{selectedLead.zipcode || "—"}</p>
                 </div>
               </div>
-              {selectedLead.domain && (
-                <div className="border-t pt-4">
+              {selectedLead.domain && <div className="border-t pt-4">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Enrichment Data</p>
                   <div className="space-y-2">
                     <div>
@@ -290,21 +238,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       <p className="text-sm font-medium">Confidence</p>
                       <p className="text-sm">{selectedLead.enrichment_confidence ? `${selectedLead.enrichment_confidence}%` : "—"}</p>
                     </div>
-                    {selectedLead.enriched_at && (
-                      <div>
+                    {selectedLead.enriched_at && <div>
                         <p className="text-sm font-medium">Enriched At</p>
                         <p className="text-sm">{new Date(selectedLead.enriched_at).toLocaleString()}</p>
-                      </div>
-                    )}
+                      </div>}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                </div>}
+            </div>}
         </DialogContent>
       </Dialog>
-    </>
-  );
+    </>;
 };
-
 export default LeadsTable;
