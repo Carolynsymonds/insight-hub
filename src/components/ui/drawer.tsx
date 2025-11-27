@@ -3,8 +3,8 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+const Drawer = ({ shouldScaleBackground = true, direction = "bottom", ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} direction={direction} {...props} />
 );
 Drawer.displayName = "Drawer";
 
@@ -24,19 +24,28 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & { direction?: "top" | "bottom" | "left" | "right" }
+>(({ className, children, direction = "bottom", ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        "fixed z-50 flex flex-col border bg-background",
+        direction === "bottom" && "inset-x-0 bottom-0 mt-24 h-auto rounded-t-[10px]",
+        direction === "right" && "inset-y-0 right-0 w-full sm:max-w-md h-full rounded-l-[10px]",
+        direction === "left" && "inset-y-0 left-0 w-full sm:max-w-md h-full rounded-r-[10px]",
+        direction === "top" && "inset-x-0 top-0 mb-24 h-auto rounded-b-[10px]",
         className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      {(direction === "bottom" || direction === "top") && (
+        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      )}
+      {(direction === "left" || direction === "right") && (
+        <div className="my-auto ml-4 w-2 h-[100px] rounded-full bg-muted" />
+      )}
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>

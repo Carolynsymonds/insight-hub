@@ -137,13 +137,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
-                      <Drawer>
+                      <Drawer direction="right">
                         <DrawerTrigger asChild>
                           <Button size="sm" variant="outline">
                             <Search className="h-4 w-4" />
                           </Button>
                         </DrawerTrigger>
-                        <DrawerContent className="bg-background">
+                        <DrawerContent direction="right" className="bg-background">
                           <DrawerHeader>
                             <DrawerTitle>Enrichments</DrawerTitle>
                           </DrawerHeader>
