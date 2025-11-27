@@ -106,7 +106,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>State</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
-              <TableHead className="border-l-2 border-primary/20">Company Domain</TableHead>
+              <TableHead>Company Domain</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,7 +126,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell>{lead.state || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
-                  <TableCell className="border-l-2 border-primary/20">
+                  <TableCell>
                     {lead.domain ? (
                       <a
                         href={`https://${lead.domain}`}
