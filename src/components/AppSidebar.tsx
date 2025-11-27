@@ -31,7 +31,11 @@ export function AppSidebar({
   };
   return <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <img src={logo} alt="Smart Leads" className={open ? "h-10" : "h-8"} />
+        <img 
+          src={logo} 
+          alt="Smart Leads" 
+          className={open ? "w-full h-auto max-w-[200px]" : "w-10 h-auto"} 
+        />
       </SidebarHeader>
 
       <SidebarContent>
