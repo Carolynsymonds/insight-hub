@@ -24,6 +24,7 @@ export type Database = {
           email: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
+          enrichment_logs: Json | null
           enrichment_source: string | null
           enrichment_status: string | null
           full_name: string
@@ -43,6 +44,7 @@ export type Database = {
           email?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
+          enrichment_logs?: Json | null
           enrichment_source?: string | null
           enrichment_status?: string | null
           full_name: string
@@ -62,6 +64,7 @@ export type Database = {
           email?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
+          enrichment_logs?: Json | null
           enrichment_source?: string | null
           enrichment_status?: string | null
           full_name?: string

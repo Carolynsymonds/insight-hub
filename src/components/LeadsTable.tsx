@@ -8,6 +8,26 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+interface EnrichmentLog {
+  timestamp: string;
+  action: string;
+  searchParams: {
+    company: string;
+    city?: string;
+    state?: string;
+  };
+  organizationsFound: number;
+  selectedOrganization?: {
+    name: string;
+    domain: string;
+    revenue?: string;
+    foundedYear?: number;
+  };
+  domain: string | null;
+  confidence: number;
+  source: string;
+}
+
 interface Lead {
   id: string;
   full_name: string;
@@ -23,6 +43,7 @@ interface Lead {
   enrichment_source: string | null;
   enrichment_confidence: number | null;
   enriched_at: string | null;
+  enrichment_logs: EnrichmentLog[] | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -40,14 +61,19 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         body: {
           leadId: lead.id,
           company: lead.company,
-          email: lead.email,
+          city: lead.city,
+          state: lead.state,
         },
       });
       if (error) throw error;
+      
       toast({
         title: "Enrichment Complete!",
-        description: `Found domain: ${data.domain}`,
+        description: data.domain 
+          ? `Found domain: ${data.domain} (${data.confidence}% confidence)` 
+          : "No domain found for this company",
       });
+      
       onEnrichComplete();
     } catch (error: any) {
       toast({
@@ -186,6 +212,53 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                     ) : (
                                       <p className="text-sm text-muted-foreground">No domain found yet</p>
                                     )}
+                                    
+                                    {/* Enrichment Logs */}
+                                    {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (
+                                      <div className="mt-4 space-y-2">
+                                        <p className="text-xs font-medium text-muted-foreground">Activity Log</p>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                                          {lead.enrichment_logs.map((log, index) => (
+                                            <div key={index} className="border rounded-md p-2 bg-muted/30 text-xs space-y-1">
+                                              <div className="flex items-center justify-between">
+                                                <span className="font-medium">
+                                                  {log.action === "apollo_api_search" ? "Apollo Search" : "Failed Search"}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {new Date(log.timestamp).toLocaleTimeString()}
+                                                </span>
+                                              </div>
+                                              <div className="text-muted-foreground">
+                                                <p>Company: {log.searchParams.company}</p>
+                                                {log.searchParams.city && <p>City: {log.searchParams.city}</p>}
+                                                {log.searchParams.state && <p>State: {log.searchParams.state}</p>}
+                                              </div>
+                                              <div className="text-muted-foreground">
+                                                Organizations found: {log.organizationsFound}
+                                              </div>
+                                              {log.selectedOrganization && (
+                                                <div className="border-t pt-1 mt-1">
+                                                  <p className="font-medium">{log.selectedOrganization.name}</p>
+                                                  <p>Domain: {log.selectedOrganization.domain}</p>
+                                                  {log.selectedOrganization.revenue && (
+                                                    <p>Revenue: {log.selectedOrganization.revenue}</p>
+                                                  )}
+                                                  {log.selectedOrganization.foundedYear && (
+                                                    <p>Founded: {log.selectedOrganization.foundedYear}</p>
+                                                  )}
+                                                </div>
+                                              )}
+                                              <div className="flex items-center gap-2">
+                                                <Badge variant={log.domain ? "default" : "secondary"} className="text-xs">
+                                                  {log.confidence}% confidence
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
                                     <Button
                                       size="sm"
                                       onClick={() => handleEnrich(lead)}
