@@ -6,100 +6,190 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface EnrichmentResult {
-  domain: string | null;
-  source: string;
-  confidence: number;
+interface ApolloOrganization {
+  id: string;
+  name: string;
+  website_url: string | null;
+  primary_domain: string | null;
+  primary_phone: {
+    number: string;
+    source: string;
+    sanitized_number: string;
+  } | null;
+  linkedin_url: string | null;
+  founded_year: number | null;
+  organization_revenue: number | null;
+  organization_revenue_printed: string | null;
 }
 
-// Helper function to extract domain from email
-function extractDomainFromEmail(email: string): string | null {
-  const match = email.match(/@(.+)$/);
-  return match ? match[1] : null;
-}
-
-// Helper function to search for company domain using various methods
-async function findCompanyDomain(company: string, email: string | null): Promise<EnrichmentResult> {
-  console.log(`Enriching company: ${company}, email: ${email}`);
-
-  // Strategy 1: If email exists, extract domain
-  if (email) {
-    const emailDomain = extractDomainFromEmail(email);
-    if (emailDomain && !emailDomain.includes('gmail') && !emailDomain.includes('yahoo') && !emailDomain.includes('hotmail')) {
-      console.log(`Found domain from email: ${emailDomain}`);
-      return {
-        domain: emailDomain,
-        source: "email_extraction",
-        confidence: 95,
-      };
-    }
-  }
-
-  // Strategy 2: Try common domain patterns
-  const cleanCompany = company.toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/[^a-z0-9]/g, '');
-
-  const commonTLDs = ['.com', '.io', '.net', '.co'];
-  
-  for (const tld of commonTLDs) {
-    const potentialDomain = `${cleanCompany}${tld}`;
-    
-    try {
-      // Try to verify the domain exists (basic check)
-      const response = await fetch(`https://${potentialDomain}`, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(3000),
-      });
-      
-      if (response.ok) {
-        console.log(`Found domain via pattern matching: ${potentialDomain}`);
-        return {
-          domain: potentialDomain,
-          source: "pattern_matching",
-          confidence: 75,
-        };
-      }
-    } catch (error) {
-      // Domain doesn't exist or not reachable, continue
-      console.log(`Domain ${potentialDomain} not found`);
-    }
-  }
-
-  // Strategy 3: Use Hunter.io style domain guessing
-  const commonPatterns = [
-    company.toLowerCase().replace(/\s+/g, '') + '.com',
-    company.toLowerCase().split(' ')[0] + '.com',
-    company.toLowerCase().replace(/\s+/g, '-') + '.com',
-  ];
-
-  for (const pattern of commonPatterns) {
-    try {
-      const response = await fetch(`https://${pattern}`, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(3000),
-      });
-      
-      if (response.ok) {
-        console.log(`Found domain via alternative pattern: ${pattern}`);
-        return {
-          domain: pattern,
-          source: "alternative_pattern",
-          confidence: 60,
-        };
-      }
-    } catch (error) {
-      console.log(`Pattern ${pattern} not found`);
-    }
-  }
-
-  // If nothing found, return null
-  console.log("No domain found");
-  return {
-    domain: null,
-    source: "not_found",
-    confidence: 0,
+interface ApolloResponse {
+  organizations: ApolloOrganization[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_entries: number;
+    total_pages: number;
   };
+}
+
+interface EnrichmentLog {
+  timestamp: string;
+  action: string;
+  searchParams: {
+    company: string;
+    city?: string;
+    state?: string;
+  };
+  organizationsFound: number;
+  selectedOrganization?: {
+    name: string;
+    domain: string;
+    revenue?: string;
+    foundedYear?: number;
+  };
+  domain: string | null;
+  confidence: number;
+  source: string;
+}
+
+async function enrichWithApollo(
+  company: string,
+  city: string | null,
+  state: string | null
+): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+  const apolloApiKey = Deno.env.get("APOLLO_API_KEY");
+  
+  if (!apolloApiKey) {
+    throw new Error("Apollo API key not configured");
+  }
+
+  const timestamp = new Date().toISOString();
+  
+  // Build search parameters
+  const searchParams: any = {
+    q_organization_name: company,
+  };
+
+  // Add location filters if available
+  const locations: string[] = [];
+  if (city) locations.push(city);
+  if (state) locations.push(state);
+
+  console.log(`Enriching company: ${company}, locations: ${locations.join(", ")}`);
+
+  try {
+    // Call Apollo API
+    const response = await fetch(
+      `https://api.apollo.io/api/v1/mixed_companies/search?${
+        locations.length > 0 
+          ? locations.map(loc => `organization_locations[]=${encodeURIComponent(loc)}`).join("&") + "&"
+          : ""
+      }q_organization_name=${encodeURIComponent(company)}`,
+      {
+        method: "POST",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Content-Type": "application/json",
+          "accept": "application/json",
+          "x-api-key": apolloApiKey,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Apollo API error: ${response.status} - ${errorText}`);
+      throw new Error(`Apollo API request failed: ${response.status}`);
+    }
+
+    const data: ApolloResponse = await response.json();
+    console.log(`Apollo API returned ${data.organizations?.length || 0} organizations`);
+
+    // Extract domain from the first organization
+    let domain: string | null = null;
+    let confidence = 0;
+    let selectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
+
+    if (data.organizations && data.organizations.length > 0) {
+      const org = data.organizations[0];
+      
+      // Try primary_domain first, then parse from website_url
+      if (org.primary_domain) {
+        domain = org.primary_domain;
+        confidence = 95;
+      } else if (org.website_url) {
+        // Parse domain from URL
+        try {
+          const url = new URL(org.website_url.startsWith("http") ? org.website_url : `https://${org.website_url}`);
+          domain = url.hostname.replace(/^www\./, "");
+          confidence = 90;
+        } catch (e) {
+          // If URL parsing fails, use as-is
+          domain = org.website_url.replace(/^(https?:\/\/)?(www\.)?/, "");
+          confidence = 85;
+        }
+      }
+
+      // Build selected org info for log
+      selectedOrg = {
+        name: org.name,
+        domain: domain || "N/A",
+        revenue: org.organization_revenue_printed || undefined,
+        foundedYear: org.founded_year || undefined,
+      };
+
+      console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
+    } else {
+      console.log("No organizations found in Apollo response");
+    }
+
+    // Create enrichment log
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "apollo_api_search",
+      searchParams: {
+        company,
+        ...(city && { city }),
+        ...(state && { state }),
+      },
+      organizationsFound: data.organizations?.length || 0,
+      selectedOrganization: selectedOrg,
+      domain,
+      confidence,
+      source: "apollo_api",
+    };
+
+    return {
+      domain,
+      confidence,
+      source: "apollo_api",
+      log,
+    };
+  } catch (error) {
+    console.error("Error calling Apollo API:", error);
+    
+    // Create error log
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "apollo_api_search_failed",
+      searchParams: {
+        company,
+        ...(city && { city }),
+        ...(state && { state }),
+      },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "apollo_api_error",
+    };
+
+    return {
+      domain: null,
+      confidence: 0,
+      source: "apollo_api_error",
+      log,
+    };
+  }
 }
 
 serve(async (req) => {
@@ -109,7 +199,7 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, email } = await req.json();
+    const { leadId, company, city, state } = await req.json();
 
     if (!leadId || !company) {
       throw new Error("Missing required fields: leadId and company");
@@ -122,8 +212,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find company domain
-    const result = await findCompanyDomain(company, email);
+    // Enrich with Apollo
+    const result = await enrichWithApollo(company, city, state);
+
+    // Get existing logs
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("enrichment_logs")
+      .eq("id", leadId)
+      .single();
+
+    const existingLogs = existingLead?.enrichment_logs || [];
+    const updatedLogs = [...existingLogs, result.log];
 
     // Update the lead in the database
     const updateData = {
@@ -132,6 +232,7 @@ serve(async (req) => {
       enrichment_confidence: result.confidence,
       enrichment_status: result.domain ? "enriched" : "failed",
       enriched_at: new Date().toISOString(),
+      enrichment_logs: updatedLogs,
     };
 
     const { error: updateError } = await supabase
@@ -151,6 +252,8 @@ serve(async (req) => {
         domain: result.domain,
         source: result.source,
         confidence: result.confidence,
+        log: result.log,
+        logs: updatedLogs,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
