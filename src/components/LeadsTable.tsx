@@ -54,6 +54,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
   const handleEnrich = async (lead: Lead) => {
     setEnrichingId(lead.id);
     try {
@@ -181,89 +182,106 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <div className="space-y-3 pt-2">
-                                    {lead.domain ? (
-                                      <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="default">Enriched</Badge>
-                                          {lead.enrichment_confidence && (
-                                            <span className="text-xs text-muted-foreground">
-                                              {lead.enrichment_confidence}% confidence
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div>
-                                          <p className="text-xs text-muted-foreground mb-1">Domain:</p>
-                                          <a
-                                            href={`https://${lead.domain}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-primary hover:underline"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {lead.domain}
-                                          </a>
-                                        </div>
-                                        {lead.enrichment_source && (
-                                          <p className="text-xs text-muted-foreground">
-                                            Source: {lead.enrichment_source}
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground">No domain found yet</p>
-                                    )}
-                                    
-                                    {/* Enrichment Logs */}
-                                    {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (
-                                      <div className="mt-4 space-y-2">
-                                        <p className="text-xs font-medium text-muted-foreground">Activity Log</p>
-                                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                                          {lead.enrichment_logs.map((log, index) => (
-                                            <div key={index} className="border rounded-md p-2 bg-muted/30 text-xs space-y-1">
-                                              <div className="flex items-center justify-between">
-                                                <span className="font-medium">
-                                                  {log.action === "apollo_api_search" ? "Apollo Search" : "Failed Search"}
-                                                </span>
-                                                <span className="text-muted-foreground">
-                                                  {new Date(log.timestamp).toLocaleTimeString()}
-                                                </span>
-                                              </div>
-                                              <div className="text-muted-foreground">
-                                                <p>Company: {log.searchParams.company}</p>
-                                                {log.searchParams.city && <p>City: {log.searchParams.city}</p>}
-                                                {log.searchParams.state && <p>State: {log.searchParams.state}</p>}
-                                              </div>
-                                              <div className="text-muted-foreground">
-                                                Organizations found: {log.organizationsFound}
-                                              </div>
-                                              {log.selectedOrganization && (
-                                                <div className="border-t pt-1 mt-1">
-                                                  <p className="font-medium">{log.selectedOrganization.name}</p>
-                                                  <p>Domain: {log.selectedOrganization.domain}</p>
-                                                  {log.selectedOrganization.revenue && (
-                                                    <p>Revenue: {log.selectedOrganization.revenue}</p>
-                                                  )}
-                                                  {log.selectedOrganization.foundedYear && (
-                                                    <p>Founded: {log.selectedOrganization.foundedYear}</p>
-                                                  )}
+                                    {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                                      <>
+                                        {/* Group logs by source */}
+                                        {(() => {
+                                          const logsBySource = lead.enrichment_logs.reduce((acc, log) => {
+                                            if (!acc[log.source]) {
+                                              acc[log.source] = [];
+                                            }
+                                            acc[log.source].push(log);
+                                            return acc;
+                                          }, {} as Record<string, EnrichmentLog[]>);
+
+                                          return Object.entries(logsBySource).map(([source, logs]) => {
+                                            const mostRecentLog = logs[0]; // Logs are already sorted by timestamp
+                                            const sourceLabel = source === "apollo_api" ? "Apollo" : source;
+                                            
+                                            return (
+                                              <div key={source} className="border rounded-lg p-3 space-y-3">
+                                                {/* Source Header */}
+                                                <div className="flex items-center justify-between">
+                                                  <h4 className="font-semibold text-sm">{sourceLabel}</h4>
+                                                  <Badge variant="outline" className="text-xs">
+                                                    {mostRecentLog.confidence}% confidence
+                                                  </Badge>
                                                 </div>
-                                              )}
-                                              <div className="flex items-center gap-2">
-                                                <Badge variant={log.domain ? "default" : "secondary"} className="text-xs">
-                                                  {log.confidence}% confidence
-                                                </Badge>
+
+                                                {/* Domain Display */}
+                                                {mostRecentLog.domain && (
+                                                  <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">Domain:</p>
+                                                    <a
+                                                      href={`https://${mostRecentLog.domain}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                      {mostRecentLog.domain}
+                                                      <ExternalLink className="h-3 w-3" />
+                                                    </a>
+                                                  </div>
+                                                )}
+
+                                                {/* View Logs Button */}
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => setShowLogsForSource(showLogsForSource === source ? null : source)}
+                                                  className="w-full"
+                                                >
+                                                  {showLogsForSource === source ? "Hide Logs" : "View Logs"}
+                                                </Button>
+
+                                                {/* Collapsible Logs Section */}
+                                                {showLogsForSource === source && (
+                                                  <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t">
+                                                    {logs.map((log, index) => (
+                                                      <div key={index} className="bg-muted/30 rounded-md p-2 text-xs space-y-1">
+                                                        <div className="flex items-center justify-between">
+                                                          <span className="font-medium text-muted-foreground">
+                                                            {new Date(log.timestamp).toLocaleString()}
+                                                          </span>
+                                                        </div>
+                                                        <div className="text-muted-foreground space-y-0.5">
+                                                          <p><span className="font-medium">Company:</span> {log.searchParams.company}</p>
+                                                          {log.searchParams.city && <p><span className="font-medium">City:</span> {log.searchParams.city}</p>}
+                                                          {log.searchParams.state && <p><span className="font-medium">State:</span> {log.searchParams.state}</p>}
+                                                          <p><span className="font-medium">Organizations found:</span> {log.organizationsFound}</p>
+                                                        </div>
+                                                        {log.selectedOrganization && (
+                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                            <p className="font-medium">{log.selectedOrganization.name}</p>
+                                                            <p>Domain: {log.selectedOrganization.domain}</p>
+                                                            {log.selectedOrganization.revenue && (
+                                                              <p>Revenue: {log.selectedOrganization.revenue}</p>
+                                                            )}
+                                                            {log.selectedOrganization.foundedYear && (
+                                                              <p>Founded: {log.selectedOrganization.foundedYear}</p>
+                                                            )}
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
                                               </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
+                                            );
+                                          });
+                                        })()}
+                                      </>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">No enrichment data yet</p>
                                     )}
                                     
+                                    {/* Enrich Button */}
                                     <Button
                                       size="sm"
                                       onClick={() => handleEnrich(lead)}
                                       disabled={enrichingId === lead.id || !lead.company}
-                                      className="w-full"
+                                      className="w-full mt-4"
                                     >
                                       {enrichingId === lead.id ? (
                                         <>
