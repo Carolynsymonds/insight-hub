@@ -52,6 +52,115 @@ interface EnrichmentLog {
   source: string;
 }
 
+function normalizeDomain(url: string): string {
+  return url
+    .replace(/^https?:\/\//, '')  // Remove http:// or https://
+    .replace(/^www\./, '')         // Remove www.
+    .replace(/\/+$/, '');          // Remove trailing slashes
+}
+
+async function enrichWithGoogle(
+  company: string,
+  city: string | null,
+  state: string | null
+): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+  const serpApiKey = Deno.env.get("SERPAPI_KEY");
+  
+  if (!serpApiKey) {
+    throw new Error("SerpAPI key not configured");
+  }
+
+  const timestamp = new Date().toISOString();
+  
+  // Build search query
+  const locationPart = [city, state].filter(Boolean).join(' ');
+  const query = `"${company}"+(official site OR website OR home page) ${locationPart} -jobs -careers -indeed -glassdoor -facebook -yelp`;
+  
+  console.log(`Google enriching company: ${company}, location: ${locationPart}`);
+
+  try {
+    // Call SerpAPI
+    const response = await fetch(
+      `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`SerpAPI error: ${response.status} - ${errorText}`);
+      throw new Error(`SerpAPI request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? 'found' : 'not found');
+
+    // Extract domain from knowledge_graph.website
+    let domain: string | null = null;
+    let confidence = 0;
+    let selectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
+
+    if (data.knowledge_graph && data.knowledge_graph.website) {
+      domain = normalizeDomain(data.knowledge_graph.website);
+      confidence = 100;
+
+      selectedOrg = {
+        name: data.knowledge_graph.title || company,
+        domain: domain,
+      };
+
+      console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
+    } else {
+      console.log("No knowledge graph found in SerpAPI response");
+    }
+
+    // Create enrichment log
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "google_knowledge_graph_search",
+      searchParams: {
+        company,
+        ...(city && { city }),
+        ...(state && { state }),
+      },
+      organizationsFound: data.knowledge_graph ? 1 : 0,
+      selectedOrganization: selectedOrg,
+      domain,
+      confidence,
+      source: "google_knowledge_graph",
+    };
+
+    return {
+      domain,
+      confidence,
+      source: "google_knowledge_graph",
+      log,
+    };
+  } catch (error) {
+    console.error("Error calling SerpAPI:", error);
+    
+    // Create error log
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "google_knowledge_graph_search_failed",
+      searchParams: {
+        company,
+        ...(city && { city }),
+        ...(state && { state }),
+      },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "google_knowledge_graph_error",
+    };
+
+    return {
+      domain: null,
+      confidence: 0,
+      source: "google_knowledge_graph_error",
+      log,
+    };
+  }
+}
+
 async function enrichWithApollo(
   company: string,
   city: string | null,
@@ -199,21 +308,23 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, city, state } = await req.json();
+    const { leadId, company, city, state, source = "apollo" } = await req.json();
 
     if (!leadId || !company) {
       throw new Error("Missing required fields: leadId and company");
     }
 
-    console.log(`Processing enrichment for lead: ${leadId}`);
+    console.log(`Processing enrichment for lead: ${leadId}, source: ${source}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Enrich with Apollo
-    const result = await enrichWithApollo(company, city, state);
+    // Enrich with the specified source
+    const result = source === "google" 
+      ? await enrichWithGoogle(company, city, state)
+      : await enrichWithApollo(company, city, state);
 
     // Get existing logs
     const { data: existingLead } = await supabase
@@ -226,14 +337,18 @@ serve(async (req) => {
     const updatedLogs = [...existingLogs, result.log];
 
     // Update the lead in the database
-    const updateData = {
-      domain: result.domain,
+    // Only update domain if we found one (don't overwrite existing with null)
+    const updateData: any = {
       enrichment_source: result.source,
       enrichment_confidence: result.confidence,
       enrichment_status: result.domain ? "enriched" : "failed",
       enriched_at: new Date().toISOString(),
       enrichment_logs: updatedLogs,
     };
+
+    if (result.domain) {
+      updateData.domain = result.domain;
+    }
 
     const { error: updateError } = await supabase
       .from("leads")
