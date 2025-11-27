@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Search, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -101,7 +103,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
-              <TableHead>Domain</TableHead>
+              <TableHead>State</TableHead>
+              <TableHead>Zipcode</TableHead>
+              <TableHead>DMA</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -109,7 +113,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -119,21 +123,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.email || "—"}</TableCell>
                   <TableCell>{lead.company || "—"}</TableCell>
-                  <TableCell>
-                    {lead.domain ? (
-                      <a
-                        href={`https://${lead.domain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {lead.domain}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
+                  <TableCell>{lead.state || "—"}</TableCell>
+                  <TableCell>{lead.zipcode || "—"}</TableCell>
+                  <TableCell>{lead.dma || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -149,21 +141,80 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleEnrich(lead)}
-                        disabled={enrichingId === lead.id || !lead.company}
-                        variant="outline"
-                      >
-                        {enrichingId === lead.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Enrich
-                          </>
-                        )}
-                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Search className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 bg-background border-border">
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Enrichments</h4>
+                            <Accordion type="single" collapsible className="w-full">
+                              <AccordionItem value="company-domain" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline">
+                                  Company Domain
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-3 pt-2">
+                                    {lead.domain ? (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="default">Enriched</Badge>
+                                          {lead.enrichment_confidence && (
+                                            <span className="text-xs text-muted-foreground">
+                                              {lead.enrichment_confidence}% confidence
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <p className="text-xs text-muted-foreground mb-1">Domain:</p>
+                                          <a
+                                            href={`https://${lead.domain}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-primary hover:underline"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {lead.domain}
+                                          </a>
+                                        </div>
+                                        {lead.enrichment_source && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Source: {lead.enrichment_source}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">
+                                        No domain found yet
+                                      </p>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEnrich(lead)}
+                                      disabled={enrichingId === lead.id || !lead.company}
+                                      className="w-full"
+                                    >
+                                      {enrichingId === lead.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Enriching...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Sparkles className="mr-2 h-4 w-4" />
+                                          {lead.domain ? "Re-enrich" : "Enrich"}
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <Button
                         size="sm"
                         variant="destructive"
