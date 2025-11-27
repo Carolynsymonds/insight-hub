@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -132,10 +132,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         href={`https://${lead.domain}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="text-primary hover:underline flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {lead.domain}
+                        <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
                       "—"
