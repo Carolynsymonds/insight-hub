@@ -51,12 +51,13 @@ interface LeadsTableProps {
 }
 const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const { toast } = useToast();
-  const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  const [enrichingSource, setEnrichingSource] = useState<{ leadId: string; source: string } | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
-  const handleEnrich = async (lead: Lead) => {
-    setEnrichingId(lead.id);
+  
+  const handleEnrich = async (lead: Lead, source: "apollo" | "google") => {
+    setEnrichingSource({ leadId: lead.id, source });
     try {
       const { data, error } = await supabase.functions.invoke("enrich-lead", {
         body: {
@@ -64,6 +65,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           company: lead.company,
           city: lead.city,
           state: lead.state,
+          source,
         },
       });
       if (error) throw error;
@@ -83,7 +85,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         variant: "destructive",
       });
     } finally {
-      setEnrichingId(null);
+      setEnrichingSource(null);
     }
   };
   const handleDelete = async (id: string) => {
@@ -196,7 +198,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
                                           return Object.entries(logsBySource).map(([source, logs]) => {
                                             const mostRecentLog = logs[0]; // Logs are already sorted by timestamp
-                                            const sourceLabel = source === "apollo_api" ? "Apollo" : source;
+                                            const sourceLabel = source === "apollo_api" 
+                                              ? "Apollo" 
+                                              : source === "google_knowledge_graph" 
+                                              ? "Google" 
+                                              : source;
                                             
                                             return (
                                               <div key={source} className="border rounded-lg p-3 space-y-3">
@@ -276,25 +282,47 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       <p className="text-sm text-muted-foreground">No enrichment data yet</p>
                                     )}
                                     
-                                    {/* Enrich Button */}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleEnrich(lead)}
-                                      disabled={enrichingId === lead.id || !lead.company}
-                                      className="w-full mt-4"
-                                    >
-                                      {enrichingId === lead.id ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Enriching...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Sparkles className="mr-2 h-4 w-4" />
-                                          {lead.domain ? "Re-enrich" : "Enrich"}
-                                        </>
-                                      )}
-                                    </Button>
+                                    {/* Enrich Buttons */}
+                                    <div className="space-y-2 mt-4">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleEnrich(lead, "apollo")}
+                                        disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "apollo" ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Enriching with Apollo...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich with Apollo
+                                          </>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleEnrich(lead, "google")}
+                                        disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "google" ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Enriching with Google...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich with Google
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
