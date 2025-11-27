@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 interface EnrichmentLog {
@@ -55,6 +56,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
+  
+  const getConfidenceExplanation = (source: string, confidence: number) => {
+    if (source === "apollo_api") {
+      if (confidence === 95) return "High confidence: Domain from primary_domain field";
+      if (confidence === 90) return "High confidence: Domain parsed from website URL";
+      if (confidence === 85) return "Good confidence: Domain extracted from website field";
+      return "No domain found";
+    }
+    if (source === "google_knowledge_graph") {
+      return confidence === 100 
+        ? "Maximum confidence: Domain from Google Knowledge Graph" 
+        : "No knowledge graph found";
+    }
+    return "Confidence score indicates data quality";
+  };
   
   const handleEnrich = async (lead: Lead, source: "apollo" | "google") => {
     setEnrichingSource({ leadId: lead.id, source });
@@ -209,9 +225,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 {/* Source Header */}
                                                 <div className="flex items-center justify-between">
                                                   <h4 className="font-semibold text-sm">{sourceLabel}</h4>
-                                                  <Badge variant="outline" className="text-xs">
-                                                    {mostRecentLog.confidence}% confidence
-                                                  </Badge>
+                                                  <div className="flex items-center gap-1">
+                                                    <Badge variant="outline" className="text-xs">
+                                                      {mostRecentLog.confidence}% confidence
+                                                    </Badge>
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="max-w-xs">
+                                                          <p className="text-xs">{getConfidenceExplanation(source, mostRecentLog.confidence)}</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  </div>
                                                 </div>
 
                                                 {/* Domain Display */}
