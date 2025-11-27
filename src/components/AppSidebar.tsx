@@ -42,7 +42,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <img src={logo} alt="Smart Leads" className={open ? "w-full h-auto max-w-[100px]" : "w-10 h-auto"} />
+        <img src={logo} alt="Smart Leads" className={open ? "w-full h-auto max-w-[100px] m-auto" : "w-10 h-auto"} />
       </SidebarHeader>
 
       <SidebarContent>
