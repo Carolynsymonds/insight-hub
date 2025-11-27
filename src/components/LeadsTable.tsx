@@ -58,13 +58,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
-    if (source === "apollo_api") {
+    if (source === "apollo_api" || source === "apollo_api_error") {
       if (confidence === 95) return "95% - When primary_domain field exists (most reliable)";
       if (confidence === 90) return "90% - When website_url exists and can be parsed as valid URL";
       if (confidence === 85) return "85% - When website_url exists but URL parsing fails (used as-is)";
       return "0% - No domain found";
     }
-    if (source === "google_knowledge_graph") {
+    if (source === "google_knowledge_graph" || source === "google_knowledge_graph_error") {
       return confidence === 100 
         ? "100% - When knowledge_graph.website exists in SerpAPI response" 
         : "0% - No knowledge graph found";
