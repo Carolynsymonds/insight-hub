@@ -106,7 +106,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>State</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="border-l-2 border-primary/20">Company Domain</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,18 +126,20 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell>{lead.state || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        lead.enrichment_status === "enriched"
-                          ? "default"
-                          : lead.enrichment_status === "failed"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {lead.enrichment_status || "pending"}
-                    </Badge>
+                  <TableCell className="border-l-2 border-primary/20">
+                    {lead.domain ? (
+                      <a
+                        href={`https://${lead.domain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {lead.domain}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
