@@ -33,8 +33,8 @@ const DrawerContent = React.forwardRef<
       className={cn(
         "fixed z-50 flex flex-col border bg-background",
         direction === "bottom" && "inset-x-0 bottom-0 mt-24 h-auto rounded-t-[10px]",
-        direction === "right" && "inset-y-0 right-0 w-full sm:max-w-md h-full rounded-l-[10px]",
-        direction === "left" && "inset-y-0 left-0 w-full sm:max-w-md h-full rounded-r-[10px]",
+        direction === "right" && "inset-y-0 right-0 w-full sm:max-w-md h-full rounded-l-[10px] justify-start",
+        direction === "left" && "inset-y-0 left-0 w-full sm:max-w-md h-full rounded-r-[10px] justify-start",
         direction === "top" && "inset-x-0 top-0 mb-24 h-auto rounded-b-[10px]",
         className,
       )}
@@ -44,7 +44,7 @@ const DrawerContent = React.forwardRef<
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
       )}
       {(direction === "left" || direction === "right") && (
-        <div className="my-auto ml-4 w-2 h-[100px] rounded-full bg-muted" />
+        <div className="mt-4 mx-auto w-2 h-[100px] rounded-full bg-muted" />
       )}
       {children}
     </DrawerPrimitive.Content>
