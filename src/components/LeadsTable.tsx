@@ -77,6 +77,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
+  const [openDrawer, setOpenDrawer] = useState<string | null>(null);
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api" || source === "apollo_api_error") {
@@ -208,7 +209,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
-                      <Drawer direction="right" dismissible={false}>
+                      <Drawer 
+                        direction="right" 
+                        open={openDrawer === lead.id}
+                        onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
+                      >
                         <DrawerTrigger asChild>
                           <Button size="sm" variant="outline">
                             <Search className="h-4 w-4" />
@@ -217,19 +222,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         <DrawerContent direction="right" className="bg-background">
                           <DrawerHeader className="flex flex-row items-center justify-between">
                             <DrawerTitle>Enrichments</DrawerTitle>
-                            <DrawerClose asChild>
-                              <Button variant="ghost" size="icon">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </DrawerClose>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setOpenDrawer(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </DrawerHeader>
-                          <div className="px-4 pb-8">
+                          <div className="px-4 pb-8 select-text">
                             <Accordion type="single" collapsible className="w-full">
                               <AccordionItem value="company-domain" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none">
                                   Company Domain
                                 </AccordionTrigger>
-                                <AccordionContent>
+                                <AccordionContent className="select-text">
                                   <div className="space-y-3 pt-2">
                                     {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
                                       <>
@@ -252,9 +259,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               : source;
                                             
                                             return (
-                                              <div key={source} className="border rounded-lg p-3 space-y-3">
+                                              <div key={source} className="border rounded-lg p-3 space-y-3 select-text">
                                                 {/* Source Header */}
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between select-none">
                                                   <h4 className="font-semibold text-sm">{sourceLabel}</h4>
                                                   <div className="flex items-center gap-1">
                                                     <Badge variant="outline" className="text-xs">
