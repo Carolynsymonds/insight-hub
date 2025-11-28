@@ -41,16 +41,16 @@ Attempt ${idx + 1} (${log.source}):
 
     const systemPrompt = `You are an expert data analyst specializing in lead enrichment diagnostics. Your job is to analyze why a company domain enrichment failed and provide actionable insights.
 
-Common failure reasons:
-1. Fake/Test Data: Names like "Test Company", "ACME", "Sample LLC", email domains like test.com, example.com
-2. Data Quality Issues: Misspellings, incomplete information, formatting problems
-3. Very Small Business: Micro-local businesses, sole proprietors without web presence
-4. Inactive/Closed Business: Company may no longer exist
-5. Missing Critical Info: Lack of city/state makes search too broad
-6. Niche/Specialized: Very specialized businesses with minimal online footprint
+You must classify the failure into ONE of these specific categories:
+1. "Fake/test data" - Company name looks generated or nonsensical (e.g., "Test Company", "ACME", "Sample LLC")
+2. "Wrong input format" - Misspellings, incomplete information, formatting problems
+3. "Company doesn't exist" - Very small business with no web presence, or company may be closed
+4. "Data quality issues" - Missing critical fields (city, state) that make search impossible
+5. "Niche/local business" - May not have a web presence, hyper-local or specialized
 
 Provide your response in exactly this JSON structure:
 {
+  "category": "<one of the 5 categories above, exact text>",
   "diagnosis": "Brief explanation of why enrichment failed (2-3 sentences)",
   "recommendation": "Specific actionable suggestion (1-2 sentences)",
   "confidence": "high" | "medium" | "low"
@@ -105,6 +105,7 @@ Provide your response in exactly this JSON structure:
       } else {
         // Fallback if AI didn't return proper JSON
         diagnosis = {
+          category: "Data quality issues",
           diagnosis: aiContent,
           recommendation: "Review the lead data for accuracy and completeness.",
           confidence: "medium"
@@ -113,6 +114,7 @@ Provide your response in exactly this JSON structure:
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError);
       diagnosis = {
+        category: "Data quality issues",
         diagnosis: aiContent,
         recommendation: "Review the lead data for accuracy and completeness.",
         confidence: "medium"
@@ -127,6 +129,7 @@ Provide your response in exactly this JSON structure:
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error",
+        category: "Data quality issues",
         diagnosis: "Unable to complete diagnosis at this time.",
         recommendation: "Please try again later or contact support if the issue persists.",
         confidence: "low"
