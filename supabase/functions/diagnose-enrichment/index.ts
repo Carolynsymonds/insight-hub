@@ -1,0 +1,138 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { leadData, enrichmentLogs } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Build context from lead data and logs
+    const leadContext = `
+Lead Information:
+- Company: ${leadData.company || 'Not provided'}
+- City: ${leadData.city || 'Not provided'}
+- State: ${leadData.state || 'Not provided'}
+- Zipcode: ${leadData.zipcode || 'Not provided'}
+- Email: ${leadData.email || 'Not provided'}
+- MICS Sector: ${leadData.mics_sector || 'Not provided'}
+- Full Name: ${leadData.full_name || 'Not provided'}
+
+Enrichment Attempts:
+${enrichmentLogs.map((log: any, idx: number) => `
+Attempt ${idx + 1} (${log.source}):
+- Search Query: ${log.search_query || 'Not provided'}
+- Organizations Found: ${log.organizations_found || 0}
+- Domain Found: ${log.domain || 'None'}
+- Confidence: ${log.confidence || 0}%
+`).join('\n')}
+`;
+
+    const systemPrompt = `You are an expert data analyst specializing in lead enrichment diagnostics. Your job is to analyze why a company domain enrichment failed and provide actionable insights.
+
+Common failure reasons:
+1. Fake/Test Data: Names like "Test Company", "ACME", "Sample LLC", email domains like test.com, example.com
+2. Data Quality Issues: Misspellings, incomplete information, formatting problems
+3. Very Small Business: Micro-local businesses, sole proprietors without web presence
+4. Inactive/Closed Business: Company may no longer exist
+5. Missing Critical Info: Lack of city/state makes search too broad
+6. Niche/Specialized: Very specialized businesses with minimal online footprint
+
+Provide your response in exactly this JSON structure:
+{
+  "diagnosis": "Brief explanation of why enrichment failed (2-3 sentences)",
+  "recommendation": "Specific actionable suggestion (1-2 sentences)",
+  "confidence": "high" | "medium" | "low"
+}`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Analyze why domain enrichment failed for this lead:\n\n${leadContext}` }
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      throw new Error("AI gateway error");
+    }
+
+    const data = await response.json();
+    const aiContent = data.choices[0].message.content;
+    
+    console.log("AI Response:", aiContent);
+    
+    // Parse the JSON response from AI
+    let diagnosis;
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        diagnosis = JSON.parse(jsonMatch[0]);
+      } else {
+        // Fallback if AI didn't return proper JSON
+        diagnosis = {
+          diagnosis: aiContent,
+          recommendation: "Review the lead data for accuracy and completeness.",
+          confidence: "medium"
+        };
+      }
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError);
+      diagnosis = {
+        diagnosis: aiContent,
+        recommendation: "Review the lead data for accuracy and completeness.",
+        confidence: "medium"
+      };
+    }
+
+    return new Response(JSON.stringify(diagnosis), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("diagnose-enrichment error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        diagnosis: "Unable to complete diagnosis at this time.",
+        recommendation: "Please try again later or contact support if the issue persists.",
+        confidence: "low"
+      }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

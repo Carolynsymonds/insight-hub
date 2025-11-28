@@ -91,6 +91,55 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [calculatingDistance, setCalculatingDistance] = useState<string | null>(null);
   const [scoringDomain, setScoringDomain] = useState<string | null>(null);
   const [calculatingMatchScore, setCalculatingMatchScore] = useState<string | null>(null);
+  const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
+  const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { diagnosis: string; recommendation: string; confidence: string }>>({});
+
+  const handleDiagnose = async (lead: Lead, source: string) => {
+    setDiagnosing({ leadId: lead.id, source });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
+        body: {
+          leadData: {
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            zipcode: lead.zipcode,
+            email: lead.email,
+            mics_sector: lead.mics_sector,
+            full_name: lead.full_name,
+          },
+          enrichmentLogs: lead.enrichment_logs?.filter(log => {
+            if (source === "apollo") return log.source === "apollo_api";
+            if (source === "google") return log.source.startsWith("google_");
+            if (source === "email") return log.source.startsWith("email_");
+            return false;
+          }) || [],
+        },
+      });
+
+      if (error) throw error;
+
+      setDiagnosisResults(prev => ({
+        ...prev,
+        [`${lead.id}-${source}`]: data,
+      }));
+
+      toast({
+        title: "Diagnosis Complete",
+        description: "AI analysis has been generated.",
+      });
+    } catch (error: any) {
+      console.error("Diagnosis error:", error);
+      toast({
+        title: "Diagnosis Failed",
+        description: error.message || "Failed to generate diagnosis.",
+        variant: "destructive",
+      });
+    } finally {
+      setDiagnosing(null);
+    }
+  };
 
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api" || source === "apollo_api_error") {
@@ -489,7 +538,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   <p className="text-xs text-muted-foreground mb-1 select-text">
                                                     Domain:
                                                   </p>
-                                                  {mostRecentLog.domain ? (
+                                                {mostRecentLog.domain ? (
                                                     <a
                                                       href={`https://${mostRecentLog.domain}`}
                                                       target="_blank"
@@ -502,9 +551,65 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                       <ExternalLink className="h-3 w-3 select-none" />
                                                     </a>
                                                   ) : (
-                                                    <p className="text-sm text-muted-foreground select-text">
-                                                      No domain found
-                                                    </p>
+                                                    <>
+                                                      <p className="text-sm text-muted-foreground select-text mb-2">
+                                                        No domain found
+                                                      </p>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleDiagnose(lead, source)}
+                                                        disabled={diagnosing?.leadId === lead.id && diagnosing?.source === source}
+                                                        className="w-full select-none"
+                                                      >
+                                                        {diagnosing?.leadId === lead.id && diagnosing?.source === source ? (
+                                                          <>
+                                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                                            Diagnosing...
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <Sparkles className="h-3 w-3 mr-2" />
+                                                            Diagnose
+                                                          </>
+                                                        )}
+                                                      </Button>
+                                                      
+                                                      {/* Diagnosis Results */}
+                                                      {diagnosisResults[`${lead.id}-${source}`] && (
+                                                        <div className="mt-3 border rounded-lg p-3 bg-muted/30 space-y-2">
+                                                          <div className="flex items-start gap-2">
+                                                            <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                                            <div className="space-y-2 flex-1">
+                                                              <div>
+                                                                <p className="text-xs font-medium mb-1">Diagnosis</p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                  {diagnosisResults[`${lead.id}-${source}`].diagnosis}
+                                                                </p>
+                                                              </div>
+                                                              <div>
+                                                                <p className="text-xs font-medium mb-1">Recommendation</p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                  {diagnosisResults[`${lead.id}-${source}`].recommendation}
+                                                                </p>
+                                                              </div>
+                                                              <Badge 
+                                                                variant={
+                                                                  diagnosisResults[`${lead.id}-${source}`].confidence === "high" 
+                                                                    ? "default" 
+                                                                    : diagnosisResults[`${lead.id}-${source}`].confidence === "medium"
+                                                                    ? "secondary"
+                                                                    : "outline"
+                                                                }
+                                                                className="text-xs"
+                                                              >
+                                                                {diagnosisResults[`${lead.id}-${source}`].confidence} confidence
+                                                              </Badge>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      )}
+                                                    </>
                                                   )}
                                                 </div>
 
