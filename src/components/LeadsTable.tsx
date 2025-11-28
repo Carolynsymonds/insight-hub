@@ -94,8 +94,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
   const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { diagnosis: string; recommendation: string; confidence: string }>>({});
 
-  const handleDiagnose = async (lead: Lead, source: string) => {
-    setDiagnosing({ leadId: lead.id, source });
+  const handleDiagnose = async (lead: Lead) => {
+    setDiagnosing({ leadId: lead.id, source: "all" });
     
     try {
       const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
@@ -109,12 +109,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
             mics_sector: lead.mics_sector,
             full_name: lead.full_name,
           },
-          enrichmentLogs: lead.enrichment_logs?.filter(log => {
-            if (source === "apollo") return log.source === "apollo_api";
-            if (source === "google") return log.source.startsWith("google_");
-            if (source === "email") return log.source.startsWith("email_");
-            return false;
-          }) || [],
+          enrichmentLogs: lead.enrichment_logs || [],
         },
       });
 
@@ -122,7 +117,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
       setDiagnosisResults(prev => ({
         ...prev,
-        [`${lead.id}-${source}`]: data,
+        [lead.id]: data,
       }));
 
       toast({
@@ -551,65 +546,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                       <ExternalLink className="h-3 w-3 select-none" />
                                                     </a>
                                                   ) : (
-                                                    <>
-                                                      <p className="text-sm text-muted-foreground select-text mb-2">
-                                                        No domain found
-                                                      </p>
-                                                      <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleDiagnose(lead, source)}
-                                                        disabled={diagnosing?.leadId === lead.id && diagnosing?.source === source}
-                                                        className="w-full select-none"
-                                                      >
-                                                        {diagnosing?.leadId === lead.id && diagnosing?.source === source ? (
-                                                          <>
-                                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                                            Diagnosing...
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <Sparkles className="h-3 w-3 mr-2" />
-                                                            Diagnose
-                                                          </>
-                                                        )}
-                                                      </Button>
-                                                      
-                                                      {/* Diagnosis Results */}
-                                                      {diagnosisResults[`${lead.id}-${source}`] && (
-                                                        <div className="mt-3 border rounded-lg p-3 bg-muted/30 space-y-2">
-                                                          <div className="flex items-start gap-2">
-                                                            <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                                                            <div className="space-y-2 flex-1">
-                                                              <div>
-                                                                <p className="text-xs font-medium mb-1">Diagnosis</p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                  {diagnosisResults[`${lead.id}-${source}`].diagnosis}
-                                                                </p>
-                                                              </div>
-                                                              <div>
-                                                                <p className="text-xs font-medium mb-1">Recommendation</p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                  {diagnosisResults[`${lead.id}-${source}`].recommendation}
-                                                                </p>
-                                                              </div>
-                                                              <Badge 
-                                                                variant={
-                                                                  diagnosisResults[`${lead.id}-${source}`].confidence === "high" 
-                                                                    ? "default" 
-                                                                    : diagnosisResults[`${lead.id}-${source}`].confidence === "medium"
-                                                                    ? "secondary"
-                                                                    : "outline"
-                                                                }
-                                                                className="text-xs"
-                                                              >
-                                                                {diagnosisResults[`${lead.id}-${source}`].confidence} confidence
-                                                              </Badge>
-                                                            </div>
-                                                          </div>
-                                                        </div>
-                                                      )}
-                                                    </>
+                                                    <p className="text-sm text-muted-foreground select-text">
+                                                      No domain found
+                                                    </p>
                                                   )}
                                                 </div>
 
@@ -778,14 +717,82 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </div>
                                             );
                                           });
-                                        })()}
-                                      </>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground">No enrichment data yet</p>
-                                    )}
+                                         })()}
+                                       </>
+                                     ) : (
+                                       <p className="text-sm text-muted-foreground">No enrichment data yet</p>
+                                     )}
 
-                                    {/* Enrich Buttons */}
-                                    <div className="space-y-2 mt-4">
+                                     {/* Generic Diagnose Button - appears when no domains found in Apollo and Google */}
+                                     {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (() => {
+                                       const hasApolloOrGoogle = lead.enrichment_logs.some(log => 
+                                         log.source === "apollo_api" || 
+                                         log.source.startsWith("google_")
+                                       );
+                                       const hasAnyDomain = lead.enrichment_logs.some(log => log.domain);
+                                       
+                                       return hasApolloOrGoogle && !hasAnyDomain ? (
+                                         <div className="mt-4 pt-4 border-t space-y-3">
+                                           <Button
+                                             size="sm"
+                                             variant="outline"
+                                             onClick={() => handleDiagnose(lead)}
+                                             disabled={diagnosing?.leadId === lead.id}
+                                             className="w-full select-none"
+                                           >
+                                             {diagnosing?.leadId === lead.id ? (
+                                               <>
+                                                 <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                                 Diagnosing...
+                                               </>
+                                             ) : (
+                                               <>
+                                                 <Sparkles className="h-3 w-3 mr-2" />
+                                                 Diagnose Why No Domain Found
+                                               </>
+                                             )}
+                                           </Button>
+                                           
+                                           {/* Diagnosis Results */}
+                                           {diagnosisResults[lead.id] && (
+                                             <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
+                                               <div className="flex items-start gap-2">
+                                                 <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                                 <div className="space-y-2 flex-1">
+                                                   <div>
+                                                     <p className="text-xs font-medium mb-1">Diagnosis</p>
+                                                     <p className="text-xs text-muted-foreground">
+                                                       {diagnosisResults[lead.id].diagnosis}
+                                                     </p>
+                                                   </div>
+                                                   <div>
+                                                     <p className="text-xs font-medium mb-1">Recommendation</p>
+                                                     <p className="text-xs text-muted-foreground">
+                                                       {diagnosisResults[lead.id].recommendation}
+                                                     </p>
+                                                   </div>
+                                                   <Badge 
+                                                     variant={
+                                                       diagnosisResults[lead.id].confidence === "high" 
+                                                         ? "default" 
+                                                         : diagnosisResults[lead.id].confidence === "medium"
+                                                         ? "secondary"
+                                                         : "outline"
+                                                     }
+                                                     className="text-xs"
+                                                   >
+                                                     {diagnosisResults[lead.id].confidence} confidence
+                                                   </Badge>
+                                                 </div>
+                                               </div>
+                                             </div>
+                                           )}
+                                         </div>
+                                       ) : null;
+                                     })()}
+
+                                     {/* Enrich Buttons */}
+                                     <div className="space-y-2 mt-4">
                                       <Button
                                         size="sm"
                                         onClick={() => handleEnrich(lead, "apollo")}
