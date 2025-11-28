@@ -229,7 +229,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           }, {} as Record<string, EnrichmentLog[]>);
 
                                           return Object.entries(logsBySource).map(([source, logs]) => {
-                                            const mostRecentLog = logs[0]; // Logs are already sorted by timestamp
+                                            const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
                                             const sourceLabel = source === "apollo_api" 
                                               ? "Apollo" 
                                               : source === "google_knowledge_graph" || source === "google_local_results"
