@@ -19,6 +19,7 @@ export type Database = {
           city: string | null
           company: string | null
           created_at: string | null
+          distance_miles: number | null
           dma: string | null
           domain: string | null
           email: string | null
@@ -44,6 +45,7 @@ export type Database = {
           city?: string | null
           company?: string | null
           created_at?: string | null
+          distance_miles?: number | null
           dma?: string | null
           domain?: string | null
           email?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           city?: string | null
           company?: string | null
           created_at?: string | null
+          distance_miles?: number | null
           dma?: string | null
           domain?: string | null
           email?: string | null
