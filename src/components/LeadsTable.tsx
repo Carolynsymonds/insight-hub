@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 interface EnrichmentLog {
@@ -198,15 +198,20 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
-                      <Drawer direction="right">
+                      <Drawer direction="right" dismissible={false}>
                         <DrawerTrigger asChild>
                           <Button size="sm" variant="outline">
                             <Search className="h-4 w-4" />
                           </Button>
                         </DrawerTrigger>
                         <DrawerContent direction="right" className="bg-background">
-                          <DrawerHeader>
+                          <DrawerHeader className="flex flex-row items-center justify-between">
                             <DrawerTitle>Enrichments</DrawerTitle>
+                            <DrawerClose asChild>
+                              <Button variant="ghost" size="icon">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </DrawerClose>
                           </DrawerHeader>
                           <div className="px-4 pb-8">
                             <Accordion type="single" collapsible className="w-full">
