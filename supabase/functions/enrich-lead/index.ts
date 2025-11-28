@@ -356,6 +356,148 @@ async function enrichWithGoogle(
   }
 }
 
+async function enrichWithEmail(
+  email: string | null,
+  company: string
+): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+  const serpApiKey = Deno.env.get("SERPAPI_KEY");
+  const timestamp = new Date().toISOString();
+  
+  // List of common personal email domains to skip
+  const PERSONAL_EMAIL_DOMAINS = [
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
+    "live.com", "msn.com", "aol.com", "icloud.com", 
+    "me.com", "mac.com", "mail.com", "protonmail.com",
+    "zoho.com", "yandex.com", "gmx.com", "fastmail.com"
+  ];
+
+  // Step 1: Check if email exists
+  if (!email) {
+    console.log("No email provided for enrichment");
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "email_enrichment_skipped",
+      searchParams: { company },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "email_not_provided",
+    };
+    return { domain: null, confidence: 0, source: "email_not_provided", log };
+  }
+
+  // Step 2: Extract domain from email
+  const emailParts = email.split("@");
+  if (emailParts.length !== 2 || !emailParts[1]) {
+    console.log("Invalid email format");
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "email_enrichment_failed",
+      searchParams: { company },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "email_invalid_format",
+    };
+    return { domain: null, confidence: 0, source: "email_invalid_format", log };
+  }
+
+  const emailDomain = emailParts[1].toLowerCase();
+  console.log(`Extracted domain from email: ${emailDomain}`);
+
+  // Step 3: Check if it's a personal email domain
+  if (PERSONAL_EMAIL_DOMAINS.includes(emailDomain)) {
+    console.log(`Personal email domain detected: ${emailDomain}`);
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "email_enrichment_skipped",
+      searchParams: { company },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "email_personal_domain_skipped",
+    };
+    return { domain: null, confidence: 0, source: "email_personal_domain_skipped", log };
+  }
+
+  // Step 4: Verify domain exists via Google search
+  try {
+    const verifyQuery = `site:${emailDomain}`;
+    console.log(`Verifying domain with query: ${verifyQuery}`);
+    
+    const response = await fetch(
+      `https://serpapi.com/search.json?q=${encodeURIComponent(verifyQuery)}&num=1&api_key=${serpApiKey}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`SerpAPI request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const totalResults = data.search_information?.total_results || 0;
+    
+    console.log(`Domain verification results: ${totalResults} total results`);
+
+    if (totalResults > 0) {
+      // Domain verified
+      const log: EnrichmentLog = {
+        timestamp,
+        action: "email_domain_verification_success",
+        searchParams: { company },
+        organizationsFound: 1,
+        selectedOrganization: {
+          name: company,
+          domain: emailDomain,
+        },
+        domain: emailDomain,
+        confidence: 95,
+        source: "email_domain_verified",
+        searchInformation: {
+          query_displayed: verifyQuery,
+          total_results: totalResults,
+          time_taken_displayed: data.search_information?.time_taken_displayed || 0,
+          organic_results_state: data.search_information?.organic_results_state || "",
+          results_for: verifyQuery,
+        },
+      };
+      console.log(`Domain verified with 95% confidence: ${emailDomain}`);
+      return { domain: emailDomain, confidence: 95, source: "email_domain_verified", log };
+    } else {
+      // Domain not verified
+      const log: EnrichmentLog = {
+        timestamp,
+        action: "email_domain_verification_failed",
+        searchParams: { company },
+        organizationsFound: 0,
+        domain: null,
+        confidence: 0,
+        source: "email_domain_not_verified",
+        searchInformation: {
+          query_displayed: verifyQuery,
+          total_results: 0,
+          time_taken_displayed: data.search_information?.time_taken_displayed || 0,
+          organic_results_state: data.search_information?.organic_results_state || "",
+          results_for: verifyQuery,
+        },
+      };
+      console.log(`Domain not verified: ${emailDomain}`);
+      return { domain: null, confidence: 0, source: "email_domain_not_verified", log };
+    }
+  } catch (error) {
+    console.error("Error verifying email domain:", error);
+    const log: EnrichmentLog = {
+      timestamp,
+      action: "email_domain_verification_error",
+      searchParams: { company },
+      organizationsFound: 0,
+      domain: null,
+      confidence: 0,
+      source: "email_domain_verification_error",
+    };
+    return { domain: null, confidence: 0, source: "email_domain_verification_error", log };
+  }
+}
+
 async function enrichWithApollo(
   company: string,
   city: string | null,
@@ -503,7 +645,7 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, city, state, mics_sector, source = "apollo" } = await req.json();
+    const { leadId, company, city, state, mics_sector, email, source = "apollo" } = await req.json();
 
     if (!leadId || !company) {
       throw new Error("Missing required fields: leadId and company");
@@ -519,6 +661,8 @@ serve(async (req) => {
     // Enrich with the specified source
     const result = source === "google" 
       ? await enrichWithGoogle(company, city, state, mics_sector)
+      : source === "email"
+      ? await enrichWithEmail(email, company)
       : await enrichWithApollo(company, city, state);
 
     // Get existing logs
@@ -546,7 +690,7 @@ serve(async (req) => {
     }
 
     // Add GPS coordinates if found (only from Google enrichment)
-    if (result.latitude !== undefined && result.longitude !== undefined) {
+    if ('latitude' in result && result.latitude !== undefined && 'longitude' in result && result.longitude !== undefined) {
       updateData.latitude = result.latitude;
       updateData.longitude = result.longitude;
     }
