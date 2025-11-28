@@ -362,7 +362,6 @@ async function enrichWithEmail(
   email: string | null,
   company: string
 ): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
-  const serpApiKey = Deno.env.get("SERPAPI_KEY");
   const timestamp = new Date().toISOString();
   
   // List of common personal email domains to skip
@@ -457,31 +456,33 @@ async function enrichWithEmail(
     resultFound: true,
   });
 
-  // Step 4: Verify domain exists via Google search
+  // Step 4: Verify domain exists via DNS lookup
   try {
-    const verifyQuery = `site:${emailDomain}`;
-    console.log(`Verifying domain with query: ${verifyQuery}`);
+    const dnsQuery = `https://dns.google/resolve?name=${emailDomain}&type=A`;
+    console.log(`Verifying domain with DNS query: ${dnsQuery}`);
     
-    const response = await fetch(
-      `https://serpapi.com/search.json?q=${encodeURIComponent(verifyQuery)}&num=1&api_key=${serpApiKey}`
-    );
+    const response = await fetch(dnsQuery);
 
     if (!response.ok) {
-      throw new Error(`SerpAPI request failed: ${response.status}`);
+      throw new Error(`DNS lookup failed: ${response.status}`);
     }
 
     const data = await response.json();
-    const totalResults = data.search_information?.total_results || 0;
     
-    console.log(`Domain verification results: ${totalResults} total results`);
+    // Status 0 = Success (NOERROR), Status 3 = NXDOMAIN (domain doesn't exist)
+    const hasARecords = data.Status === 0 && data.Answer && data.Answer.length > 0;
+    
+    console.log(`DNS lookup result: Status=${data.Status}, HasARecords=${hasARecords}`);
 
-    if (totalResults > 0) {
-      // Domain verified
+    if (hasARecords) {
+      // Domain verified - has valid A records
+      const ipAddresses = data.Answer.filter((a: any) => a.type === 1).map((a: any) => a.data);
+      
       searchSteps.push({
         step: 3,
-        query: verifyQuery,
+        query: dnsQuery,
         resultFound: true,
-        source: `${totalResults} pages indexed`,
+        source: `DNS resolved to ${ipAddresses.length} IP address(es): ${ipAddresses.join(", ")}`,
       });
       
       const log: EnrichmentLog = {
@@ -496,24 +497,21 @@ async function enrichWithEmail(
         domain: emailDomain,
         confidence: 95,
         source: "email_domain_verified",
-        searchInformation: {
-          query_displayed: verifyQuery,
-          total_results: totalResults,
-          time_taken_displayed: data.search_information?.time_taken_displayed || 0,
-          organic_results_state: data.search_information?.organic_results_state || "",
-          results_for: verifyQuery,
-        },
         searchSteps,
       };
-      console.log(`Domain verified with 95% confidence: ${emailDomain}`);
+      console.log(`Domain verified via DNS with 95% confidence: ${emailDomain}`);
       return { domain: emailDomain, confidence: 95, source: "email_domain_verified", log };
     } else {
-      // Domain not verified
+      // Domain not verified - no A records or NXDOMAIN
+      const reason = data.Status === 3 
+        ? "NXDOMAIN - domain does not exist" 
+        : "No A records found - domain may not have a website";
+      
       searchSteps.push({
         step: 3,
-        query: verifyQuery,
+        query: dnsQuery,
         resultFound: false,
-        source: "0 results - domain may not exist or is not indexed by Google",
+        source: reason,
       });
       
       const log: EnrichmentLog = {
@@ -524,23 +522,16 @@ async function enrichWithEmail(
         domain: null,
         confidence: 0,
         source: "email_domain_not_verified",
-        searchInformation: {
-          query_displayed: verifyQuery,
-          total_results: 0,
-          time_taken_displayed: data.search_information?.time_taken_displayed || 0,
-          organic_results_state: data.search_information?.organic_results_state || "",
-          results_for: verifyQuery,
-        },
         searchSteps,
       };
-      console.log(`Domain not verified: ${emailDomain}`);
+      console.log(`Domain not verified: ${emailDomain} - ${reason}`);
       return { domain: null, confidence: 0, source: "email_domain_not_verified", log };
     }
   } catch (error) {
     console.error("Error verifying email domain:", error);
     searchSteps.push({
       step: 3,
-      query: `site:${emailDomain}`,
+      query: `https://dns.google/resolve?name=${emailDomain}&type=A`,
       resultFound: false,
       source: "Error during verification",
     });
