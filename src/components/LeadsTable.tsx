@@ -311,76 +311,88 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
                                                 {/* Collapsible Logs Section */}
                                                 {showLogsForSource === source && (
-                                                  <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t" style={{ userSelect: 'text' }}>
-                                                    {logs.map((log, index) => (
-                                                      <div key={index} className="bg-muted/30 rounded-md p-2 text-xs space-y-1" style={{ userSelect: 'text' }}>
-                                                        <div className="flex items-center justify-between">
-                                                          <span className="font-medium text-muted-foreground">
-                                                            {new Date(log.timestamp).toLocaleString()}
-                                                          </span>
-                                                        </div>
-                                                        
-                                                        {/* Search Steps */}
-                                                        {log.searchSteps && log.searchSteps.length > 0 && (
-                                                          <div className="border rounded p-2 mb-2 bg-background/50">
-                                                            <p className="font-medium mb-2">Search Path:</p>
-                                                            <div className="space-y-2">
-                                                              {log.searchSteps.map((step, idx) => (
-                                                                <div key={idx} className="border-l-2 border-primary/30 pl-2">
-                                                                  <div className="flex items-center gap-2 mb-1">
-                                                                    <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5">
-                                                                      Step {step.step}
-                                                                    </Badge>
-                                                                    {step.resultFound && step.source && (
-                                                                      <span className="text-muted-foreground text-xs">via {step.source}</span>
-                                                                    )}
+                                                  <div className="space-y-2 max-h-96 overflow-y-auto pt-2 border-t" style={{ userSelect: 'text' }}>
+                                                    {/* Show only the most recent log */}
+                                                    {(() => {
+                                                      const latestLog = logs[logs.length - 1];
+                                                      return (
+                                                        <div className="bg-muted/30 rounded-md p-2 text-xs space-y-1" style={{ userSelect: 'text' }}>
+                                                          <div className="flex items-center justify-between">
+                                                            <span className="font-medium text-muted-foreground">
+                                                              {new Date(latestLog.timestamp).toLocaleString()}
+                                                            </span>
+                                                          </div>
+                                                          
+                                                          {/* Search Steps */}
+                                                          {latestLog.searchSteps && latestLog.searchSteps.length > 0 && (
+                                                            <div className="border rounded p-2 mb-2 bg-background/50">
+                                                              <p className="font-medium mb-2">Search Path:</p>
+                                                              <div className="space-y-2">
+                                                                {latestLog.searchSteps.map((step, idx) => (
+                                                                  <div key={idx} className="border-l-2 border-primary/30 pl-2">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                      <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5">
+                                                                        Step {step.step}
+                                                                      </Badge>
+                                                                      {step.resultFound && step.source && (
+                                                                        <span className="text-muted-foreground text-xs">via {step.source}</span>
+                                                                      )}
+                                                                    </div>
+                                                                    <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
+                                                                      {step.query}
+                                                                    </p>
+                                                                    <p className="mt-1 font-medium text-xs">
+                                                                      {step.resultFound ? '✓ Found results' : '✗ No results'}
+                                                                    </p>
                                                                   </div>
-                                                                  <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
-                                                                    {step.query}
-                                                                  </p>
-                                                                  <p className="mt-1 font-medium text-xs">
-                                                                    {step.resultFound ? '✓ Found results' : '✗ No results'}
+                                                                ))}
+                                                              </div>
+                                                              {latestLog.searchSteps.length === 1 && !latestLog.searchSteps[0].resultFound && (
+                                                                <div className="mt-2 p-2 bg-muted/50 rounded border border-muted-foreground/20">
+                                                                  <p className="text-xs text-muted-foreground">
+                                                                    ℹ️ Step 2 (industry search) was skipped because this lead has no MICS Sector data
                                                                   </p>
                                                                 </div>
-                                                              ))}
+                                                              )}
                                                             </div>
+                                                          )}
+                                                          
+                                                          <div className="text-muted-foreground space-y-0.5">
+                                                            <p><span className="font-medium">Company:</span> {latestLog.searchParams.company}</p>
+                                                            {latestLog.searchParams.city && <p><span className="font-medium">City:</span> {latestLog.searchParams.city}</p>}
+                                                            {latestLog.searchParams.state && <p><span className="font-medium">State:</span> {latestLog.searchParams.state}</p>}
+                                                            {latestLog.searchParams.micsSector && <p><span className="font-medium">MICS Sector:</span> {latestLog.searchParams.micsSector}</p>}
+                                                            <p><span className="font-medium">Organizations found:</span> {latestLog.organizationsFound}</p>
                                                           </div>
-                                                        )}
-                                                        
-                                                        <div className="text-muted-foreground space-y-0.5">
-                                                          <p><span className="font-medium">Company:</span> {log.searchParams.company}</p>
-                                                          {log.searchParams.city && <p><span className="font-medium">City:</span> {log.searchParams.city}</p>}
-                                                          {log.searchParams.state && <p><span className="font-medium">State:</span> {log.searchParams.state}</p>}
-                                                          <p><span className="font-medium">Organizations found:</span> {log.organizationsFound}</p>
+                                                          {latestLog.selectedOrganization && (
+                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                              <p className="font-medium">{latestLog.selectedOrganization.name}</p>
+                                                              <p>Domain: {latestLog.selectedOrganization.domain}</p>
+                                                              {latestLog.selectedOrganization.revenue && (
+                                                                <p>Revenue: {latestLog.selectedOrganization.revenue}</p>
+                                                              )}
+                                                              {latestLog.selectedOrganization.foundedYear && (
+                                                                <p>Founded: {latestLog.selectedOrganization.foundedYear}</p>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                          {latestLog.gpsCoordinates && (
+                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                              <p className="font-medium">GPS Coordinates</p>
+                                                              <p>Latitude: {latestLog.gpsCoordinates.latitude}</p>
+                                                              <p>Longitude: {latestLog.gpsCoordinates.longitude}</p>
+                                                            </div>
+                                                          )}
+                                                          {latestLog.searchInformation && (
+                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                              <p className="font-medium">Search Info</p>
+                                                              <p>Query: {latestLog.searchInformation.query_displayed}</p>
+                                                              <p>Results for: {latestLog.searchInformation.results_for}</p>
+                                                            </div>
+                                                          )}
                                                         </div>
-                                                        {log.selectedOrganization && (
-                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                            <p className="font-medium">{log.selectedOrganization.name}</p>
-                                                            <p>Domain: {log.selectedOrganization.domain}</p>
-                                                            {log.selectedOrganization.revenue && (
-                                                              <p>Revenue: {log.selectedOrganization.revenue}</p>
-                                                            )}
-                                                            {log.selectedOrganization.foundedYear && (
-                                                              <p>Founded: {log.selectedOrganization.foundedYear}</p>
-                                                            )}
-                                                          </div>
-                                                        )}
-                                                        {log.gpsCoordinates && (
-                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                            <p className="font-medium">GPS Coordinates</p>
-                                                            <p>Latitude: {log.gpsCoordinates.latitude}</p>
-                                                            <p>Longitude: {log.gpsCoordinates.longitude}</p>
-                                                          </div>
-                                                        )}
-                                                        {log.searchInformation && (
-                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                            <p className="font-medium">Search Info</p>
-                                                            <p>Query: {log.searchInformation.query_displayed}</p>
-                                                            <p>Results for: {log.searchInformation.results_for}</p>
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    ))}
+                                                      );
+                                                    })()}
                                                   </div>
                                                 )}
                                               </div>
