@@ -24,6 +24,9 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
     state: "",
     dma: "",
     zipcode: "",
+    mics_sector: "",
+    mics_subsector: "",
+    mics_segment: "",
   });
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -56,6 +59,9 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
         state: "",
         dma: "",
         zipcode: "",
+        mics_sector: "",
+        mics_subsector: "",
+        mics_segment: "",
       });
 
       onUploadComplete();
@@ -99,6 +105,9 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
           else if (header === "state") lead.state = value;
           else if (header === "dma") lead.dma = value;
           else if (header === "zipcode" || header === "zip") lead.zipcode = value;
+          else if (header === "mics sector (harmonised)" || header === "mics_sector") lead.mics_sector = value;
+          else if (header === "mics subsector (harmonised)" || header === "mics_subsector") lead.mics_subsector = value;
+          else if (header === "mics segment (harmonised)" || header === "mics_segment") lead.mics_segment = value;
         });
 
         return lead;
@@ -222,6 +231,33 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
                     disabled={loading}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mics_sector">MICS Sector</Label>
+                  <Input
+                    id="mics_sector"
+                    value={formData.mics_sector}
+                    onChange={(e) => setFormData({ ...formData, mics_sector: e.target.value })}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mics_subsector">MICS Subsector</Label>
+                  <Input
+                    id="mics_subsector"
+                    value={formData.mics_subsector}
+                    onChange={(e) => setFormData({ ...formData, mics_subsector: e.target.value })}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mics_segment">MICS Segment</Label>
+                  <Input
+                    id="mics_segment"
+                    value={formData.mics_segment}
+                    onChange={(e) => setFormData({ ...formData, mics_segment: e.target.value })}
+                    disabled={loading}
+                  />
+                </div>
               </div>
               <Button type="submit" disabled={loading} className="w-full">
                 Add Lead
@@ -246,7 +282,7 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
                 />
               </Label>
               <p className="text-xs text-muted-foreground mt-2">
-                CSV should include: full_name, phone, email, company, city, state, dma, zipcode
+                CSV should include: full_name, phone, email, company, city, state, dma, zipcode, MICS Sector (Harmonised), MICS Subsector (Harmonised), MICS Segment (Harmonised)
               </p>
             </div>
           </TabsContent>
