@@ -30,7 +30,7 @@ serve(async (req) => {
     // Fetch the lead
     const { data: lead, error: fetchError } = await supabase
       .from('leads')
-      .select('enrichment_source, distance_confidence, domain_relevance_score')
+      .select('enrichment_source, distance_confidence, domain_relevance_score, industry_relevance_score, vehicle_tracking_interest_score')
       .eq('id', leadId)
       .single();
 
@@ -57,9 +57,9 @@ serve(async (req) => {
       matchScoreSource = 'google_knowledge_graph';
       console.log('Step 2 applied: Google Knowledge Graph - 95%');
     }
-    // Step 3: Calculate from Distance + Domain Relevance
+    // Step 3: Calculate from Distance + Domain Relevance + Industry Relevance + Vehicle Tracking Interest
     else {
-      console.log('Step 3: Calculating from Distance + Domain Relevance');
+      console.log('Step 3: Calculating from Distance + Domain Relevance + Industry Relevance + Vehicle Tracking Interest');
       
       // Convert distance confidence to numeric
       let distanceScore = 0;
@@ -71,22 +71,22 @@ serve(async (req) => {
         distanceScore = 40;
       }
 
-      // Get domain relevance score (0-100)
+      // Get other scores (0-100)
       const domainScore = lead.domain_relevance_score || 0;
+      const industryScore = lead.industry_relevance_score || 0;
+      const vehicleTrackingScore = lead.vehicle_tracking_interest_score || 0;
 
-      // Calculate average
-      if (distanceScore > 0 && domainScore > 0) {
-        matchScore = Math.round((distanceScore + domainScore) / 2);
-      } else if (distanceScore > 0) {
-        matchScore = distanceScore;
-      } else if (domainScore > 0) {
-        matchScore = domainScore;
+      // Calculate average of available scores
+      const scores = [distanceScore, domainScore, industryScore, vehicleTrackingScore].filter(s => s > 0);
+      
+      if (scores.length > 0) {
+        matchScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
       } else {
         matchScore = 0;
       }
 
       matchScoreSource = 'calculated';
-      console.log(`Step 3 result: Distance=${distanceScore}, Domain=${domainScore}, Average=${matchScore}`);
+      console.log(`Step 3 result: Distance=${distanceScore}, Domain=${domainScore}, Industry=${industryScore}, VehicleTracking=${vehicleTrackingScore}, Average=${matchScore}`);
     }
 
     // Update the lead with match score

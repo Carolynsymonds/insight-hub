@@ -1027,7 +1027,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             {lead.match_score_source === "google_knowledge_graph" &&
                                               "🌐 Google Knowledge Graph"}
                                             {lead.match_score_source === "calculated" &&
-                                              "📊 Distance + Domain Relevance"}
+                                              "📊 Distance + Domain Relevance + Industry Relevance + Vehicle Tracking Interest"}
                                           </p>
                                         </div>
                                       )}
