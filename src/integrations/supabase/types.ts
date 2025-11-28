@@ -33,6 +33,8 @@ export type Database = {
           enrichment_status: string | null
           full_name: string
           id: string
+          industry_relevance_explanation: string | null
+          industry_relevance_score: number | null
           latitude: number | null
           longitude: number | null
           match_score: number | null
@@ -44,6 +46,8 @@ export type Database = {
           state: string | null
           updated_at: string | null
           user_id: string
+          vehicle_tracking_interest_explanation: string | null
+          vehicle_tracking_interest_score: number | null
           zipcode: string | null
         }
         Insert: {
@@ -64,6 +68,8 @@ export type Database = {
           enrichment_status?: string | null
           full_name: string
           id?: string
+          industry_relevance_explanation?: string | null
+          industry_relevance_score?: number | null
           latitude?: number | null
           longitude?: number | null
           match_score?: number | null
@@ -75,6 +81,8 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_id: string
+          vehicle_tracking_interest_explanation?: string | null
+          vehicle_tracking_interest_score?: number | null
           zipcode?: string | null
         }
         Update: {
@@ -95,6 +103,8 @@ export type Database = {
           enrichment_status?: string | null
           full_name?: string
           id?: string
+          industry_relevance_explanation?: string | null
+          industry_relevance_score?: number | null
           latitude?: number | null
           longitude?: number | null
           match_score?: number | null
@@ -106,6 +116,8 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_id?: string
+          vehicle_tracking_interest_explanation?: string | null
+          vehicle_tracking_interest_score?: number | null
           zipcode?: string | null
         }
         Relationships: []
