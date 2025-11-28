@@ -504,33 +504,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         });
                         const sourceList = Array.from(checkedSources).join(", ");
                         const diagnosis = diagnosisResults[lead.id];
-                        const isDiagnosing = diagnosing?.leadId === lead.id;
                         return (
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
-                              {!diagnosis && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 px-2 text-xs"
-                                  disabled={isDiagnosing}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDiagnose(lead);
-                                  }}
-                                >
-                                  {isDiagnosing ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      Diagnose
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </div>
+                            <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
                             {diagnosis && (
                               <Badge variant="outline" className="text-xs w-fit">
                                 {diagnosis.category}
