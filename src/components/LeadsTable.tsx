@@ -581,7 +581,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       <AccordionItem value="distance" className="border-border">
                                         <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
                                           <div className="flex items-center justify-between w-full pr-4">
-                                            <span>Distance</span>
+                                            <div className="flex items-center gap-2">
+                                              <span>Distance</span>
+                                              {lead.distance_miles && (
+                                                <span className="font-semibold text-foreground">
+                                                  {lead.distance_miles} miles
+                                                </span>
+                                              )}
+                                            </div>
                                             {lead.distance_confidence && (
                                               <Badge 
                                                 variant={
