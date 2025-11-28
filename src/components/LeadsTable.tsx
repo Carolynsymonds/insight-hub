@@ -92,7 +92,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringDomain, setScoringDomain] = useState<string | null>(null);
   const [calculatingMatchScore, setCalculatingMatchScore] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
-  const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { diagnosis: string; recommendation: string; confidence: string }>>({});
+  const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { category: string; diagnosis: string; recommendation: string; confidence: string }>>({});
+  const [expandedDiagnosis, setExpandedDiagnosis] = useState<string | null>(null);
 
   const handleDiagnose = async (lead: Lead) => {
     setDiagnosing({ leadId: lead.id, source: "all" });
@@ -755,10 +756,43 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                            
                                            {/* Diagnosis Results */}
                                            {diagnosisResults[lead.id] && (
-                                             <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
-                                               <div className="flex items-start gap-2">
-                                                 <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                                                 <div className="space-y-2 flex-1">
+                                             <div className="border rounded-lg overflow-hidden">
+                                               {/* Category Header - Collapsible */}
+                                               <button
+                                                 onClick={() => setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)}
+                                                 className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
+                                               >
+                                                 <div className="flex items-center gap-2 flex-1">
+                                                   <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                                                   <span className="text-sm font-medium">
+                                                     {diagnosisResults[lead.id].category}
+                                                   </span>
+                                                   <Badge 
+                                                     variant={
+                                                       diagnosisResults[lead.id].confidence === "high" 
+                                                         ? "default" 
+                                                         : diagnosisResults[lead.id].confidence === "medium"
+                                                         ? "secondary"
+                                                         : "outline"
+                                                     }
+                                                     className="text-xs"
+                                                   >
+                                                     {diagnosisResults[lead.id].confidence}
+                                                   </Badge>
+                                                 </div>
+                                                 <svg
+                                                   className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? 'rotate-180' : ''}`}
+                                                   fill="none"
+                                                   stroke="currentColor"
+                                                   viewBox="0 0 24 24"
+                                                 >
+                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                 </svg>
+                                               </button>
+                                               
+                                               {/* Expanded Details */}
+                                               {expandedDiagnosis === lead.id && (
+                                                 <div className="p-3 bg-background space-y-2 border-t">
                                                    <div>
                                                      <p className="text-xs font-medium mb-1">Diagnosis</p>
                                                      <p className="text-xs text-muted-foreground">
@@ -771,20 +805,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                        {diagnosisResults[lead.id].recommendation}
                                                      </p>
                                                    </div>
-                                                   <Badge 
-                                                     variant={
-                                                       diagnosisResults[lead.id].confidence === "high" 
-                                                         ? "default" 
-                                                         : diagnosisResults[lead.id].confidence === "medium"
-                                                         ? "secondary"
-                                                         : "outline"
-                                                     }
-                                                     className="text-xs"
-                                                   >
-                                                     {diagnosisResults[lead.id].confidence} confidence
-                                                   </Badge>
                                                  </div>
-                                               </div>
+                                               )}
                                              </div>
                                            )}
                                          </div>
