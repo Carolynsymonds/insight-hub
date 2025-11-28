@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 interface EnrichmentLog {
@@ -68,6 +68,9 @@ interface Lead {
   mics_sector: string | null;
   mics_subsector: string | null;
   mics_segment: string | null;
+  distance_miles: number | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -80,6 +83,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [showDetails, setShowDetails] = useState(false);
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
   const [openDrawer, setOpenDrawer] = useState<string | null>(null);
+  const [calculatingDistance, setCalculatingDistance] = useState<string | null>(null);
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api" || source === "apollo_api_error") {
@@ -155,6 +159,48 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     }
   };
+  const handleCalculateDistance = async (lead: Lead) => {
+    if (!lead.latitude || !lead.longitude || !lead.city || !lead.zipcode) {
+      toast({
+        title: "Cannot Calculate Distance",
+        description: "GPS coordinates or location data is missing. Run Google enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCalculatingDistance(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("calculate-distance", {
+        body: {
+          leadId: lead.id,
+          city: lead.city,
+          state: lead.state,
+          zipcode: lead.zipcode,
+          latitude: lead.latitude,
+          longitude: lead.longitude,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Distance Calculated!",
+        description: `${data.distance_miles} miles from ${lead.city}, ${lead.state}`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Calculation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCalculatingDistance(null);
+    }
+  };
+
   const showLeadDetails = (lead: Lead) => {
     setSelectedLead(lead);
     setShowDetails(true);
@@ -519,6 +565,54 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         )}
                                       </Button>
                                     </div>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                              
+                              <AccordionItem value="match-score" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                  Match Score
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-3 pt-2">
+                                    {/* Distance Display (if calculated) */}
+                                    {lead.distance_miles && (
+                                      <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm font-medium text-muted-foreground mb-1">Distance</p>
+                                        <p className="text-3xl font-bold">{lead.distance_miles} miles</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          📍 From {lead.city}, {lead.state} {lead.zipcode}
+                                        </p>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Calculate Button */}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      disabled={!lead.latitude || !lead.longitude || !lead.city || !lead.zipcode || calculatingDistance === lead.id}
+                                      onClick={() => handleCalculateDistance(lead)}
+                                    >
+                                      {calculatingDistance === lead.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Calculating...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MapPin className="mr-2 h-4 w-4" />
+                                          Calculate Distance
+                                        </>
+                                      )}
+                                    </Button>
+                                    
+                                    {/* Show message if GPS not available */}
+                                    {(!lead.latitude || !lead.longitude) && (
+                                      <p className="text-xs text-muted-foreground text-center">
+                                        Run Google enrichment first to get GPS coordinates
+                                      </p>
+                                    )}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
