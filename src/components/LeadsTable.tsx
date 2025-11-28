@@ -416,7 +416,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                           }
                         });
                         const sourceList = Array.from(checkedSources).join(", ");
-                        return <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>;
+                        const diagnosis = diagnosisResults[lead.id];
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
+                            {diagnosis && (
+                              <Badge variant="outline" className="text-xs w-fit">
+                                {diagnosis.category}
+                              </Badge>
+                            )}
+                          </div>
+                        );
                       })()
                     ) : (
                       "—"
