@@ -576,74 +576,113 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <div className="space-y-3 pt-2">
-                                    {/* Distance Display (if calculated) */}
-                                    {lead.distance_miles && (
-                                      <div className="p-4 bg-muted rounded-lg">
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Distance</p>
-                                        <p className="text-3xl font-bold">{lead.distance_miles} miles</p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          📍 From {lead.city}, {lead.state} {lead.zipcode}
-                                        </p>
-                                        
-                                        {/* Distance Confidence Badge */}
-                                        {lead.distance_confidence && (
-                                          <div className="mt-3 pt-3 border-t">
-                                            <p className="text-sm font-medium text-muted-foreground mb-2">Match Confidence</p>
-                                            <Badge 
-                                              variant={
-                                                lead.distance_confidence === "high" ? "default" : 
-                                                lead.distance_confidence === "medium" ? "secondary" : 
-                                                "destructive"
-                                              }
-                                              className={
-                                                lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
-                                                lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
-                                                "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                              }
-                                            >
-                                              {lead.distance_confidence === "high" ? "🟢 High Confidence" :
-                                               lead.distance_confidence === "medium" ? "🟡 Medium Confidence" :
-                                               "🔴 Low Confidence"}
-                                            </Badge>
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                              {lead.distance_confidence === "high" 
-                                                ? "Lead is within 20 miles - likely a strong match" 
-                                                : lead.distance_confidence === "medium"
-                                                ? "Lead is 20-60 miles away - moderate match"
-                                                : "Lead is over 60 miles away - lower match likelihood"}
-                                            </p>
+                                    {/* Nested Accordion for Distance */}
+                                    <Accordion type="single" collapsible className="w-full">
+                                      <AccordionItem value="distance" className="border-border">
+                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <span>Distance</span>
+                                            {lead.distance_confidence && (
+                                              <Badge 
+                                                variant={
+                                                  lead.distance_confidence === "high" ? "default" : 
+                                                  lead.distance_confidence === "medium" ? "secondary" : 
+                                                  "destructive"
+                                                }
+                                                className={
+                                                  lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
+                                                  lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
+                                                  "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                }
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.distance_confidence === "high" ? "🟢 High" :
+                                                 lead.distance_confidence === "medium" ? "🟡 Medium" :
+                                                 "🔴 Low"}
+                                              </Badge>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    )}
-                                    
-                                    {/* Calculate Button */}
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="w-full"
-                                      disabled={!lead.latitude || !lead.longitude || !lead.city || !lead.zipcode || calculatingDistance === lead.id}
-                                      onClick={() => handleCalculateDistance(lead)}
-                                    >
-                                      {calculatingDistance === lead.id ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Calculating...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <MapPin className="mr-2 h-4 w-4" />
-                                          Calculate Distance
-                                        </>
-                                      )}
-                                    </Button>
-                                    
-                                    {/* Show message if GPS not available */}
-                                    {(!lead.latitude || !lead.longitude) && (
-                                      <p className="text-xs text-muted-foreground text-center">
-                                        Run Google enrichment first to get GPS coordinates
-                                      </p>
-                                    )}
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="space-y-3 pt-2">
+                                            {/* Distance Details (if calculated) */}
+                                            {lead.distance_miles ? (
+                                              <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                <div>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-1">Distance</p>
+                                                  <p className="text-3xl font-bold">{lead.distance_miles} miles</p>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    📍 From {lead.city}, {lead.state} {lead.zipcode}
+                                                  </p>
+                                                </div>
+                                                
+                                                {/* Distance Confidence Details */}
+                                                {lead.distance_confidence && (
+                                                  <div className="pt-3 border-t">
+                                                    <p className="text-sm font-medium text-muted-foreground mb-2">Confidence Level</p>
+                                                    <Badge 
+                                                      variant={
+                                                        lead.distance_confidence === "high" ? "default" : 
+                                                        lead.distance_confidence === "medium" ? "secondary" : 
+                                                        "destructive"
+                                                      }
+                                                      className={
+                                                        lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
+                                                        lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
+                                                        "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                      }
+                                                    >
+                                                      {lead.distance_confidence === "high" ? "🟢 High Confidence" :
+                                                       lead.distance_confidence === "medium" ? "🟡 Medium Confidence" :
+                                                       "🔴 Low Confidence"}
+                                                    </Badge>
+                                                    <p className="text-xs text-muted-foreground mt-2">
+                                                      {lead.distance_confidence === "high" 
+                                                        ? "Lead is within 20 miles - likely a strong match" 
+                                                        : lead.distance_confidence === "medium"
+                                                        ? "Lead is 20-60 miles away - moderate match"
+                                                        : "Lead is over 60 miles away - lower match likelihood"}
+                                                    </p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground">
+                                                No distance calculated yet
+                                              </p>
+                                            )}
+                                            
+                                            {/* Calculate Button */}
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full"
+                                              disabled={!lead.latitude || !lead.longitude || !lead.city || !lead.zipcode || calculatingDistance === lead.id}
+                                              onClick={() => handleCalculateDistance(lead)}
+                                            >
+                                              {calculatingDistance === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Calculating...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <MapPin className="mr-2 h-4 w-4" />
+                                                  Calculate Distance
+                                                </>
+                                              )}
+                                            </Button>
+                                            
+                                            {/* Show message if GPS not available */}
+                                            {(!lead.latitude || !lead.longitude) && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                Run Google enrichment first to get GPS coordinates
+                                              </p>
+                                            )}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    </Accordion>
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
