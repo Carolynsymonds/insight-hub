@@ -91,7 +91,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       if (confidence === 50) return "50% - Step 1: local_results fallback";
       if (confidence === 25) return "25% - Step 2: Industry search knowledge_graph";
       if (confidence === 15) return "15% - Step 2: Industry search local_results";
-      return "0% - No domain found after both search steps";
+      if (confidence === 10) return "10% - Step 3: Simple search knowledge_graph";
+      if (confidence === 5) return "5% - Step 3: Simple search local_results";
+      return "0% - No domain found after all search steps";
     }
     return "Confidence score indicates data quality";
   };

@@ -257,6 +257,39 @@ async function enrichWithGoogle(
       console.log("Step 1 failed and no MICS sector available for Step 2");
     }
 
+    // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
+    if (!finalDomain) {
+      const step3Query = `${company} ${locationPart}`;
+      console.log(`Step 3: Simple fallback search with query: ${step3Query}`);
+      
+      const step3Result = await performGoogleSearch(step3Query, serpApiKey);
+      
+      searchSteps.push({
+        step: 3,
+        query: step3Query,
+        resultFound: step3Result.domain !== null,
+        source: step3Result.sourceType || undefined,
+      });
+
+      if (step3Result.domain) {
+        finalDomain = step3Result.domain;
+        // Lower confidence for step 3: 10% for knowledge_graph, 5% for local_results
+        finalConfidence = step3Result.sourceType === "knowledge_graph" ? 10 : 5;
+        finalSource = step3Result.sourceType === "knowledge_graph" 
+          ? "google_knowledge_graph" 
+          : "google_local_results";
+        finalSelectedOrg = step3Result.selectedOrg;
+        finalGpsCoordinates = step3Result.gpsCoordinates;
+        finalLatitude = step3Result.latitude;
+        finalLongitude = step3Result.longitude;
+        finalSearchInformation = step3Result.searchInformation;
+        
+        console.log(`Step 3 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+      } else {
+        console.log("Step 3 failed: No results found");
+      }
+    }
+
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
