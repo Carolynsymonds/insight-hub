@@ -39,6 +39,7 @@ interface EnrichmentLog {
     company: string;
     city?: string;
     state?: string;
+    micsSector?: string;
   };
   organizationsFound: number;
   selectedOrganization?: {
@@ -61,6 +62,12 @@ interface EnrichmentLog {
     organic_results_state: string;
     results_for: string;
   };
+  searchSteps?: {
+    step: number;
+    query: string;
+    resultFound: boolean;
+    source?: string;
+  }[];
 }
 
 function normalizeDomain(url: string): string {
@@ -70,10 +77,105 @@ function normalizeDomain(url: string): string {
     .replace(/\/+$/, '');          // Remove trailing slashes
 }
 
+async function performGoogleSearch(
+  query: string,
+  serpApiKey: string
+): Promise<{
+  domain: string | null;
+  confidence: number;
+  sourceType: string;
+  gpsCoordinates?: { latitude: number; longitude: number };
+  latitude?: number;
+  longitude?: number;
+  searchInformation?: any;
+  selectedOrg?: { name: string; domain: string };
+}> {
+  console.log(`Performing Google search with query: ${query}`);
+  
+  const response = await fetch(
+    `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SerpAPI error: ${response.status} - ${errorText}`);
+    throw new Error(`SerpAPI request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? 'found' : 'not found');
+  console.log(`SerpAPI returned local_results:`, data.local_results ? 'found' : 'not found');
+
+  let domain: string | null = null;
+  let confidence = 0;
+  let selectedOrg: { name: string; domain: string } | undefined = undefined;
+  let sourceType = "";
+
+  // Try knowledge graph first
+  if (data.knowledge_graph && data.knowledge_graph.website) {
+    domain = normalizeDomain(data.knowledge_graph.website);
+    confidence = 100;
+    sourceType = "knowledge_graph";
+    selectedOrg = {
+      name: data.knowledge_graph.title || "",
+      domain: domain,
+    };
+    console.log(`Extracted domain from knowledge_graph: ${domain}`);
+  } else if (data.local_results?.places?.[0]?.links?.website) {
+    // Fallback to local results
+    domain = normalizeDomain(data.local_results.places[0].links.website);
+    confidence = 50;
+    sourceType = "local_results";
+    selectedOrg = {
+      name: data.local_results.places[0].title || "",
+      domain: domain,
+    };
+    console.log(`Extracted domain from local_results: ${domain}`);
+  }
+
+  // Extract GPS coordinates
+  let gpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
+  let latitude: number | undefined = undefined;
+  let longitude: number | undefined = undefined;
+  
+  if (data.local_map && data.local_map.gps_coordinates) {
+    gpsCoordinates = {
+      latitude: data.local_map.gps_coordinates.latitude,
+      longitude: data.local_map.gps_coordinates.longitude,
+    };
+    latitude = data.local_map.gps_coordinates.latitude;
+    longitude = data.local_map.gps_coordinates.longitude;
+  }
+
+  // Extract search information
+  let searchInformation: any = undefined;
+  if (data.search_information) {
+    searchInformation = {
+      query_displayed: data.search_information.query_displayed,
+      total_results: data.search_information.total_results,
+      time_taken_displayed: data.search_information.time_taken_displayed,
+      organic_results_state: data.search_information.organic_results_state,
+      results_for: data.search_information.results_for,
+    };
+  }
+
+  return {
+    domain,
+    confidence,
+    sourceType,
+    gpsCoordinates,
+    latitude,
+    longitude,
+    searchInformation,
+    selectedOrg,
+  };
+}
+
 async function enrichWithGoogle(
   company: string,
   city: string | null,
-  state: string | null
+  state: string | null,
+  micsSector: string | null
 ): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog; latitude?: number; longitude?: number }> {
   const serpApiKey = Deno.env.get("SERPAPI_KEY");
   
@@ -82,117 +184,108 @@ async function enrichWithGoogle(
   }
 
   const timestamp = new Date().toISOString();
-  
-  // Build search query
   const locationPart = [city, state].filter(Boolean).join(' ');
-  const query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
   
-  console.log(`Google enriching company: ${company}, location: ${locationPart}`);
+  // STEP 1: Detailed search with company name and location
+  const step1Query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+  console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}`);
+
+  const searchSteps: EnrichmentLog["searchSteps"] = [];
+  let finalResult: any;
+  let finalDomain: string | null = null;
+  let finalConfidence = 0;
+  let finalSource = "";
+  let finalSelectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
+  let finalGpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
+  let finalLatitude: number | undefined = undefined;
+  let finalLongitude: number | undefined = undefined;
+  let finalSearchInformation: any = undefined;
 
   try {
-    // Call SerpAPI
-    const response = await fetch(
-      `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`
-    );
+    const step1Result = await performGoogleSearch(step1Query, serpApiKey);
+    
+    searchSteps.push({
+      step: 1,
+      query: step1Query,
+      resultFound: step1Result.domain !== null,
+      source: step1Result.sourceType || undefined,
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`SerpAPI error: ${response.status} - ${errorText}`);
-      throw new Error(`SerpAPI request failed: ${response.status}`);
-    }
+    if (step1Result.domain) {
+      // Step 1 found a result
+      finalDomain = step1Result.domain;
+      finalConfidence = step1Result.confidence; // 100 for knowledge_graph, 50 for local_results
+      finalSource = step1Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+      finalSelectedOrg = step1Result.selectedOrg;
+      finalGpsCoordinates = step1Result.gpsCoordinates;
+      finalLatitude = step1Result.latitude;
+      finalLongitude = step1Result.longitude;
+      finalSearchInformation = step1Result.searchInformation;
+      
+      console.log(`Step 1 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+    } else if (micsSector) {
+      // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
+      const step2Query = `${company} ${city || ''} ${micsSector}`;
+      console.log(`Step 2: Industry fallback search with query: ${step2Query}`);
+      
+      const step2Result = await performGoogleSearch(step2Query, serpApiKey);
+      
+      searchSteps.push({
+        step: 2,
+        query: step2Query,
+        resultFound: step2Result.domain !== null,
+        source: step2Result.sourceType || undefined,
+      });
 
-    const data = await response.json();
-    console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? 'found' : 'not found');
-    console.log(`SerpAPI returned local_map:`, data.local_map ? 'found' : 'not found');
-
-    // Extract domain from knowledge_graph.website
-    let domain: string | null = null;
-    let confidence = 0;
-    let selectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
-    let gpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
-    let latitude: number | undefined = undefined;
-    let longitude: number | undefined = undefined;
-
-    if (data.knowledge_graph && data.knowledge_graph.website) {
-      domain = normalizeDomain(data.knowledge_graph.website);
-      confidence = 100;
-
-      selectedOrg = {
-        name: data.knowledge_graph.title || company,
-        domain: domain,
-      };
-
-      console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
-    } else if (data.local_results?.places?.[0]?.links?.website) {
-      // Fallback to local_results
-      domain = normalizeDomain(data.local_results.places[0].links.website);
-      confidence = 50;
-      selectedOrg = {
-        name: data.local_results.places[0].title || company,
-        domain: domain,
-      };
-      console.log(`Extracted domain from local_results: ${domain} with confidence 50%`);
+      if (step2Result.domain) {
+        // Step 2 found a result - reduce confidence
+        finalDomain = step2Result.domain;
+        // Reduce confidence for step 2: 25% for knowledge_graph, 15% for local_results
+        finalConfidence = step2Result.sourceType === "knowledge_graph" ? 25 : 15;
+        finalSource = step2Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+        finalSelectedOrg = step2Result.selectedOrg;
+        finalGpsCoordinates = step2Result.gpsCoordinates;
+        finalLatitude = step2Result.latitude;
+        finalLongitude = step2Result.longitude;
+        finalSearchInformation = step2Result.searchInformation;
+        
+        console.log(`Step 2 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+      } else {
+        console.log("Step 2 failed: No results found");
+      }
     } else {
-      console.log("No knowledge graph or local results found in SerpAPI response");
+      console.log("Step 1 failed and no MICS sector available for Step 2");
     }
-
-    // Extract GPS coordinates from local_map
-    if (data.local_map && data.local_map.gps_coordinates) {
-      gpsCoordinates = {
-        latitude: data.local_map.gps_coordinates.latitude,
-        longitude: data.local_map.gps_coordinates.longitude,
-      };
-      latitude = data.local_map.gps_coordinates.latitude;
-      longitude = data.local_map.gps_coordinates.longitude;
-      console.log(`Extracted GPS coordinates: ${latitude}, ${longitude}`);
-    }
-
-    // Extract search information
-    let searchInformation: EnrichmentLog["searchInformation"] = undefined;
-    if (data.search_information) {
-      searchInformation = {
-        query_displayed: data.search_information.query_displayed,
-        total_results: data.search_information.total_results,
-        time_taken_displayed: data.search_information.time_taken_displayed,
-        organic_results_state: data.search_information.organic_results_state,
-        results_for: data.search_information.results_for,
-      };
-    }
-
-    // Determine source type for logging
-    const sourceType = data.knowledge_graph?.website 
-      ? "google_knowledge_graph" 
-      : data.local_results?.places?.[0]?.links?.website 
-      ? "google_local_results" 
-      : "google_knowledge_graph";
 
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
-      action: domain 
-        ? (data.knowledge_graph?.website ? "google_knowledge_graph_search" : "google_local_results_search")
+      action: finalDomain 
+        ? (finalSource === "google_knowledge_graph" ? "google_knowledge_graph_search" : "google_local_results_search")
         : "google_search_no_results",
       searchParams: {
         company,
         ...(city && { city }),
         ...(state && { state }),
+        ...(micsSector && { micsSector }),
       },
-      organizationsFound: domain ? 1 : 0,
-      selectedOrganization: selectedOrg,
-      domain,
-      confidence,
-      source: sourceType,
-      ...(gpsCoordinates && { gpsCoordinates }),
-      ...(searchInformation && { searchInformation }),
+      organizationsFound: finalDomain ? 1 : 0,
+      selectedOrganization: finalSelectedOrg,
+      domain: finalDomain,
+      confidence: finalConfidence,
+      source: finalSource || "google_knowledge_graph",
+      ...(finalGpsCoordinates && { gpsCoordinates: finalGpsCoordinates }),
+      ...(finalSearchInformation && { searchInformation: finalSearchInformation }),
+      searchSteps,
     };
 
     return {
-      domain,
-      confidence,
-      source: sourceType,
+      domain: finalDomain,
+      confidence: finalConfidence,
+      source: finalSource || "google_knowledge_graph",
       log,
-      latitude,
-      longitude,
+      latitude: finalLatitude,
+      longitude: finalLongitude,
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
@@ -205,11 +298,13 @@ async function enrichWithGoogle(
         company,
         ...(city && { city }),
         ...(state && { state }),
+        ...(micsSector && { micsSector }),
       },
       organizationsFound: 0,
       domain: null,
       confidence: 0,
       source: "google_knowledge_graph_error",
+      searchSteps,
     };
 
     return {
@@ -368,7 +463,7 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, city, state, source = "apollo" } = await req.json();
+    const { leadId, company, city, state, mics_sector, source = "apollo" } = await req.json();
 
     if (!leadId || !company) {
       throw new Error("Missing required fields: leadId and company");
@@ -383,7 +478,7 @@ serve(async (req) => {
 
     // Enrich with the specified source
     const result = source === "google" 
-      ? await enrichWithGoogle(company, city, state)
+      ? await enrichWithGoogle(company, city, state, mics_sector)
       : await enrichWithApollo(company, city, state);
 
     // Get existing logs
