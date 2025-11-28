@@ -27,6 +27,17 @@ interface EnrichmentLog {
   domain: string | null;
   confidence: number;
   source: string;
+  gpsCoordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  searchInformation?: {
+    query_displayed: string;
+    total_results: number;
+    time_taken_displayed: number;
+    organic_results_state: string;
+    results_for: string;
+  };
 }
 
 interface Lead {
@@ -295,6 +306,20 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                             {log.selectedOrganization.foundedYear && (
                                                               <p>Founded: {log.selectedOrganization.foundedYear}</p>
                                                             )}
+                                                          </div>
+                                                        )}
+                                                        {log.gpsCoordinates && (
+                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                            <p className="font-medium">GPS Coordinates</p>
+                                                            <p>Latitude: {log.gpsCoordinates.latitude}</p>
+                                                            <p>Longitude: {log.gpsCoordinates.longitude}</p>
+                                                          </div>
+                                                        )}
+                                                        {log.searchInformation && (
+                                                          <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                            <p className="font-medium">Search Info</p>
+                                                            <p>Query: {log.searchInformation.query_displayed}</p>
+                                                            <p>Results for: {log.searchInformation.results_for}</p>
                                                           </div>
                                                         )}
                                                       </div>

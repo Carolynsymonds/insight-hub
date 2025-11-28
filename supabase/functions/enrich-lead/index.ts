@@ -50,6 +50,17 @@ interface EnrichmentLog {
   domain: string | null;
   confidence: number;
   source: string;
+  gpsCoordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  searchInformation?: {
+    query_displayed: string;
+    total_results: number;
+    time_taken_displayed: number;
+    organic_results_state: string;
+    results_for: string;
+  };
 }
 
 function normalizeDomain(url: string): string {
@@ -63,7 +74,7 @@ async function enrichWithGoogle(
   company: string,
   city: string | null,
   state: string | null
-): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog; latitude?: number; longitude?: number }> {
   const serpApiKey = Deno.env.get("SERPAPI_KEY");
   
   if (!serpApiKey) {
@@ -74,7 +85,7 @@ async function enrichWithGoogle(
   
   // Build search query
   const locationPart = [city, state].filter(Boolean).join(' ');
-  const query = `"${company}"+(official site OR website OR home page) ${locationPart} -jobs -careers -indeed -glassdoor -facebook -yelp`;
+  const query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
   
   console.log(`Google enriching company: ${company}, location: ${locationPart}`);
 
@@ -92,11 +103,15 @@ async function enrichWithGoogle(
 
     const data = await response.json();
     console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? 'found' : 'not found');
+    console.log(`SerpAPI returned local_map:`, data.local_map ? 'found' : 'not found');
 
     // Extract domain from knowledge_graph.website
     let domain: string | null = null;
     let confidence = 0;
     let selectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
+    let gpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
+    let latitude: number | undefined = undefined;
+    let longitude: number | undefined = undefined;
 
     if (data.knowledge_graph && data.knowledge_graph.website) {
       domain = normalizeDomain(data.knowledge_graph.website);
@@ -110,6 +125,29 @@ async function enrichWithGoogle(
       console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
     } else {
       console.log("No knowledge graph found in SerpAPI response");
+    }
+
+    // Extract GPS coordinates from local_map
+    if (data.local_map && data.local_map.gps_coordinates) {
+      gpsCoordinates = {
+        latitude: data.local_map.gps_coordinates.latitude,
+        longitude: data.local_map.gps_coordinates.longitude,
+      };
+      latitude = data.local_map.gps_coordinates.latitude;
+      longitude = data.local_map.gps_coordinates.longitude;
+      console.log(`Extracted GPS coordinates: ${latitude}, ${longitude}`);
+    }
+
+    // Extract search information
+    let searchInformation: EnrichmentLog["searchInformation"] = undefined;
+    if (data.search_information) {
+      searchInformation = {
+        query_displayed: data.search_information.query_displayed,
+        total_results: data.search_information.total_results,
+        time_taken_displayed: data.search_information.time_taken_displayed,
+        organic_results_state: data.search_information.organic_results_state,
+        results_for: data.search_information.results_for,
+      };
     }
 
     // Create enrichment log
@@ -126,6 +164,8 @@ async function enrichWithGoogle(
       domain,
       confidence,
       source: "google_knowledge_graph",
+      ...(gpsCoordinates && { gpsCoordinates }),
+      ...(searchInformation && { searchInformation }),
     };
 
     return {
@@ -133,6 +173,8 @@ async function enrichWithGoogle(
       confidence,
       source: "google_knowledge_graph",
       log,
+      latitude,
+      longitude,
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
@@ -165,7 +207,7 @@ async function enrichWithApollo(
   company: string,
   city: string | null,
   state: string | null
-): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog; latitude?: number; longitude?: number }> {
   const apolloApiKey = Deno.env.get("APOLLO_API_KEY");
   
   if (!apolloApiKey) {
@@ -348,6 +390,12 @@ serve(async (req) => {
 
     if (result.domain) {
       updateData.domain = result.domain;
+    }
+
+    // Add GPS coordinates if found (only from Google enrichment)
+    if (result.latitude !== undefined && result.longitude !== undefined) {
+      updateData.latitude = result.latitude;
+      updateData.longitude = result.longitude;
     }
 
     const { error: updateError } = await supabase

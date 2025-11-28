@@ -29,6 +29,8 @@ export type Database = {
           enrichment_status: string | null
           full_name: string
           id: string
+          latitude: number | null
+          longitude: number | null
           phone: string | null
           state: string | null
           updated_at: string | null
@@ -49,6 +51,8 @@ export type Database = {
           enrichment_status?: string | null
           full_name: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           phone?: string | null
           state?: string | null
           updated_at?: string | null
@@ -69,6 +73,8 @@ export type Database = {
           enrichment_status?: string | null
           full_name?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           phone?: string | null
           state?: string | null
           updated_at?: string | null
