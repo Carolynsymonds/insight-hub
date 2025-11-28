@@ -79,7 +79,17 @@ serve(async (req) => {
     const distanceMiles = Math.round((distanceMeters / 1609.34) * 10) / 10;
     const duration = route.duration; // Format: "1234s"
 
-    console.log('Distance calculated:', { distanceMeters, distanceMiles, duration });
+    // Calculate distance confidence
+    let distanceConfidence: string;
+    if (distanceMiles < 20) {
+      distanceConfidence = "high";
+    } else if (distanceMiles <= 60) {
+      distanceConfidence = "medium";
+    } else {
+      distanceConfidence = "low";
+    }
+
+    console.log('Distance calculated:', { distanceMeters, distanceMiles, duration, distanceConfidence });
 
     // Update lead with distance
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -88,7 +98,10 @@ serve(async (req) => {
 
     const { error: updateError } = await supabase
       .from('leads')
-      .update({ distance_miles: distanceMiles })
+      .update({ 
+        distance_miles: distanceMiles,
+        distance_confidence: distanceConfidence
+      })
       .eq('id', leadId);
 
     if (updateError) {
@@ -102,6 +115,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         distance_miles: distanceMiles,
+        distance_confidence: distanceConfidence,
         duration: duration,
       }),
       {
