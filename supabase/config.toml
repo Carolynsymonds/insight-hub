@@ -2,3 +2,6 @@ project_id = "uwatntzozavzfhnkiowd"
 
 [functions.calculate-match-score]
 verify_jwt = false
+
+[functions.diagnose-enrichment]
+verify_jwt = false
