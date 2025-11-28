@@ -40,6 +40,8 @@ interface EnrichmentLog {
     city?: string;
     state?: string;
     micsSector?: string;
+    email?: string;
+    extractedDomain?: string;
   };
   organizationsFound: number;
   selectedOrganization?: {
@@ -371,9 +373,17 @@ async function enrichWithEmail(
     "zoho.com", "yandex.com", "gmx.com", "fastmail.com"
   ];
 
+  const searchSteps: EnrichmentLog["searchSteps"] = [];
+
   // Step 1: Check if email exists
   if (!email) {
     console.log("No email provided for enrichment");
+    searchSteps.push({
+      step: 1,
+      query: "No email provided",
+      resultFound: false,
+    });
+    
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_skipped",
@@ -382,6 +392,7 @@ async function enrichWithEmail(
       domain: null,
       confidence: 0,
       source: "email_not_provided",
+      searchSteps,
     };
     return { domain: null, confidence: 0, source: "email_not_provided", log };
   }
@@ -390,14 +401,21 @@ async function enrichWithEmail(
   const emailParts = email.split("@");
   if (emailParts.length !== 2 || !emailParts[1]) {
     console.log("Invalid email format");
+    searchSteps.push({
+      step: 1,
+      query: `Invalid email format: ${email}`,
+      resultFound: false,
+    });
+    
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_failed",
-      searchParams: { company },
+      searchParams: { company, email },
       organizationsFound: 0,
       domain: null,
       confidence: 0,
       source: "email_invalid_format",
+      searchSteps,
     };
     return { domain: null, confidence: 0, source: "email_invalid_format", log };
   }
@@ -405,20 +423,39 @@ async function enrichWithEmail(
   const emailDomain = emailParts[1].toLowerCase();
   console.log(`Extracted domain from email: ${emailDomain}`);
 
+  searchSteps.push({
+    step: 1,
+    query: `Extracted domain: ${emailDomain} from ${email}`,
+    resultFound: true,
+  });
+
   // Step 3: Check if it's a personal email domain
   if (PERSONAL_EMAIL_DOMAINS.includes(emailDomain)) {
     console.log(`Personal email domain detected: ${emailDomain}`);
+    searchSteps.push({
+      step: 2,
+      query: `${emailDomain} is a personal email provider (gmail, yahoo, etc.) - personal domains cannot be verified as company websites`,
+      resultFound: false,
+    });
+    
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_skipped",
-      searchParams: { company },
+      searchParams: { company, email, extractedDomain: emailDomain },
       organizationsFound: 0,
       domain: null,
       confidence: 0,
       source: "email_personal_domain_skipped",
+      searchSteps,
     };
     return { domain: null, confidence: 0, source: "email_personal_domain_skipped", log };
   }
+
+  searchSteps.push({
+    step: 2,
+    query: `${emailDomain} is not a personal email provider - proceeding to verification`,
+    resultFound: true,
+  });
 
   // Step 4: Verify domain exists via Google search
   try {
@@ -440,10 +477,17 @@ async function enrichWithEmail(
 
     if (totalResults > 0) {
       // Domain verified
+      searchSteps.push({
+        step: 3,
+        query: verifyQuery,
+        resultFound: true,
+        source: `${totalResults} pages indexed`,
+      });
+      
       const log: EnrichmentLog = {
         timestamp,
         action: "email_domain_verification_success",
-        searchParams: { company },
+        searchParams: { company, email, extractedDomain: emailDomain },
         organizationsFound: 1,
         selectedOrganization: {
           name: company,
@@ -459,15 +503,23 @@ async function enrichWithEmail(
           organic_results_state: data.search_information?.organic_results_state || "",
           results_for: verifyQuery,
         },
+        searchSteps,
       };
       console.log(`Domain verified with 95% confidence: ${emailDomain}`);
       return { domain: emailDomain, confidence: 95, source: "email_domain_verified", log };
     } else {
       // Domain not verified
+      searchSteps.push({
+        step: 3,
+        query: verifyQuery,
+        resultFound: false,
+        source: "0 results - domain may not exist or is not indexed by Google",
+      });
+      
       const log: EnrichmentLog = {
         timestamp,
         action: "email_domain_verification_failed",
-        searchParams: { company },
+        searchParams: { company, email, extractedDomain: emailDomain },
         organizationsFound: 0,
         domain: null,
         confidence: 0,
@@ -479,20 +531,29 @@ async function enrichWithEmail(
           organic_results_state: data.search_information?.organic_results_state || "",
           results_for: verifyQuery,
         },
+        searchSteps,
       };
       console.log(`Domain not verified: ${emailDomain}`);
       return { domain: null, confidence: 0, source: "email_domain_not_verified", log };
     }
   } catch (error) {
     console.error("Error verifying email domain:", error);
+    searchSteps.push({
+      step: 3,
+      query: `site:${emailDomain}`,
+      resultFound: false,
+      source: "Error during verification",
+    });
+    
     const log: EnrichmentLog = {
       timestamp,
       action: "email_domain_verification_error",
-      searchParams: { company },
+      searchParams: { company, email, extractedDomain: emailDomain },
       organizationsFound: 0,
       domain: null,
       confidence: 0,
       source: "email_domain_verification_error",
+      searchSteps,
     };
     return { domain: null, confidence: 0, source: "email_domain_verification_error", log };
   }
