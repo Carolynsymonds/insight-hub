@@ -23,6 +23,8 @@ export type Database = {
           distance_miles: number | null
           dma: string | null
           domain: string | null
+          domain_relevance_explanation: string | null
+          domain_relevance_score: number | null
           email: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
@@ -50,6 +52,8 @@ export type Database = {
           distance_miles?: number | null
           dma?: string | null
           domain?: string | null
+          domain_relevance_explanation?: string | null
+          domain_relevance_score?: number | null
           email?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
@@ -77,6 +81,8 @@ export type Database = {
           distance_miles?: number | null
           dma?: string | null
           domain?: string | null
+          domain_relevance_explanation?: string | null
+          domain_relevance_score?: number | null
           email?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null

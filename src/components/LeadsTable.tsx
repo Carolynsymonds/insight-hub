@@ -70,6 +70,8 @@ interface Lead {
   mics_segment: string | null;
   distance_miles: number | null;
   distance_confidence: string | null;
+  domain_relevance_score: number | null;
+  domain_relevance_explanation: string | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -85,6 +87,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [showLogsForSource, setShowLogsForSource] = useState<string | null>(null);
   const [openDrawer, setOpenDrawer] = useState<string | null>(null);
   const [calculatingDistance, setCalculatingDistance] = useState<string | null>(null);
+  const [scoringDomain, setScoringDomain] = useState<string | null>(null);
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api" || source === "apollo_api_error") {
@@ -199,6 +202,45 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setCalculatingDistance(null);
+    }
+  };
+
+  const handleScoreDomainRelevance = async (lead: Lead) => {
+    if (!lead.company || !lead.domain) {
+      toast({
+        title: "Cannot Score Domain",
+        description: "Company name and domain are required. Run enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setScoringDomain(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("score-domain-relevance", {
+        body: {
+          leadId: lead.id,
+          companyName: lead.company,
+          domain: lead.domain,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Domain Scored!",
+        description: `Relevance: ${data.score}/100 - ${data.explanation}`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Scoring Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setScoringDomain(null);
     }
   };
 
@@ -684,6 +726,113 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             {(!lead.latitude || !lead.longitude) && (
                                               <p className="text-xs text-muted-foreground text-center">
                                                 Run Google enrichment first to get GPS coordinates
+                                              </p>
+                                            )}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+
+                                      {/* Domain Relevance Accordion Item */}
+                                      <AccordionItem value="domain-relevance" className="border-border">
+                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-2">
+                                              <span>Domain Relevance</span>
+                                              {lead.domain_relevance_score !== null && (
+                                                <span className="font-semibold text-foreground">
+                                                  {lead.domain_relevance_score}/100
+                                                </span>
+                                              )}
+                                            </div>
+                                            {lead.domain_relevance_score !== null && (
+                                              <Badge 
+                                                variant={
+                                                  lead.domain_relevance_score >= 80 ? "default" : 
+                                                  lead.domain_relevance_score >= 50 ? "secondary" : 
+                                                  "destructive"
+                                                }
+                                                className={
+                                                  lead.domain_relevance_score >= 80 ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
+                                                  lead.domain_relevance_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
+                                                  "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                }
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.domain_relevance_score >= 80 ? "🟢 High" :
+                                                 lead.domain_relevance_score >= 50 ? "🟡 Medium" :
+                                                 "🔴 Low"}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="space-y-3 pt-2">
+                                            {/* Domain Relevance Details */}
+                                            {lead.domain_relevance_score !== null ? (
+                                              <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                <div>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-1">AI Relevance Score</p>
+                                                  <p className="text-3xl font-bold">{lead.domain_relevance_score}/100</p>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    Evaluated by ChatGPT
+                                                  </p>
+                                                </div>
+                                                
+                                                {lead.domain_relevance_explanation && (
+                                                  <div className="pt-3 border-t">
+                                                    <p className="text-sm font-medium text-muted-foreground mb-2">Analysis</p>
+                                                    <p className="text-sm text-foreground">
+                                                      {lead.domain_relevance_explanation}
+                                                    </p>
+                                                  </div>
+                                                )}
+
+                                                <div className="pt-3 border-t">
+                                                  <p className="text-sm font-medium text-muted-foreground mb-2">Company</p>
+                                                  <p className="text-sm text-foreground font-medium">{lead.company}</p>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-2 mt-3">Domain</p>
+                                                  <a
+                                                    href={`https://${lead.domain}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                  >
+                                                    {lead.domain}
+                                                    <ExternalLink className="h-3 w-3" />
+                                                  </a>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground">
+                                                No relevance score calculated yet
+                                              </p>
+                                            )}
+                                            
+                                            {/* Score Button */}
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full"
+                                              disabled={!lead.company || !lead.domain || scoringDomain === lead.id}
+                                              onClick={() => handleScoreDomainRelevance(lead)}
+                                            >
+                                              {scoringDomain === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Scoring...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Sparkles className="mr-2 h-4 w-4" />
+                                                  Score Domain Relevance
+                                                </>
+                                              )}
+                                            </Button>
+                                            
+                                            {/* Show message if domain not available */}
+                                            {(!lead.domain || !lead.company) && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                Run domain enrichment first to get company domain
                                               </p>
                                             )}
                                           </div>
