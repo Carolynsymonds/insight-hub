@@ -3,7 +3,11 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
-const Drawer = ({ shouldScaleBackground = true, direction = "bottom", ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+const Drawer = ({
+  shouldScaleBackground = true,
+  direction = "bottom",
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} direction={direction} {...props} />
 );
 Drawer.displayName = "Drawer";
@@ -44,7 +48,7 @@ const DrawerContent = React.forwardRef<
         <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
       )}
       {(direction === "left" || direction === "right") && (
-        <div className="mt-4 mx-auto w-2 h-[100px] rounded-full bg-muted" />
+        <div className="mt-4 mx-auto w-2 h-[100px] rounded-full bg-muted hidden" />
       )}
       {children}
     </DrawerPrimitive.Content>
