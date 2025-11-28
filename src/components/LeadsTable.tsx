@@ -264,27 +264,29 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 {/* Source Header */}
                                                 <div className="flex items-center justify-between select-none">
                                                   <h4 className="font-semibold text-sm select-none">{sourceLabel}</h4>
-                                                  <div className="flex items-center gap-1">
-                                                    <Badge variant="outline" className="text-xs">
-                                                      {mostRecentLog.confidence}% confidence
-                                                    </Badge>
-                                                    <TooltipProvider>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent className="max-w-xs">
-                                                          <p className="text-xs">{getConfidenceExplanation(source, mostRecentLog.confidence)}</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
-                                                  </div>
+                                                  {mostRecentLog.domain && (
+                                                    <div className="flex items-center gap-1">
+                                                      <Badge variant="outline" className="text-xs">
+                                                        {mostRecentLog.confidence}% confidence
+                                                      </Badge>
+                                                      <TooltipProvider>
+                                                        <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                          </TooltipTrigger>
+                                                          <TooltipContent className="max-w-xs">
+                                                            <p className="text-xs">{getConfidenceExplanation(source, mostRecentLog.confidence)}</p>
+                                                          </TooltipContent>
+                                                        </Tooltip>
+                                                      </TooltipProvider>
+                                                    </div>
+                                                  )}
                                                 </div>
 
                                                 {/* Domain Display */}
-                                                {mostRecentLog.domain && (
-                                                  <div style={{ userSelect: 'text' }}>
-                                                    <p className="text-xs text-muted-foreground mb-1 select-text">Domain:</p>
+                                                <div style={{ userSelect: 'text' }}>
+                                                  <p className="text-xs text-muted-foreground mb-1 select-text">Domain:</p>
+                                                  {mostRecentLog.domain ? (
                                                     <a
                                                       href={`https://${mostRecentLog.domain}`}
                                                       target="_blank"
@@ -296,8 +298,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                       {mostRecentLog.domain}
                                                       <ExternalLink className="h-3 w-3 select-none" />
                                                     </a>
-                                                  </div>
-                                                )}
+                                                  ) : (
+                                                    <p className="text-sm text-muted-foreground select-text">No domain found</p>
+                                                  )}
+                                                </div>
 
                                                 {/* View Logs Button */}
                                                 <Button
