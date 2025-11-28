@@ -56,6 +56,9 @@ interface Lead {
   enrichment_confidence: number | null;
   enriched_at: string | null;
   enrichment_logs: EnrichmentLog[] | null;
+  mics_sector: string | null;
+  mics_subsector: string | null;
+  mics_segment: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -145,6 +148,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
+              <TableHead>MICS Sector</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
               <TableHead>
@@ -159,7 +163,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -173,6 +177,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.email || "—"}</TableCell>
                   <TableCell>{lead.company || "—"}</TableCell>
+                  <TableCell>{lead.mics_sector || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
                   <TableCell>
@@ -432,6 +437,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Zipcode</p>
                   <p className="text-sm">{selectedLead.zipcode || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">MICS Sector</p>
+                  <p className="text-sm">{selectedLead.mics_sector || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">MICS Subsector</p>
+                  <p className="text-sm">{selectedLead.mics_subsector || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">MICS Segment</p>
+                  <p className="text-sm">{selectedLead.mics_segment || "—"}</p>
                 </div>
               </div>
               {selectedLead.domain && (
