@@ -336,34 +336,43 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                             <div className="border rounded p-2 mb-2 bg-background/50">
                                                               <p className="font-medium mb-2">Search Path:</p>
                                                               <div className="space-y-2">
-                                                                {latestLog.searchSteps.map((step, idx) => (
+                                                                 {latestLog.searchSteps.map((step, idx) => (
                                                                   <div key={idx} className="border-l-2 border-primary/30 pl-2">
                                                                     <div className="flex items-center gap-2 mb-1">
-                                                                      <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5">
+                                                                      <Badge 
+                                                                        variant={
+                                                                          step.query.startsWith("Skipped") 
+                                                                            ? "outline" 
+                                                                            : step.resultFound 
+                                                                              ? "default" 
+                                                                              : "secondary"
+                                                                        } 
+                                                                        className="text-xs h-5"
+                                                                      >
                                                                         Step {step.step}
                                                                       </Badge>
                                                                       {step.resultFound && step.source && (
                                                                         <span className="text-muted-foreground text-xs">via {step.source}</span>
+                                                                      )}
+                                                                      {step.query.startsWith("Skipped") && (
+                                                                        <span className="text-muted-foreground text-xs italic">Skipped</span>
                                                                       )}
                                                                     </div>
                                                                     <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
                                                                       {step.query}
                                                                     </p>
                                                                     <p className="mt-1 font-medium text-xs">
-                                                                      {step.resultFound ? '✓ Found results' : '✗ No results'}
+                                                                      {step.query.startsWith("Skipped") 
+                                                                        ? '⊘ Skipped' 
+                                                                        : step.resultFound 
+                                                                          ? '✓ Found results' 
+                                                                          : '✗ No results'}
                                                                     </p>
                                                                   </div>
                                                                 ))}
-                                                              </div>
-                                                              {latestLog.searchSteps.length === 1 && !latestLog.searchSteps[0].resultFound && (
-                                                                <div className="mt-2 p-2 bg-muted/50 rounded border border-muted-foreground/20">
-                                                                  <p className="text-xs text-muted-foreground">
-                                                                    ℹ️ Step 2 (industry search) was skipped because this lead has no MICS Sector data
-                                                                  </p>
-                                                                </div>
-                                                              )}
-                                                            </div>
-                                                          )}
+                                                               </div>
+                                                             </div>
+                                                           )}
                                                           
                                                           <div className="text-muted-foreground space-y-0.5">
                                                             <p><span className="font-medium">Company:</span> {latestLog.searchParams.company}</p>
