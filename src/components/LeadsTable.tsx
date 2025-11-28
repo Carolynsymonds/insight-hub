@@ -291,16 +291,27 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell>{lead.dma || "—"}</TableCell>
                   <TableCell>
                     {lead.domain ? (
-                      <a
-                        href={`https://${lead.domain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {lead.domain}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`https://${lead.domain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {lead.domain}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                        {lead.enrichment_confidence !== null && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {lead.enrichment_confidence}%
+                          </Badge>
+                        )}
+                      </div>
                     ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
                       (() => {
                         const checkedSources = new Set<string>();
