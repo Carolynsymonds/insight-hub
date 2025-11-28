@@ -74,6 +74,8 @@ interface Lead {
   domain_relevance_explanation: string | null;
   latitude: number | null;
   longitude: number | null;
+  match_score: number | null;
+  match_score_source: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -88,6 +90,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [openDrawer, setOpenDrawer] = useState<string | null>(null);
   const [calculatingDistance, setCalculatingDistance] = useState<string | null>(null);
   const [scoringDomain, setScoringDomain] = useState<string | null>(null);
+  const [calculatingMatchScore, setCalculatingMatchScore] = useState<string | null>(null);
   
   const getConfidenceExplanation = (source: string, confidence: number) => {
     if (source === "apollo_api" || source === "apollo_api_error") {
@@ -241,6 +244,38 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setScoringDomain(null);
+    }
+  };
+
+  const handleCalculateMatchScore = async (lead: Lead) => {
+    setCalculatingMatchScore(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("calculate-match-score", {
+        body: { leadId: lead.id },
+      });
+
+      if (error) throw error;
+
+      const sourceLabels: Record<string, string> = {
+        email_domain: "Email Domain Verified",
+        google_knowledge_graph: "Google Knowledge Graph",
+        calculated: "Distance + Domain Relevance",
+      };
+
+      toast({
+        title: "Match Score Calculated!",
+        description: `${data.matchScore}% (${sourceLabels[data.matchScoreSource] || data.matchScoreSource})`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Calculation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCalculatingMatchScore(null);
     }
   };
 
@@ -629,6 +664,69 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <div className="space-y-3 pt-2">
+                                    {/* Overall Match Score Display */}
+                                    <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                          <p className="text-sm font-medium text-muted-foreground mb-1">Overall Match Score</p>
+                                          {lead.match_score !== null ? (
+                                            <div className="flex items-center gap-3">
+                                              <p className="text-4xl font-bold">{lead.match_score}%</p>
+                                              <Badge 
+                                                variant={
+                                                  lead.match_score >= 80 ? "default" : 
+                                                  lead.match_score >= 50 ? "secondary" : 
+                                                  "destructive"
+                                                }
+                                                className={
+                                                  lead.match_score >= 80 ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
+                                                  lead.match_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
+                                                  "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                }
+                                              >
+                                                {lead.match_score >= 80 ? "🟢 High" :
+                                                 lead.match_score >= 50 ? "🟡 Medium" :
+                                                 "🔴 Low"}
+                                              </Badge>
+                                            </div>
+                                          ) : (
+                                            <p className="text-sm text-muted-foreground italic">Not calculated yet</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      {lead.match_score_source && (
+                                        <div className="mb-3 pb-3 border-b">
+                                          <p className="text-xs text-muted-foreground mb-1">Determined by:</p>
+                                          <p className="text-sm font-medium">
+                                            {lead.match_score_source === 'email_domain' && '📧 Email Domain Verified'}
+                                            {lead.match_score_source === 'google_knowledge_graph' && '🌐 Google Knowledge Graph'}
+                                            {lead.match_score_source === 'calculated' && '📊 Distance + Domain Relevance'}
+                                          </p>
+                                        </div>
+                                      )}
+                                      
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        className="w-full"
+                                        disabled={calculatingMatchScore === lead.id}
+                                        onClick={() => handleCalculateMatchScore(lead)}
+                                      >
+                                        {calculatingMatchScore === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Calculating...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Calculate Match Score
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+
                                     {/* Nested Accordion for Distance */}
                                     <Accordion type="single" collapsible className="w-full">
                                       <AccordionItem value="distance" className="border-border">

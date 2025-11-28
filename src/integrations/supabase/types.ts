@@ -35,6 +35,8 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          match_score: number | null
+          match_score_source: string | null
           mics_sector: string | null
           mics_segment: string | null
           mics_subsector: string | null
@@ -64,6 +66,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          match_score?: number | null
+          match_score_source?: string | null
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
@@ -93,6 +97,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          match_score?: number | null
+          match_score_source?: string | null
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
