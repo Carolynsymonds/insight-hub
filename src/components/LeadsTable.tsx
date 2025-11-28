@@ -80,6 +80,12 @@ interface Lead {
   industry_relevance_explanation: string | null;
   vehicle_tracking_interest_score: number | null;
   vehicle_tracking_interest_explanation: string | null;
+  size_summary: string | null;
+  annual_revenue: string | null;
+  tech_stack: string | null;
+  company_industry: string | null;
+  linkedin: string | null;
+  news: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -105,20 +111,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     setDiagnosing({ leadId: lead.id, source: "all" });
     
     try {
-      const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
-        body: {
-          leadData: {
-            company: lead.company,
-            city: lead.city,
-            state: lead.state,
-            zipcode: lead.zipcode,
-            email: lead.email,
-            mics_sector: lead.mics_sector,
-            full_name: lead.full_name,
-          },
-          enrichmentLogs: lead.enrichment_logs || [],
+    const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
+      body: {
+        leadId: lead.id,
+        leadData: {
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          zipcode: lead.zipcode,
+          email: lead.email,
+          mics_sector: lead.mics_sector,
+          full_name: lead.full_name,
         },
-      });
+        enrichmentLogs: lead.enrichment_logs || [],
+      },
+    });
 
       if (error) throw error;
 
@@ -444,13 +451,19 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   Company Domain
                 </div>
               </TableHead>
+              <TableHead>Size Summary</TableHead>
+              <TableHead>Annual Revenue</TableHead>
+              <TableHead>Tech Stack</TableHead>
+              <TableHead>Company Industry</TableHead>
+              <TableHead>Linkedin</TableHead>
+              <TableHead>News</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -519,6 +532,27 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
+                  <TableCell>{lead.size_summary || "—"}</TableCell>
+                  <TableCell>{lead.annual_revenue || "—"}</TableCell>
+                  <TableCell>{lead.tech_stack || "—"}</TableCell>
+                  <TableCell>{lead.company_industry || "—"}</TableCell>
+                  <TableCell>
+                    {lead.linkedin ? (
+                      <a
+                        href={lead.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>{lead.news || "—"}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <Drawer

@@ -11,11 +11,15 @@ serve(async (req) => {
   }
 
   try {
-    const { leadData, enrichmentLogs } = await req.json();
+    const { leadId, leadData, enrichmentLogs } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    if (!leadId) {
+      throw new Error("leadId is required");
     }
 
     // Build context from lead data and logs
@@ -119,6 +123,40 @@ Provide your response in exactly this JSON structure:
         recommendation: "Review the lead data for accuracy and completeness.",
         confidence: "medium"
       };
+    }
+
+    // Store diagnosis in database
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Supabase credentials not configured");
+      // Return diagnosis even if storage fails
+      return new Response(JSON.stringify(diagnosis), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Update lead with diagnosis results
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${leadId}`, {
+      method: "PATCH",
+      headers: {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({
+        diagnosis_category: diagnosis.category,
+        diagnosis_explanation: diagnosis.diagnosis,
+        diagnosis_recommendation: diagnosis.recommendation,
+        diagnosis_confidence: diagnosis.confidence,
+        diagnosed_at: new Date().toISOString()
+      })
+    });
+
+    if (!updateResponse.ok) {
+      console.error("Failed to store diagnosis:", await updateResponse.text());
     }
 
     return new Response(JSON.stringify(diagnosis), {

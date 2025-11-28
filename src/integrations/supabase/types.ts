@@ -16,8 +16,10 @@ export type Database = {
     Tables: {
       leads: {
         Row: {
+          annual_revenue: string | null
           city: string | null
           company: string | null
+          company_industry: string | null
           created_at: string | null
           distance_confidence: string | null
           distance_miles: number | null
@@ -36,14 +38,18 @@ export type Database = {
           industry_relevance_explanation: string | null
           industry_relevance_score: number | null
           latitude: number | null
+          linkedin: string | null
           longitude: number | null
           match_score: number | null
           match_score_source: string | null
           mics_sector: string | null
           mics_segment: string | null
           mics_subsector: string | null
+          news: string | null
           phone: string | null
+          size_summary: string | null
           state: string | null
+          tech_stack: string | null
           updated_at: string | null
           user_id: string
           vehicle_tracking_interest_explanation: string | null
@@ -51,8 +57,10 @@ export type Database = {
           zipcode: string | null
         }
         Insert: {
+          annual_revenue?: string | null
           city?: string | null
           company?: string | null
+          company_industry?: string | null
           created_at?: string | null
           distance_confidence?: string | null
           distance_miles?: number | null
@@ -71,14 +79,18 @@ export type Database = {
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           latitude?: number | null
+          linkedin?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
+          news?: string | null
           phone?: string | null
+          size_summary?: string | null
           state?: string | null
+          tech_stack?: string | null
           updated_at?: string | null
           user_id: string
           vehicle_tracking_interest_explanation?: string | null
@@ -86,8 +98,10 @@ export type Database = {
           zipcode?: string | null
         }
         Update: {
+          annual_revenue?: string | null
           city?: string | null
           company?: string | null
+          company_industry?: string | null
           created_at?: string | null
           distance_confidence?: string | null
           distance_miles?: number | null
@@ -106,14 +120,18 @@ export type Database = {
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           latitude?: number | null
+          linkedin?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
+          news?: string | null
           phone?: string | null
+          size_summary?: string | null
           state?: string | null
+          tech_stack?: string | null
           updated_at?: string | null
           user_id?: string
           vehicle_tracking_interest_explanation?: string | null
