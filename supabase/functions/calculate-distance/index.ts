@@ -28,37 +28,58 @@ serve(async (req) => {
       throw new Error('GOOGLE_MAPS_API_KEY not configured');
     }
 
-    // Build origin and destination
-    const origin = encodeURIComponent(`${city}, ${state || ''} ${zipcode}`.trim());
-    const destination = `${latitude},${longitude}`;
+    // Build request body for Routes API v2
+    const requestBody = {
+      origin: {
+        address: `${city}, ${state || ''} ${zipcode}`.trim()
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: latitude,
+            longitude: longitude
+          }
+        }
+      },
+      travelMode: "DRIVE"
+    };
 
-    console.log('Calling Google Maps Directions API:', { origin, destination });
+    console.log('Calling Google Routes API v2:', requestBody);
 
-    // Call Google Maps Directions API
+    // Call Google Routes API v2
     const mapsResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${googleMapsApiKey}`
+      `https://routes.googleapis.com/directions/v2:computeRoutes?key=${googleMapsApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration'
+        },
+        body: JSON.stringify(requestBody)
+      }
     );
 
     if (!mapsResponse.ok) {
-      throw new Error(`Google Maps API error: ${mapsResponse.status} ${mapsResponse.statusText}`);
+      throw new Error(`Google Routes API error: ${mapsResponse.status} ${mapsResponse.statusText}`);
     }
 
     const mapsData = await mapsResponse.json();
-    console.log('Google Maps API response status:', mapsData.status);
+    console.log('Google Routes API response:', JSON.stringify(mapsData));
 
-    if (mapsData.status !== 'OK') {
-      throw new Error(`Google Maps API returned status: ${mapsData.status}`);
+    if (mapsData.error) {
+      throw new Error(`Google Routes API error: ${mapsData.error.message}`);
     }
 
-    if (!mapsData.routes || mapsData.routes.length === 0 || !mapsData.routes[0].legs || mapsData.routes[0].legs.length === 0) {
+    if (!mapsData.routes || mapsData.routes.length === 0) {
       throw new Error('No route found between origin and destination');
     }
 
-    const leg = mapsData.routes[0].legs[0];
-    const distanceMeters = leg.distance.value;
-    const distanceMiles = Math.round((distanceMeters / 1609.34) * 10) / 10; // Convert to miles, 1 decimal place
+    const route = mapsData.routes[0];
+    const distanceMeters = route.distanceMeters;
+    const distanceMiles = Math.round((distanceMeters / 1609.34) * 10) / 10;
+    const duration = route.duration; // Format: "1234s"
 
-    console.log('Distance calculated:', { distanceMeters, distanceMiles, duration: leg.duration.text });
+    console.log('Distance calculated:', { distanceMeters, distanceMiles, duration });
 
     // Update lead with distance
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -81,7 +102,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         distance_miles: distanceMiles,
-        duration: leg.duration.text,
+        duration: duration,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
