@@ -255,6 +255,13 @@ async function enrichWithGoogle(
       }
     } else {
       console.log("Step 1 failed and no MICS sector available for Step 2");
+      // Log that Step 2 was skipped
+      searchSteps.push({
+        step: 2,
+        query: "Skipped - No MICS Sector data available",
+        resultFound: false,
+        source: undefined,
+      });
     }
 
     // STEPS 3 & 4: Run in parallel and pick highest confidence result
