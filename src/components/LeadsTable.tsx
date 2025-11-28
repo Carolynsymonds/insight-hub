@@ -337,27 +337,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                           {lead.domain}
                           <ExternalLink className="h-3 w-3" />
                         </a>
-                        {lead.enrichment_confidence !== null && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.enrichment_confidence}%
-                          </Badge>
-                        )}
                         {lead.match_score !== null && (
                           <Badge 
-                            variant={
-                              lead.match_score >= 80 ? "default" : 
-                              lead.match_score >= 50 ? "secondary" : 
-                              "destructive"
-                            }
-                            className={`text-xs ${
-                              lead.match_score >= 80 ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
-                              lead.match_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
-                              "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                            }`}
+                            variant="outline"
+                            className="text-xs bg-white text-black border-border"
                             onClick={(e) => e.stopPropagation()}
                           >
                             🎯 {lead.match_score}%
