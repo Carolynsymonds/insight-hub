@@ -69,6 +69,7 @@ interface Lead {
   mics_subsector: string | null;
   mics_segment: string | null;
   distance_miles: number | null;
+  distance_confidence: string | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -583,6 +584,36 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         <p className="text-xs text-muted-foreground mt-1">
                                           📍 From {lead.city}, {lead.state} {lead.zipcode}
                                         </p>
+                                        
+                                        {/* Distance Confidence Badge */}
+                                        {lead.distance_confidence && (
+                                          <div className="mt-3 pt-3 border-t">
+                                            <p className="text-sm font-medium text-muted-foreground mb-2">Match Confidence</p>
+                                            <Badge 
+                                              variant={
+                                                lead.distance_confidence === "high" ? "default" : 
+                                                lead.distance_confidence === "medium" ? "secondary" : 
+                                                "destructive"
+                                              }
+                                              className={
+                                                lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" :
+                                                lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" :
+                                                "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                              }
+                                            >
+                                              {lead.distance_confidence === "high" ? "🟢 High Confidence" :
+                                               lead.distance_confidence === "medium" ? "🟡 Medium Confidence" :
+                                               "🔴 Low Confidence"}
+                                            </Badge>
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                              {lead.distance_confidence === "high" 
+                                                ? "Lead is within 20 miles - likely a strong match" 
+                                                : lead.distance_confidence === "medium"
+                                                ? "Lead is 20-60 miles away - moderate match"
+                                                : "Lead is over 60 miles away - lower match likelihood"}
+                                            </p>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                     
