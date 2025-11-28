@@ -17,6 +17,8 @@ interface EnrichmentLog {
     city?: string;
     state?: string;
     micsSector?: string;
+    email?: string;
+    extractedDomain?: string;
   };
   organizationsFound: number;
   selectedOrganization?: {
@@ -384,6 +386,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                             {latestLog.searchParams.city && <p><span className="font-medium">City:</span> {latestLog.searchParams.city}</p>}
                                                             {latestLog.searchParams.state && <p><span className="font-medium">State:</span> {latestLog.searchParams.state}</p>}
                                                             {latestLog.searchParams.micsSector && <p><span className="font-medium">MICS Sector:</span> {latestLog.searchParams.micsSector}</p>}
+                                                            {latestLog.searchParams.email && <p><span className="font-medium">Email:</span> {latestLog.searchParams.email}</p>}
+                                                            {latestLog.searchParams.extractedDomain && <p><span className="font-medium">Extracted Domain:</span> {latestLog.searchParams.extractedDomain}</p>}
                                                             <p><span className="font-medium">Organizations found:</span> {latestLog.organizationsFound}</p>
                                                           </div>
                                                           {latestLog.selectedOrganization && (
