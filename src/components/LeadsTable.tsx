@@ -75,10 +75,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       if (confidence === 85) return "85% - When website_url exists but URL parsing fails (used as-is)";
       return "0% - No domain found";
     }
-    if (source === "google_knowledge_graph" || source === "google_knowledge_graph_error") {
-      return confidence === 100 
-        ? "100% - When knowledge_graph.website exists in SerpAPI response" 
-        : "0% - No knowledge graph found";
+    if (source === "google_knowledge_graph" || source === "google_knowledge_graph_error" || source === "google_local_results") {
+      if (confidence === 100) return "100% - When knowledge_graph.website exists in SerpAPI response";
+      if (confidence === 50) return "50% - When local_results.places[0].links.website exists (fallback)";
+      return "0% - No knowledge graph or local results found";
     }
     return "Confidence score indicates data quality";
   };
@@ -227,7 +227,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             const mostRecentLog = logs[0]; // Logs are already sorted by timestamp
                                             const sourceLabel = source === "apollo_api" 
                                               ? "Apollo" 
-                                              : source === "google_knowledge_graph" 
+                                              : source === "google_knowledge_graph" || source === "google_local_results"
                                               ? "Google" 
                                               : source;
                                             

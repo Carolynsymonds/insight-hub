@@ -123,8 +123,17 @@ async function enrichWithGoogle(
       };
 
       console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
+    } else if (data.local_results?.places?.[0]?.links?.website) {
+      // Fallback to local_results
+      domain = normalizeDomain(data.local_results.places[0].links.website);
+      confidence = 50;
+      selectedOrg = {
+        name: data.local_results.places[0].title || company,
+        domain: domain,
+      };
+      console.log(`Extracted domain from local_results: ${domain} with confidence 50%`);
     } else {
-      console.log("No knowledge graph found in SerpAPI response");
+      console.log("No knowledge graph or local results found in SerpAPI response");
     }
 
     // Extract GPS coordinates from local_map
@@ -150,20 +159,29 @@ async function enrichWithGoogle(
       };
     }
 
+    // Determine source type for logging
+    const sourceType = data.knowledge_graph?.website 
+      ? "google_knowledge_graph" 
+      : data.local_results?.places?.[0]?.links?.website 
+      ? "google_local_results" 
+      : "google_knowledge_graph";
+
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
-      action: "google_knowledge_graph_search",
+      action: domain 
+        ? (data.knowledge_graph?.website ? "google_knowledge_graph_search" : "google_local_results_search")
+        : "google_search_no_results",
       searchParams: {
         company,
         ...(city && { city }),
         ...(state && { state }),
       },
-      organizationsFound: data.knowledge_graph ? 1 : 0,
+      organizationsFound: domain ? 1 : 0,
       selectedOrganization: selectedOrg,
       domain,
       confidence,
-      source: "google_knowledge_graph",
+      source: sourceType,
       ...(gpsCoordinates && { gpsCoordinates }),
       ...(searchInformation && { searchInformation }),
     };
@@ -171,7 +189,7 @@ async function enrichWithGoogle(
     return {
       domain,
       confidence,
-      source: "google_knowledge_graph",
+      source: sourceType,
       log,
       latitude,
       longitude,
