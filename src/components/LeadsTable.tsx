@@ -212,6 +212,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         {lead.domain}
                         <ExternalLink className="h-3 w-3" />
                       </a>
+                    ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                      (() => {
+                        const checkedSources = new Set<string>();
+                        lead.enrichment_logs.forEach(log => {
+                          if (log.source.startsWith("email_")) {
+                            checkedSources.add("Email");
+                          } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
+                            checkedSources.add("Google");
+                          } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
+                            checkedSources.add("Apollo");
+                          }
+                        });
+                        const sourceList = Array.from(checkedSources).join(", ");
+                        return (
+                          <span className="text-muted-foreground text-sm">
+                            Not found in {sourceList}
+                          </span>
+                        );
+                      })()
                     ) : (
                       "—"
                     )}
