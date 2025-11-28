@@ -93,6 +93,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       if (confidence === 15) return "15% - Step 2: Industry search local_results";
       if (confidence === 10) return "10% - Step 3: Simple search knowledge_graph";
       if (confidence === 5) return "5% - Step 3: Simple search local_results";
+      if (confidence === 8) return "8% - Step 4: Vehicle Tracking search knowledge_graph";
+      if (confidence === 4) return "4% - Step 4: Vehicle Tracking search local_results";
       return "0% - No domain found after all search steps";
     }
     return "Confidence score indicates data quality";
