@@ -219,24 +219,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                             <Search className="h-4 w-4" />
                           </Button>
                         </DrawerTrigger>
-                        <DrawerContent direction="right" className="bg-background">
-                          <DrawerHeader className="flex flex-row items-center justify-between">
-                            <DrawerTitle>Enrichments</DrawerTitle>
+                        <DrawerContent direction="right" className="bg-background [&_*]:select-text [&_button]:select-none [&_[role=button]]:select-none">
+                          <DrawerHeader className="flex flex-row items-center justify-between select-none">
+                            <DrawerTitle className="select-none">Enrichments</DrawerTitle>
                             <Button 
                               variant="ghost" 
                               size="icon"
                               onClick={() => setOpenDrawer(null)}
+                              className="select-none"
                             >
                               <X className="h-4 w-4" />
                             </Button>
                           </DrawerHeader>
-                          <div className="px-4 pb-8 select-text">
+                          <div className="px-4 pb-8 select-text overflow-y-auto" style={{ userSelect: 'text' }}>
                             <Accordion type="single" collapsible className="w-full">
                               <AccordionItem value="company-domain" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                   Company Domain
                                 </AccordionTrigger>
-                                <AccordionContent className="select-text">
+                                <AccordionContent className="select-text" style={{ userSelect: 'text' }}>
                                   <div className="space-y-3 pt-2">
                                     {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
                                       <>
@@ -259,10 +260,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               : source;
                                             
                                             return (
-                                              <div key={source} className="border rounded-lg p-3 space-y-3 select-text">
+                                              <div key={source} className="border rounded-lg p-3 space-y-3" style={{ userSelect: 'text' }}>
                                                 {/* Source Header */}
                                                 <div className="flex items-center justify-between select-none">
-                                                  <h4 className="font-semibold text-sm">{sourceLabel}</h4>
+                                                  <h4 className="font-semibold text-sm select-none">{sourceLabel}</h4>
                                                   <div className="flex items-center gap-1">
                                                     <Badge variant="outline" className="text-xs">
                                                       {mostRecentLog.confidence}% confidence
@@ -282,17 +283,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
                                                 {/* Domain Display */}
                                                 {mostRecentLog.domain && (
-                                                  <div>
-                                                    <p className="text-xs text-muted-foreground mb-1">Domain:</p>
+                                                  <div style={{ userSelect: 'text' }}>
+                                                    <p className="text-xs text-muted-foreground mb-1 select-text">Domain:</p>
                                                     <a
                                                       href={`https://${mostRecentLog.domain}`}
                                                       target="_blank"
                                                       rel="noopener noreferrer"
-                                                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                      className="text-sm text-primary hover:underline flex items-center gap-1 select-text"
                                                       onClick={(e) => e.stopPropagation()}
+                                                      style={{ userSelect: 'text' }}
                                                     >
                                                       {mostRecentLog.domain}
-                                                      <ExternalLink className="h-3 w-3" />
+                                                      <ExternalLink className="h-3 w-3 select-none" />
                                                     </a>
                                                   </div>
                                                 )}
@@ -302,16 +304,16 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   size="sm"
                                                   variant="outline"
                                                   onClick={() => setShowLogsForSource(showLogsForSource === source ? null : source)}
-                                                  className="w-full"
+                                                  className="w-full select-none"
                                                 >
                                                   {showLogsForSource === source ? "Hide Logs" : "View Logs"}
                                                 </Button>
 
-                                                 {/* Collapsible Logs Section */}
+                                                {/* Collapsible Logs Section */}
                                                 {showLogsForSource === source && (
-                                                  <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t">
+                                                  <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t" style={{ userSelect: 'text' }}>
                                                     {logs.map((log, index) => (
-                                                      <div key={index} className="bg-muted/30 rounded-md p-2 text-xs space-y-1">
+                                                      <div key={index} className="bg-muted/30 rounded-md p-2 text-xs space-y-1" style={{ userSelect: 'text' }}>
                                                         <div className="flex items-center justify-between">
                                                           <span className="font-medium text-muted-foreground">
                                                             {new Date(log.timestamp).toLocaleString()}
