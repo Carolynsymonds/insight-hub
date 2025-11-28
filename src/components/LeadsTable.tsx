@@ -253,20 +253,30 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         {/* Group logs by source */}
                                         {(() => {
                                           const logsBySource = lead.enrichment_logs.reduce((acc, log) => {
-                                            if (!acc[log.source]) {
-                                              acc[log.source] = [];
+                                            // Normalize all email sources to a single "email" key
+                                            let groupKey = log.source;
+                                            if (log.source.startsWith("email_")) {
+                                              groupKey = "email";
+                                            } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
+                                              groupKey = "google";
+                                            } else if (log.source === "apollo_api") {
+                                              groupKey = "apollo";
                                             }
-                                            acc[log.source].push(log);
+                                            
+                                            if (!acc[groupKey]) {
+                                              acc[groupKey] = [];
+                                            }
+                                            acc[groupKey].push(log);
                                             return acc;
                                           }, {} as Record<string, EnrichmentLog[]>);
 
                                           return Object.entries(logsBySource).map(([source, logs]) => {
                                             const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
-                                            const sourceLabel = source === "apollo_api" 
+                                            const sourceLabel = source === "apollo" 
                                               ? "Apollo" 
-                                              : source === "google_knowledge_graph" || source === "google_local_results"
+                                              : source === "google"
                                               ? "Google"
-                                              : source === "email_domain_verified" || source === "email_not_provided" || source === "email_invalid_format" || source === "email_personal_domain_skipped" || source === "email_domain_not_verified" || source === "email_domain_verification_error"
+                                              : source === "email"
                                               ? "Email"
                                               : source;
                                             
@@ -293,31 +303,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </div>
                                                   )}
                                                 </div>
-
-                                                 {/* Email enrichment - Show searchSteps by default */}
-                                                 {sourceLabel === "Email" && mostRecentLog.searchSteps && mostRecentLog.searchSteps.length > 0 && (
-                                                   <div className="border rounded p-2 bg-muted/30 text-xs space-y-2" style={{ userSelect: 'text' }}>
-                                                     <p className="font-medium select-text">Search Path:</p>
-                                                     {mostRecentLog.searchSteps.map((step, idx) => (
-                                                       <div key={idx} className="border-l-2 border-primary/30 pl-2">
-                                                         <div className="flex items-center gap-2">
-                                                           <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5 select-none">
-                                                             Step {step.step}
-                                                           </Badge>
-                                                           {step.resultFound && step.source && (
-                                                             <span className="text-muted-foreground select-text">via {step.source}</span>
-                                                           )}
-                                                         </div>
-                                                         <p className="text-muted-foreground break-all font-mono mt-1 bg-muted/50 p-1 rounded select-text">
-                                                           {step.query}
-                                                         </p>
-                                                         <p className="mt-1 font-medium text-xs select-text">
-                                                           {step.resultFound ? '✓ Found' : '✗ Not found'}
-                                                         </p>
-                                                       </div>
-                                                     ))}
-                                                   </div>
-                                                 )}
 
                                                  {/* Domain Display */}
                                                  <div style={{ userSelect: 'text' }}>
