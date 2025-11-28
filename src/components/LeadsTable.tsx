@@ -16,6 +16,7 @@ interface EnrichmentLog {
     company: string;
     city?: string;
     state?: string;
+    micsSector?: string;
   };
   organizationsFound: number;
   selectedOrganization?: {
@@ -38,6 +39,12 @@ interface EnrichmentLog {
     organic_results_state: string;
     results_for: string;
   };
+  searchSteps?: {
+    step: number;
+    query: string;
+    resultFound: boolean;
+    source?: string;
+  }[];
 }
 
 interface Lead {
@@ -79,9 +86,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       return "0% - No domain found";
     }
     if (source === "google_knowledge_graph" || source === "google_knowledge_graph_error" || source === "google_local_results") {
-      if (confidence === 100) return "100% - When knowledge_graph.website exists in SerpAPI response";
-      if (confidence === 50) return "50% - When local_results.places[0].links.website exists (fallback)";
-      return "0% - No knowledge graph or local results found";
+      if (confidence === 100) return "100% - Step 1: knowledge_graph.website found";
+      if (confidence === 50) return "50% - Step 1: local_results fallback";
+      if (confidence === 25) return "25% - Step 2: Industry search knowledge_graph";
+      if (confidence === 15) return "15% - Step 2: Industry search local_results";
+      return "0% - No domain found after both search steps";
     }
     return "Confidence score indicates data quality";
   };
@@ -89,15 +98,16 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const handleEnrich = async (lead: Lead, source: "apollo" | "google") => {
     setEnrichingSource({ leadId: lead.id, source });
     try {
-      const { data, error } = await supabase.functions.invoke("enrich-lead", {
-        body: {
-          leadId: lead.id,
-          company: lead.company,
-          city: lead.city,
-          state: lead.state,
-          source,
-        },
-      });
+    const { data, error } = await supabase.functions.invoke("enrich-lead", {
+      body: {
+        leadId: lead.id,
+        company: lead.company,
+        city: lead.city,
+        state: lead.state,
+        mics_sector: lead.mics_sector,
+        source,
+      },
+    });
       if (error) throw error;
       
       toast({
@@ -290,7 +300,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   {showLogsForSource === source ? "Hide Logs" : "View Logs"}
                                                 </Button>
 
-                                                {/* Collapsible Logs Section */}
+                                                 {/* Collapsible Logs Section */}
                                                 {showLogsForSource === source && (
                                                   <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t">
                                                     {logs.map((log, index) => (
@@ -300,6 +310,34 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                             {new Date(log.timestamp).toLocaleString()}
                                                           </span>
                                                         </div>
+                                                        
+                                                        {/* Search Steps */}
+                                                        {log.searchSteps && log.searchSteps.length > 0 && (
+                                                          <div className="border rounded p-2 mb-2 bg-background/50">
+                                                            <p className="font-medium mb-2">Search Path:</p>
+                                                            <div className="space-y-2">
+                                                              {log.searchSteps.map((step, idx) => (
+                                                                <div key={idx} className="border-l-2 border-primary/30 pl-2">
+                                                                  <div className="flex items-center gap-2 mb-1">
+                                                                    <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5">
+                                                                      Step {step.step}
+                                                                    </Badge>
+                                                                    {step.resultFound && step.source && (
+                                                                      <span className="text-muted-foreground text-xs">via {step.source}</span>
+                                                                    )}
+                                                                  </div>
+                                                                  <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
+                                                                    {step.query}
+                                                                  </p>
+                                                                  <p className="mt-1 font-medium text-xs">
+                                                                    {step.resultFound ? '✓ Found results' : '✗ No results'}
+                                                                  </p>
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                        
                                                         <div className="text-muted-foreground space-y-0.5">
                                                           <p><span className="font-medium">Company:</span> {log.searchParams.company}</p>
                                                           {log.searchParams.city && <p><span className="font-medium">City:</span> {log.searchParams.city}</p>}
