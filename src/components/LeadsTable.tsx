@@ -294,25 +294,50 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   )}
                                                 </div>
 
-                                                {/* Domain Display */}
-                                                <div style={{ userSelect: 'text' }}>
-                                                  <p className="text-xs text-muted-foreground mb-1 select-text">Domain:</p>
-                                                  {mostRecentLog.domain ? (
-                                                    <a
-                                                      href={`https://${mostRecentLog.domain}`}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-sm text-primary hover:underline flex items-center gap-1 select-text"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      style={{ userSelect: 'text' }}
-                                                    >
-                                                      {mostRecentLog.domain}
-                                                      <ExternalLink className="h-3 w-3 select-none" />
-                                                    </a>
-                                                  ) : (
-                                                    <p className="text-sm text-muted-foreground select-text">No domain found</p>
-                                                  )}
-                                                </div>
+                                                 {/* Email enrichment - Show searchSteps by default */}
+                                                 {sourceLabel === "Email" && mostRecentLog.searchSteps && mostRecentLog.searchSteps.length > 0 && (
+                                                   <div className="border rounded p-2 bg-muted/30 text-xs space-y-2" style={{ userSelect: 'text' }}>
+                                                     <p className="font-medium select-text">Search Path:</p>
+                                                     {mostRecentLog.searchSteps.map((step, idx) => (
+                                                       <div key={idx} className="border-l-2 border-primary/30 pl-2">
+                                                         <div className="flex items-center gap-2">
+                                                           <Badge variant={step.resultFound ? "default" : "secondary"} className="text-xs h-5 select-none">
+                                                             Step {step.step}
+                                                           </Badge>
+                                                           {step.resultFound && step.source && (
+                                                             <span className="text-muted-foreground select-text">via {step.source}</span>
+                                                           )}
+                                                         </div>
+                                                         <p className="text-muted-foreground break-all font-mono mt-1 bg-muted/50 p-1 rounded select-text">
+                                                           {step.query}
+                                                         </p>
+                                                         <p className="mt-1 font-medium text-xs select-text">
+                                                           {step.resultFound ? '✓ Found' : '✗ Not found'}
+                                                         </p>
+                                                       </div>
+                                                     ))}
+                                                   </div>
+                                                 )}
+
+                                                 {/* Domain Display */}
+                                                 <div style={{ userSelect: 'text' }}>
+                                                   <p className="text-xs text-muted-foreground mb-1 select-text">Domain:</p>
+                                                   {mostRecentLog.domain ? (
+                                                     <a
+                                                       href={`https://${mostRecentLog.domain}`}
+                                                       target="_blank"
+                                                       rel="noopener noreferrer"
+                                                       className="text-sm text-primary hover:underline flex items-center gap-1 select-text"
+                                                       onClick={(e) => e.stopPropagation()}
+                                                       style={{ userSelect: 'text' }}
+                                                     >
+                                                       {mostRecentLog.domain}
+                                                       <ExternalLink className="h-3 w-3 select-none" />
+                                                     </a>
+                                                   ) : (
+                                                     <p className="text-sm text-muted-foreground select-text">No domain found</p>
+                                                   )}
+                                                 </div>
 
                                                 {/* View Logs Button */}
                                                 <Button
