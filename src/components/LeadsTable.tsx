@@ -76,6 +76,10 @@ interface Lead {
   longitude: number | null;
   match_score: number | null;
   match_score_source: string | null;
+  industry_relevance_score: number | null;
+  industry_relevance_explanation: string | null;
+  vehicle_tracking_interest_score: number | null;
+  vehicle_tracking_interest_explanation: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -94,6 +98,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
   const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { category: string; diagnosis: string; recommendation: string; confidence: string }>>({});
   const [expandedDiagnosis, setExpandedDiagnosis] = useState<string | null>(null);
+  const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
+  const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
 
   const handleDiagnose = async (lead: Lead) => {
     setDiagnosing({ leadId: lead.id, source: "all" });
@@ -332,6 +338,87 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setCalculatingMatchScore(null);
+    }
+  };
+
+  const handleScoreIndustryRelevance = async (lead: Lead) => {
+    if (!lead.domain) {
+      toast({
+        title: "Cannot Score Industry Relevance",
+        description: "Domain is required. Run enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setScoringIndustry(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("score-industry-relevance", {
+        body: {
+          leadId: lead.id,
+          domain: lead.domain,
+          micsSector: lead.mics_sector,
+          micsSubsector: lead.mics_subsector,
+          micsSegment: lead.mics_segment,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Industry Relevance Scored!",
+        description: `Score: ${data.score}/100`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Scoring Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setScoringIndustry(null);
+    }
+  };
+
+  const handleScoreVehicleTrackingInterest = async (lead: Lead) => {
+    if (!lead.domain) {
+      toast({
+        title: "Cannot Score Vehicle Tracking Interest",
+        description: "Domain is required. Run enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setScoringVehicleTracking(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("score-vehicle-tracking-interest", {
+        body: {
+          leadId: lead.id,
+          domain: lead.domain,
+          company: lead.company,
+          micsSector: lead.mics_sector,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Vehicle Tracking Interest Scored!",
+        description: `Score: ${data.score}/100`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Scoring Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setScoringVehicleTracking(null);
     }
   };
 
@@ -1219,6 +1306,253 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             {(!lead.domain || !lead.company) && (
                                               <p className="text-xs text-muted-foreground text-center">
                                                 Run domain enrichment first to get company domain
+                                              </p>
+                                            )}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+
+                                      {/* Industry Relevance Accordion Item */}
+                                      <AccordionItem value="industry-relevance" className="border-border">
+                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-2">
+                                              <span>Industry Relevance</span>
+                                              {lead.industry_relevance_score !== null && (
+                                                <span className="font-semibold text-foreground">
+                                                  {lead.industry_relevance_score}/100
+                                                </span>
+                                              )}
+                                            </div>
+                                            {lead.industry_relevance_score !== null && (
+                                              <Badge
+                                                variant={
+                                                  lead.industry_relevance_score >= 80
+                                                    ? "default"
+                                                    : lead.industry_relevance_score >= 50
+                                                      ? "secondary"
+                                                      : "destructive"
+                                                }
+                                                className={
+                                                  lead.industry_relevance_score >= 80
+                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                    : lead.industry_relevance_score >= 50
+                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                }
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.industry_relevance_score >= 80
+                                                  ? "🟢 High"
+                                                  : lead.industry_relevance_score >= 50
+                                                    ? "🟡 Medium"
+                                                    : "🔴 Low"}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="space-y-3 pt-2">
+                                            {lead.industry_relevance_score !== null ? (
+                                              <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                <div>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                    AI Industry Match Score
+                                                  </p>
+                                                  <p className="text-3xl font-bold">
+                                                    {lead.industry_relevance_score}/100
+                                                  </p>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    Evaluated by Gemini AI
+                                                  </p>
+                                                </div>
+
+                                                {lead.industry_relevance_explanation && (
+                                                  <div className="pt-3 border-t">
+                                                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                      Analysis
+                                                    </p>
+                                                    <p className="text-sm text-foreground">
+                                                      {lead.industry_relevance_explanation}
+                                                    </p>
+                                                  </div>
+                                                )}
+
+                                                <div className="pt-3 border-t">
+                                                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                    MICS Classification
+                                                  </p>
+                                                  {lead.mics_sector && (
+                                                    <p className="text-sm text-foreground">
+                                                      <span className="font-medium">Sector:</span> {lead.mics_sector}
+                                                    </p>
+                                                  )}
+                                                  {lead.mics_subsector && (
+                                                    <p className="text-sm text-foreground mt-1">
+                                                      <span className="font-medium">Subsector:</span> {lead.mics_subsector}
+                                                    </p>
+                                                  )}
+                                                  {lead.mics_segment && (
+                                                    <p className="text-sm text-foreground mt-1">
+                                                      <span className="font-medium">Segment:</span> {lead.mics_segment}
+                                                    </p>
+                                                  )}
+                                                  {!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment && (
+                                                    <p className="text-sm text-muted-foreground italic">
+                                                      No MICS classification data available
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground">
+                                                No industry relevance score calculated yet
+                                              </p>
+                                            )}
+
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full"
+                                              disabled={!lead.domain || scoringIndustry === lead.id}
+                                              onClick={() => handleScoreIndustryRelevance(lead)}
+                                            >
+                                              {scoringIndustry === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Scoring...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Sparkles className="mr-2 h-4 w-4" />
+                                                  Calculate Industry Relevance
+                                                </>
+                                              )}
+                                            </Button>
+
+                                            {!lead.domain && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                Run domain enrichment first
+                                              </p>
+                                            )}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+
+                                      {/* Vehicle Tracking Interest Accordion Item */}
+                                      <AccordionItem value="vehicle-tracking-interest" className="border-border">
+                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-2">
+                                              <span>Vehicle Tracking Interest</span>
+                                              {lead.vehicle_tracking_interest_score !== null && (
+                                                <span className="font-semibold text-foreground">
+                                                  {lead.vehicle_tracking_interest_score}/100
+                                                </span>
+                                              )}
+                                            </div>
+                                            {lead.vehicle_tracking_interest_score !== null && (
+                                              <Badge
+                                                variant={
+                                                  lead.vehicle_tracking_interest_score >= 80
+                                                    ? "default"
+                                                    : lead.vehicle_tracking_interest_score >= 50
+                                                      ? "secondary"
+                                                      : "destructive"
+                                                }
+                                                className={
+                                                  lead.vehicle_tracking_interest_score >= 80
+                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                    : lead.vehicle_tracking_interest_score >= 50
+                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                }
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.vehicle_tracking_interest_score >= 80
+                                                  ? "🟢 High"
+                                                  : lead.vehicle_tracking_interest_score >= 50
+                                                    ? "🟡 Medium"
+                                                    : "🔴 Low"}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="space-y-3 pt-2">
+                                            {lead.vehicle_tracking_interest_score !== null ? (
+                                              <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                <div>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                    AI Interest Score
+                                                  </p>
+                                                  <p className="text-3xl font-bold">
+                                                    {lead.vehicle_tracking_interest_score}/100
+                                                  </p>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    Evaluated by Gemini AI
+                                                  </p>
+                                                </div>
+
+                                                {lead.vehicle_tracking_interest_explanation && (
+                                                  <div className="pt-3 border-t">
+                                                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                      Analysis
+                                                    </p>
+                                                    <p className="text-sm text-foreground">
+                                                      {lead.vehicle_tracking_interest_explanation}
+                                                    </p>
+                                                  </div>
+                                                )}
+
+                                                <div className="pt-3 border-t">
+                                                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                    Company
+                                                  </p>
+                                                  <p className="text-sm text-foreground font-medium">{lead.company}</p>
+                                                  <p className="text-sm font-medium text-muted-foreground mb-2 mt-3">
+                                                    Domain
+                                                  </p>
+                                                  <a
+                                                    href={`https://${lead.domain}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                  >
+                                                    {lead.domain}
+                                                    <ExternalLink className="h-3 w-3" />
+                                                  </a>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground">
+                                                No vehicle tracking interest score calculated yet
+                                              </p>
+                                            )}
+
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full"
+                                              disabled={!lead.domain || scoringVehicleTracking === lead.id}
+                                              onClick={() => handleScoreVehicleTrackingInterest(lead)}
+                                            >
+                                              {scoringVehicleTracking === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Scoring...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Sparkles className="mr-2 h-4 w-4" />
+                                                  Calculate Vehicle Tracking Interest
+                                                </>
+                                              )}
+                                            </Button>
+
+                                            {!lead.domain && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                Run domain enrichment first
                                               </p>
                                             )}
                                           </div>
