@@ -95,10 +95,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       if (confidence === 5) return "5% - Step 3: Simple search local_results";
       return "0% - No domain found after all search steps";
     }
+    if (source === "email_domain_verified" || source === "email_not_provided" || source === "email_invalid_format" || source === "email_personal_domain_skipped" || source === "email_domain_not_verified" || source === "email_domain_verification_error") {
+      if (confidence === 95) return "95% - Domain extracted from email and verified via Google";
+      return "0% - No valid business domain in email or verification failed";
+    }
     return "Confidence score indicates data quality";
   };
   
-  const handleEnrich = async (lead: Lead, source: "apollo" | "google") => {
+  const handleEnrich = async (lead: Lead, source: "apollo" | "google" | "email") => {
     setEnrichingSource({ leadId: lead.id, source });
     try {
     const { data, error } = await supabase.functions.invoke("enrich-lead", {
@@ -108,6 +112,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         city: lead.city,
         state: lead.state,
         mics_sector: lead.mics_sector,
+        email: lead.email,
         source,
       },
     });
@@ -258,7 +263,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             const sourceLabel = source === "apollo_api" 
                                               ? "Apollo" 
                                               : source === "google_knowledge_graph" || source === "google_local_results"
-                                              ? "Google" 
+                                              ? "Google"
+                                              : source === "email_domain_verified" || source === "email_not_provided" || source === "email_invalid_format" || source === "email_personal_domain_skipped" || source === "email_domain_not_verified" || source === "email_domain_verification_error"
+                                              ? "Email"
                                               : source;
                                             
                                             return (
@@ -456,6 +463,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           <>
                                             <Sparkles className="mr-2 h-4 w-4" />
                                             Enrich with Google
+                                          </>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleEnrich(lead, "email")}
+                                        disabled={enrichingSource?.leadId === lead.id || !lead.email}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "email" ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Enriching with Email...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich with Email
                                           </>
                                         )}
                                       </Button>
