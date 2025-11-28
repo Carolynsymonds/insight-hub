@@ -264,48 +264,24 @@ async function enrichWithGoogle(
       });
     }
 
-    // STEPS 3 & 4: Run in parallel and pick highest confidence result
+    // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
     if (!finalDomain) {
       const step3Query = `${company} ${locationPart}`;
-      const step4Query = `${company} ${locationPart} Vehicle Tracking`;
+      console.log(`Step 3: Simple fallback search with query: ${step3Query}`);
       
-      console.log(`Step 3: Simple search with query: ${step3Query}`);
-      console.log(`Step 4: Vehicle Tracking search with query: ${step4Query}`);
+      const step3Result = await performGoogleSearch(step3Query, serpApiKey);
       
-      // Run both searches in parallel for efficiency
-      const [step3Result, step4Result] = await Promise.all([
-        performGoogleSearch(step3Query, serpApiKey),
-        performGoogleSearch(step4Query, serpApiKey)
-      ]);
-      
-      // Calculate confidence scores for both results
-      const step3Confidence = step3Result.domain 
-        ? (step3Result.sourceType === "knowledge_graph" ? 10 : 5) 
-        : 0;
-      const step4Confidence = step4Result.domain 
-        ? (step4Result.sourceType === "knowledge_graph" ? 8 : 4) 
-        : 0;
-      
-      // Log both steps for full transparency
       searchSteps.push({
         step: 3,
         query: step3Query,
         resultFound: step3Result.domain !== null,
         source: step3Result.sourceType || undefined,
       });
-      
-      searchSteps.push({
-        step: 4,
-        query: step4Query,
-        resultFound: step4Result.domain !== null,
-        source: step4Result.sourceType || undefined,
-      });
-      
-      // Pick the higher confidence result (Step 3 wins ties)
-      if (step3Confidence >= step4Confidence && step3Result.domain) {
-        // Use Step 3 result
+
+      if (step3Result.domain) {
         finalDomain = step3Result.domain;
-        finalConfidence = step3Confidence;
+        // Lower confidence for step 3: 10% for knowledge_graph, 5% for local_results
+        finalConfidence = step3Result.sourceType === "knowledge_graph" ? 10 : 5;
         finalSource = step3Result.sourceType === "knowledge_graph" 
           ? "google_knowledge_graph" 
           : "google_local_results";
@@ -315,23 +291,9 @@ async function enrichWithGoogle(
         finalLongitude = step3Result.longitude;
         finalSearchInformation = step3Result.searchInformation;
         
-        console.log(`Winner: Step 3 with ${step3Confidence}% confidence: ${finalDomain}`);
-      } else if (step4Result.domain) {
-        // Use Step 4 result (has higher confidence or Step 3 found nothing)
-        finalDomain = step4Result.domain;
-        finalConfidence = step4Confidence;
-        finalSource = step4Result.sourceType === "knowledge_graph" 
-          ? "google_knowledge_graph" 
-          : "google_local_results";
-        finalSelectedOrg = step4Result.selectedOrg;
-        finalGpsCoordinates = step4Result.gpsCoordinates;
-        finalLatitude = step4Result.latitude;
-        finalLongitude = step4Result.longitude;
-        finalSearchInformation = step4Result.searchInformation;
-        
-        console.log(`Winner: Step 4 with ${step4Confidence}% confidence: ${finalDomain}`);
+        console.log(`Step 3 successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else {
-        console.log("Steps 3 & 4 both failed: No results found");
+        console.log("Step 3 failed: No results found");
       }
     }
 
