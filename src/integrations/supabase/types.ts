@@ -21,6 +21,11 @@ export type Database = {
           company: string | null
           company_industry: string | null
           created_at: string | null
+          diagnosed_at: string | null
+          diagnosis_category: string | null
+          diagnosis_confidence: string | null
+          diagnosis_explanation: string | null
+          diagnosis_recommendation: string | null
           distance_confidence: string | null
           distance_miles: number | null
           dma: string | null
@@ -62,6 +67,11 @@ export type Database = {
           company?: string | null
           company_industry?: string | null
           created_at?: string | null
+          diagnosed_at?: string | null
+          diagnosis_category?: string | null
+          diagnosis_confidence?: string | null
+          diagnosis_explanation?: string | null
+          diagnosis_recommendation?: string | null
           distance_confidence?: string | null
           distance_miles?: number | null
           dma?: string | null
@@ -103,6 +113,11 @@ export type Database = {
           company?: string | null
           company_industry?: string | null
           created_at?: string | null
+          diagnosed_at?: string | null
+          diagnosis_category?: string | null
+          diagnosis_confidence?: string | null
+          diagnosis_explanation?: string | null
+          diagnosis_recommendation?: string | null
           distance_confidence?: string | null
           distance_miles?: number | null
           dma?: string | null

@@ -86,6 +86,11 @@ interface Lead {
   company_industry: string | null;
   linkedin: string | null;
   news: string | null;
+  diagnosis_category: string | null;
+  diagnosis_explanation: string | null;
+  diagnosis_recommendation: string | null;
+  diagnosis_confidence: string | null;
+  diagnosed_at: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -102,7 +107,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringDomain, setScoringDomain] = useState<string | null>(null);
   const [calculatingMatchScore, setCalculatingMatchScore] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
-  const [diagnosisResults, setDiagnosisResults] = useState<Record<string, { category: string; diagnosis: string; recommendation: string; confidence: string }>>({});
   const [expandedDiagnosis, setExpandedDiagnosis] = useState<string | null>(null);
   const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
   const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
@@ -127,17 +131,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       },
     });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      setDiagnosisResults(prev => ({
-        ...prev,
-        [lead.id]: data,
-      }));
+    toast({
+      title: "Diagnosis Complete",
+      description: "AI analysis has been generated.",
+    });
 
-      toast({
-        title: "Diagnosis Complete",
-        description: "AI analysis has been generated.",
-      });
+    onEnrichComplete();
     } catch (error: any) {
       console.error("Diagnosis error:", error);
       toast({
@@ -516,13 +517,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                           }
                         });
                         const sourceList = Array.from(checkedSources).join(", ");
-                        const diagnosis = diagnosisResults[lead.id];
                         return (
                           <div className="flex flex-col gap-1">
                             <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
-                            {diagnosis && (
+                            {lead.diagnosis_category && (
                               <Badge variant="outline" className="text-xs w-fit">
-                                {diagnosis.category}
+                                {lead.diagnosis_category}
                               </Badge>
                             )}
                           </div>
@@ -884,62 +884,62 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                </>
                                              )}
                                            </Button>
-                                           
-                                           {/* Diagnosis Results */}
-                                           {diagnosisResults[lead.id] && (
-                                             <div className="border rounded-lg overflow-hidden">
-                                               {/* Category Header - Collapsible */}
-                                               <button
-                                                 onClick={() => setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)}
-                                                 className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
-                                               >
-                                                 <div className="flex items-center gap-2 flex-1">
-                                                   <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                                                   <span className="text-sm font-medium">
-                                                     {diagnosisResults[lead.id].category}
-                                                   </span>
-                                                   <Badge 
-                                                     variant={
-                                                       diagnosisResults[lead.id].confidence === "high" 
-                                                         ? "default" 
-                                                         : diagnosisResults[lead.id].confidence === "medium"
-                                                         ? "secondary"
-                                                         : "outline"
-                                                     }
-                                                     className="text-xs"
-                                                   >
-                                                     {diagnosisResults[lead.id].confidence}
-                                                   </Badge>
-                                                 </div>
-                                                 <svg
-                                                   className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? 'rotate-180' : ''}`}
-                                                   fill="none"
-                                                   stroke="currentColor"
-                                                   viewBox="0 0 24 24"
-                                                 >
-                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                 </svg>
-                                               </button>
-                                               
-                                               {/* Expanded Details */}
-                                               {expandedDiagnosis === lead.id && (
-                                                 <div className="p-3 bg-background space-y-2 border-t">
-                                                   <div>
-                                                     <p className="text-xs font-medium mb-1">Diagnosis</p>
-                                                     <p className="text-xs text-muted-foreground">
-                                                       {diagnosisResults[lead.id].diagnosis}
-                                                     </p>
-                                                   </div>
-                                                   <div>
-                                                     <p className="text-xs font-medium mb-1">Recommendation</p>
-                                                     <p className="text-xs text-muted-foreground">
-                                                       {diagnosisResults[lead.id].recommendation}
-                                                     </p>
-                                                   </div>
-                                                 </div>
-                                               )}
-                                             </div>
-                                           )}
+                                            
+                                            {/* Diagnosis Results */}
+                                            {lead.diagnosis_category && (
+                                              <div className="border rounded-lg overflow-hidden">
+                                                {/* Category Header - Collapsible */}
+                                                <button
+                                                  onClick={() => setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)}
+                                                  className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
+                                                >
+                                                  <div className="flex items-center gap-2 flex-1">
+                                                    <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                                                    <span className="text-sm font-medium">
+                                                      {lead.diagnosis_category}
+                                                    </span>
+                                                    <Badge 
+                                                      variant={
+                                                        lead.diagnosis_confidence === "high" 
+                                                          ? "default" 
+                                                          : lead.diagnosis_confidence === "medium"
+                                                          ? "secondary"
+                                                          : "outline"
+                                                      }
+                                                      className="text-xs"
+                                                    >
+                                                      {lead.diagnosis_confidence}
+                                                    </Badge>
+                                                  </div>
+                                                  <svg
+                                                    className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? 'rotate-180' : ''}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                  </svg>
+                                                </button>
+                                                
+                                                {/* Expanded Details */}
+                                                {expandedDiagnosis === lead.id && (
+                                                  <div className="p-3 bg-background space-y-2 border-t">
+                                                    <div>
+                                                      <p className="text-xs font-medium mb-1">Diagnosis</p>
+                                                      <p className="text-xs text-muted-foreground">
+                                                        {lead.diagnosis_explanation}
+                                                      </p>
+                                                    </div>
+                                                    <div>
+                                                      <p className="text-xs font-medium mb-1">Recommendation</p>
+                                                      <p className="text-xs text-muted-foreground">
+                                                        {lead.diagnosis_recommendation}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
                                          </div>
                                        ) : null;
                                      })()}
