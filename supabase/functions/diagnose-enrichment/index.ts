@@ -126,6 +126,7 @@ Provide your response in exactly this JSON structure:
     }
 
     // Store diagnosis in database
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
@@ -137,26 +138,22 @@ Provide your response in exactly this JSON structure:
       });
     }
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     // Update lead with diagnosis results
-    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${leadId}`, {
-      method: "PATCH",
-      headers: {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
-      },
-      body: JSON.stringify({
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({
         diagnosis_category: diagnosis.category,
         diagnosis_explanation: diagnosis.diagnosis,
         diagnosis_recommendation: diagnosis.recommendation,
         diagnosis_confidence: diagnosis.confidence,
         diagnosed_at: new Date().toISOString()
       })
-    });
+      .eq('id', leadId);
 
-    if (!updateResponse.ok) {
-      console.error("Failed to store diagnosis:", await updateResponse.text());
+    if (updateError) {
+      console.error("Failed to store diagnosis:", updateError);
     }
 
     return new Response(JSON.stringify(diagnosis), {
