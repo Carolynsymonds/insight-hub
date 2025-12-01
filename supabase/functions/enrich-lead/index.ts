@@ -94,7 +94,7 @@ async function performGoogleSearch(
 }> {
   console.log(`Performing Google search with query: ${query}`);
 
-  const requestUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`;
+  const requestUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`;
   const response = await fetch(requestUrl);
 
   console.log(`Request URL: `, requestUrl);
