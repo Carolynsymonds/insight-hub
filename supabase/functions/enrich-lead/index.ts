@@ -74,14 +74,14 @@ interface EnrichmentLog {
 
 function normalizeDomain(url: string): string {
   return url
-    .replace(/^https?:\/\//, '')  // Remove http:// or https://
-    .replace(/^www\./, '')         // Remove www.
-    .replace(/\/+$/, '');          // Remove trailing slashes
+    .replace(/^https?:\/\//, "") // Remove http:// or https://
+    .replace(/^www\./, "") // Remove www.
+    .replace(/\/+$/, ""); // Remove trailing slashes
 }
 
 async function performGoogleSearch(
   query: string,
-  serpApiKey: string
+  serpApiKey: string,
 ): Promise<{
   domain: string | null;
   confidence: number;
@@ -93,10 +93,11 @@ async function performGoogleSearch(
   selectedOrg?: { name: string; domain: string };
 }> {
   console.log(`Performing Google search with query: ${query}`);
-  
-  const response = await fetch(
-    `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`
-  );
+
+  const requestUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`;
+  const response = await fetch(requestUrl);
+
+  console.log(`Request URL: `, requestUrl);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -105,8 +106,8 @@ async function performGoogleSearch(
   }
 
   const data = await response.json();
-  console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? 'found' : 'not found');
-  console.log(`SerpAPI returned local_results:`, data.local_results ? 'found' : 'not found');
+  console.log(`SerpAPI returned knowledge_graph:`, data.knowledge_graph ? "found" : "not found");
+  console.log(`SerpAPI returned local_results:`, data.local_results ? "found" : "not found");
 
   let domain: string | null = null;
   let confidence = 0;
@@ -139,7 +140,7 @@ async function performGoogleSearch(
   let gpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
   let latitude: number | undefined = undefined;
   let longitude: number | undefined = undefined;
-  
+
   if (data.local_map && data.local_map.gps_coordinates) {
     gpsCoordinates = {
       latitude: data.local_map.gps_coordinates.latitude,
@@ -177,17 +178,24 @@ async function enrichWithGoogle(
   company: string,
   city: string | null,
   state: string | null,
-  micsSector: string | null
-): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog; latitude?: number; longitude?: number }> {
+  micsSector: string | null,
+): Promise<{
+  domain: string | null;
+  confidence: number;
+  source: string;
+  log: EnrichmentLog;
+  latitude?: number;
+  longitude?: number;
+}> {
   const serpApiKey = Deno.env.get("SERPAPI_KEY");
-  
+
   if (!serpApiKey) {
     throw new Error("SerpAPI key not configured");
   }
 
   const timestamp = new Date().toISOString();
-  const locationPart = [city, state].filter(Boolean).join(' ');
-  
+  const locationPart = [city, state].filter(Boolean).join(" ");
+
   // STEP 1: Detailed search with company name and location
   const step1Query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
   console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}`);
@@ -205,7 +213,7 @@ async function enrichWithGoogle(
 
   try {
     const step1Result = await performGoogleSearch(step1Query, serpApiKey);
-    
+
     searchSteps.push({
       step: 1,
       query: step1Query,
@@ -223,15 +231,15 @@ async function enrichWithGoogle(
       finalLatitude = step1Result.latitude;
       finalLongitude = step1Result.longitude;
       finalSearchInformation = step1Result.searchInformation;
-      
+
       console.log(`Step 1 successful: ${finalDomain} with confidence ${finalConfidence}%`);
     } else if (micsSector) {
       // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
-      const step2Query = `${company} ${city || ''} ${micsSector}`;
+      const step2Query = `${company} ${city || ""} ${micsSector}`;
       console.log(`Step 2: Industry fallback search with query: ${step2Query}`);
-      
+
       const step2Result = await performGoogleSearch(step2Query, serpApiKey);
-      
+
       searchSteps.push({
         step: 2,
         query: step2Query,
@@ -250,7 +258,7 @@ async function enrichWithGoogle(
         finalLatitude = step2Result.latitude;
         finalLongitude = step2Result.longitude;
         finalSearchInformation = step2Result.searchInformation;
-        
+
         console.log(`Step 2 successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else {
         console.log("Step 2 failed: No results found");
@@ -270,9 +278,9 @@ async function enrichWithGoogle(
     if (!finalDomain) {
       const step3Query = `${company} ${locationPart}`;
       console.log(`Step 3: Simple fallback search with query: ${step3Query}`);
-      
+
       const step3Result = await performGoogleSearch(step3Query, serpApiKey);
-      
+
       searchSteps.push({
         step: 3,
         query: step3Query,
@@ -284,15 +292,13 @@ async function enrichWithGoogle(
         finalDomain = step3Result.domain;
         // Lower confidence for step 3: 10% for knowledge_graph, 5% for local_results
         finalConfidence = step3Result.sourceType === "knowledge_graph" ? 10 : 5;
-        finalSource = step3Result.sourceType === "knowledge_graph" 
-          ? "google_knowledge_graph" 
-          : "google_local_results";
+        finalSource = step3Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
         finalSelectedOrg = step3Result.selectedOrg;
         finalGpsCoordinates = step3Result.gpsCoordinates;
         finalLatitude = step3Result.latitude;
         finalLongitude = step3Result.longitude;
         finalSearchInformation = step3Result.searchInformation;
-        
+
         console.log(`Step 3 successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else {
         console.log("Step 3 failed: No results found");
@@ -303,9 +309,9 @@ async function enrichWithGoogle(
     if (!finalDomain) {
       const step4Query = `"${company}"`;
       console.log(`Step 4: Company name only search with query: ${step4Query}`);
-      
+
       const step4Result = await performGoogleSearch(step4Query, serpApiKey);
-      
+
       searchSteps.push({
         step: 4,
         query: step4Query,
@@ -317,15 +323,13 @@ async function enrichWithGoogle(
         finalDomain = step4Result.domain;
         // Lowest confidence for step 4: 5% for knowledge_graph, 2% for local_results
         finalConfidence = step4Result.sourceType === "knowledge_graph" ? 5 : 2;
-        finalSource = step4Result.sourceType === "knowledge_graph" 
-          ? "google_knowledge_graph" 
-          : "google_local_results";
+        finalSource = step4Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
         finalSelectedOrg = step4Result.selectedOrg;
         finalGpsCoordinates = step4Result.gpsCoordinates;
         finalLatitude = step4Result.latitude;
         finalLongitude = step4Result.longitude;
         finalSearchInformation = step4Result.searchInformation;
-        
+
         console.log(`Step 4 successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else {
         console.log("Step 4 failed: No results found");
@@ -335,8 +339,10 @@ async function enrichWithGoogle(
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
-      action: finalDomain 
-        ? (finalSource === "google_knowledge_graph" ? "google_knowledge_graph_search" : "google_local_results_search")
+      action: finalDomain
+        ? finalSource === "google_knowledge_graph"
+          ? "google_knowledge_graph_search"
+          : "google_local_results_search"
         : "google_search_no_results",
       searchParams: {
         company,
@@ -364,7 +370,7 @@ async function enrichWithGoogle(
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
-    
+
     // Create error log
     const log: EnrichmentLog = {
       timestamp,
@@ -393,16 +399,28 @@ async function enrichWithGoogle(
 
 async function enrichWithEmail(
   email: string | null,
-  company: string
+  company: string,
 ): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
   const timestamp = new Date().toISOString();
-  
+
   // List of common personal email domains to skip
   const PERSONAL_EMAIL_DOMAINS = [
-    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
-    "live.com", "msn.com", "aol.com", "icloud.com", 
-    "me.com", "mac.com", "mail.com", "protonmail.com",
-    "zoho.com", "yandex.com", "gmx.com", "fastmail.com"
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "live.com",
+    "msn.com",
+    "aol.com",
+    "icloud.com",
+    "me.com",
+    "mac.com",
+    "mail.com",
+    "protonmail.com",
+    "zoho.com",
+    "yandex.com",
+    "gmx.com",
+    "fastmail.com",
   ];
 
   const searchSteps: EnrichmentLog["searchSteps"] = [];
@@ -415,7 +433,7 @@ async function enrichWithEmail(
       query: "No email provided",
       resultFound: false,
     });
-    
+
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_skipped",
@@ -438,7 +456,7 @@ async function enrichWithEmail(
       query: `Invalid email format: ${email}`,
       resultFound: false,
     });
-    
+
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_failed",
@@ -469,7 +487,7 @@ async function enrichWithEmail(
       query: `${emailDomain} is a personal email provider (gmail, yahoo, etc.) - personal domains cannot be verified as company websites`,
       resultFound: false,
     });
-    
+
     const log: EnrichmentLog = {
       timestamp,
       action: "email_enrichment_skipped",
@@ -493,7 +511,7 @@ async function enrichWithEmail(
   try {
     const dnsQuery = `https://dns.google/resolve?name=${emailDomain}&type=A`;
     console.log(`Verifying domain with DNS query: ${dnsQuery}`);
-    
+
     const response = await fetch(dnsQuery);
 
     if (!response.ok) {
@@ -501,23 +519,23 @@ async function enrichWithEmail(
     }
 
     const data = await response.json();
-    
+
     // Status 0 = Success (NOERROR), Status 3 = NXDOMAIN (domain doesn't exist)
     const hasARecords = data.Status === 0 && data.Answer && data.Answer.length > 0;
-    
+
     console.log(`DNS lookup result: Status=${data.Status}, HasARecords=${hasARecords}`);
 
     if (hasARecords) {
       // Domain verified - has valid A records
       const ipAddresses = data.Answer.filter((a: any) => a.type === 1).map((a: any) => a.data);
-      
+
       searchSteps.push({
         step: 3,
         query: dnsQuery,
         resultFound: true,
         source: `DNS resolved to ${ipAddresses.length} IP address(es): ${ipAddresses.join(", ")}`,
       });
-      
+
       const log: EnrichmentLog = {
         timestamp,
         action: "email_domain_verification_success",
@@ -536,17 +554,16 @@ async function enrichWithEmail(
       return { domain: emailDomain, confidence: 95, source: "email_domain_verified", log };
     } else {
       // Domain not verified - no A records or NXDOMAIN
-      const reason = data.Status === 3 
-        ? "NXDOMAIN - domain does not exist" 
-        : "No A records found - domain may not have a website";
-      
+      const reason =
+        data.Status === 3 ? "NXDOMAIN - domain does not exist" : "No A records found - domain may not have a website";
+
       searchSteps.push({
         step: 3,
         query: dnsQuery,
         resultFound: false,
         source: reason,
       });
-      
+
       const log: EnrichmentLog = {
         timestamp,
         action: "email_domain_verification_failed",
@@ -568,7 +585,7 @@ async function enrichWithEmail(
       resultFound: false,
       source: "Error during verification",
     });
-    
+
     const log: EnrichmentLog = {
       timestamp,
       action: "email_domain_verification_error",
@@ -586,16 +603,23 @@ async function enrichWithEmail(
 async function enrichWithApollo(
   company: string,
   city: string | null,
-  state: string | null
-): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog; latitude?: number; longitude?: number }> {
+  state: string | null,
+): Promise<{
+  domain: string | null;
+  confidence: number;
+  source: string;
+  log: EnrichmentLog;
+  latitude?: number;
+  longitude?: number;
+}> {
   const apolloApiKey = Deno.env.get("APOLLO_API_KEY");
-  
+
   if (!apolloApiKey) {
     throw new Error("Apollo API key not configured");
   }
 
   const timestamp = new Date().toISOString();
-  
+
   // Build search parameters
   const searchParams: any = {
     q_organization_name: company,
@@ -611,29 +635,26 @@ async function enrichWithApollo(
   try {
     // Build the complete URL
     const apolloUrl = `https://api.apollo.io/api/v1/mixed_companies/search?${
-      locations.length > 0 
-        ? locations.map(loc => `organization_locations[]=${encodeURIComponent(loc)}`).join("&") + "&"
+      locations.length > 0
+        ? locations.map((loc) => `organization_locations[]=${encodeURIComponent(loc)}`).join("&") + "&"
         : ""
     }q_organization_name=${encodeURIComponent(company)}`;
-    
+
     // Log the complete request URL
     console.log("=== APOLLO API REQUEST ===");
     console.log(`URL: ${apolloUrl}`);
     console.log("=== END APOLLO API REQUEST ===");
-    
+
     // Call Apollo API
-    const response = await fetch(
-      apolloUrl,
-      {
-        method: "POST",
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          "accept": "application/json",
-          "x-api-key": apolloApiKey,
-        },
-      }
-    );
+    const response = await fetch(apolloUrl, {
+      method: "POST",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+        accept: "application/json",
+        "x-api-key": apolloApiKey,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -642,12 +663,12 @@ async function enrichWithApollo(
     }
 
     const data: ApolloResponse = await response.json();
-    
+
     // Log the entire Apollo API response for debugging
     console.log("=== COMPLETE APOLLO API RESPONSE ===");
     console.log(JSON.stringify(data, null, 2));
     console.log("=== END APOLLO API RESPONSE ===");
-    
+
     console.log(`Apollo API returned ${data.organizations?.length || 0} organizations`);
 
     // Extract domain from the first organization
@@ -657,7 +678,7 @@ async function enrichWithApollo(
 
     if (data.organizations && data.organizations.length > 0) {
       const org = data.organizations[0];
-      
+
       // Try primary_domain first, then parse from website_url
       if (org.primary_domain) {
         domain = org.primary_domain;
@@ -712,7 +733,7 @@ async function enrichWithApollo(
     };
   } catch (error) {
     console.error("Error calling Apollo API:", error);
-    
+
     // Create error log
     const log: EnrichmentLog = {
       timestamp,
@@ -758,18 +779,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Enrich with the specified source
-    const result = source === "google" 
-      ? await enrichWithGoogle(company, city, state, mics_sector)
-      : source === "email"
-      ? await enrichWithEmail(email, company)
-      : await enrichWithApollo(company, city, state);
+    const result =
+      source === "google"
+        ? await enrichWithGoogle(company, city, state, mics_sector)
+        : source === "email"
+          ? await enrichWithEmail(email, company)
+          : await enrichWithApollo(company, city, state);
 
     // Get existing logs
-    const { data: existingLead } = await supabase
-      .from("leads")
-      .select("enrichment_logs")
-      .eq("id", leadId)
-      .single();
+    const { data: existingLead } = await supabase.from("leads").select("enrichment_logs").eq("id", leadId).single();
 
     const existingLogs = existingLead?.enrichment_logs || [];
     const updatedLogs = [...existingLogs, result.log];
@@ -789,15 +807,17 @@ serve(async (req) => {
     }
 
     // Add GPS coordinates if found (only from Google enrichment)
-    if ('latitude' in result && result.latitude !== undefined && 'longitude' in result && result.longitude !== undefined) {
+    if (
+      "latitude" in result &&
+      result.latitude !== undefined &&
+      "longitude" in result &&
+      result.longitude !== undefined
+    ) {
       updateData.latitude = result.latitude;
       updateData.longitude = result.longitude;
     }
 
-    const { error: updateError } = await supabase
-      .from("leads")
-      .update(updateData)
-      .eq("id", leadId);
+    const { error: updateError } = await supabase.from("leads").update(updateData).eq("id", leadId);
 
     if (updateError) {
       throw updateError;
@@ -817,7 +837,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     console.error("Error in enrich-lead function:", error);
@@ -830,7 +850,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
-      }
+      },
     );
   }
 });
