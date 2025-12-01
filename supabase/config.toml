@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.find-company-coordinates]
 verify_jwt = false
 
+[functions.get-company-news]
+verify_jwt = false
+
 [functions.score-industry-relevance]
 verify_jwt = false
 

@@ -113,6 +113,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
   const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
+  const [fetchingNews, setFetchingNews] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
 
@@ -508,6 +509,39 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingCompanyDetails(null);
+    }
+  };
+
+  const handleGetCompanyNews = async (lead: Lead) => {
+    setFetchingNews(lead.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-company-news', {
+        body: { 
+          leadId: lead.id, 
+          company: lead.company,
+          state: lead.state,
+          domain: lead.domain
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Found ${data.newsCount} news articles`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      console.error('Error fetching company news:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch company news",
+        variant: "destructive",
+      });
+    } finally {
+      setFetchingNews(null);
     }
   };
 
@@ -1768,27 +1802,47 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                          Enrich this lead with detailed company information from Apollo
                                        </p>
                                        
-                                       <Button
-                                         size="sm"
-                                         variant="default"
-                                         className="w-full"
-                                         disabled={enrichingCompanyDetails === lead.id}
-                                         onClick={() => handleEnrichCompanyDetails(lead)}
-                                       >
-                                         {enrichingCompanyDetails === lead.id ? (
-                                           <>
-                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                             Enriching Company Details...
-                                           </>
-                                         ) : (
-                                           <>
-                                             <Sparkles className="mr-2 h-4 w-4" />
-                                             Enrich Company Details
-                                           </>
-                                         )}
-                                       </Button>
-                                       
-                                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="w-full"
+                          disabled={enrichingCompanyDetails === lead.id}
+                          onClick={() => handleEnrichCompanyDetails(lead)}
+                        >
+                          {enrichingCompanyDetails === lead.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enriching Company Details...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Enrich Company Details
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          disabled={fetchingNews === lead.id}
+                          onClick={() => handleGetCompanyNews(lead)}
+                        >
+                          {fetchingNews === lead.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Fetching News...
+                            </>
+                          ) : (
+                            <>
+                              <Search className="mr-2 h-4 w-4" />
+                              Get Company News
+                            </>
+                          )}
+                        </Button>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                                          <span>• Company Size</span>
                                          <span>• Annual Revenue</span>
                                          <span>• Industry</span>
