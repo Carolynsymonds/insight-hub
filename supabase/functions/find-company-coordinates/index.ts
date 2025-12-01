@@ -44,9 +44,18 @@ serve(async (req) => {
     const data = await response.json();
     console.log('SerpAPI response:', JSON.stringify(data));
 
-    // Extract GPS coordinates from place_results
-    const latitude = data.place_results?.gps_coordinates?.latitude;
-    const longitude = data.place_results?.gps_coordinates?.longitude;
+    // Extract GPS coordinates - try place_results first, then local_results
+    let latitude = data.place_results?.gps_coordinates?.latitude;
+    let longitude = data.place_results?.gps_coordinates?.longitude;
+
+    // If place_results not found, check local_results
+    if (!latitude || !longitude) {
+      if (data.local_results && data.local_results.length > 0) {
+        latitude = data.local_results[0].gps_coordinates?.latitude;
+        longitude = data.local_results[0].gps_coordinates?.longitude;
+        console.log('Using coordinates from local_results[0]');
+      }
+    }
 
     if (!latitude || !longitude) {
       throw new Error('No GPS coordinates found in search results');
