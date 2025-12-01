@@ -1193,6 +1193,39 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
+
+                                      {/* Enrich Company Details Button - only visible when domain exists */}
+                                      {lead.domain && (
+                                        <>
+                                          <div className="my-3 border-t pt-3">
+                                            <p className="text-xs text-muted-foreground mb-2">
+                                              Get detailed company information from Apollo
+                                            </p>
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                            disabled={enrichingCompanyDetails === lead.id}
+                                            onClick={() => handleEnrichCompanyDetails(lead)}
+                                          >
+                                            {enrichingCompanyDetails === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Enriching Company Details...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich Company Details
+                                              </>
+                                            )}
+                                          </Button>
+                                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                                            Size • Revenue • Industry • Tech Stack • LinkedIn
+                                          </p>
+                                        </>
+                                      )}
                                     </div>
 
                                     {/* Nested Accordion for Distance */}
