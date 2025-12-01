@@ -30,7 +30,7 @@ serve(async (req) => {
     // Fetch the lead
     const { data: lead, error: fetchError } = await supabase
       .from('leads')
-      .select('enrichment_source, distance_confidence, domain_relevance_score, industry_relevance_score, vehicle_tracking_interest_score')
+      .select('enrichment_source, distance_miles, domain_relevance_score, industry_relevance_score, vehicle_tracking_interest_score')
       .eq('id', leadId)
       .single();
 
@@ -57,36 +57,51 @@ serve(async (req) => {
       matchScoreSource = 'google_knowledge_graph';
       console.log('Step 2 applied: Google Knowledge Graph - 95%');
     }
-    // Step 3: Calculate from Distance + Domain Relevance + Industry Relevance + Vehicle Tracking Interest
+    // Step 3: Distance-based tiers + weighted relevance
     else {
-      console.log('Step 3: Calculating from Distance + Domain Relevance + Industry Relevance + Vehicle Tracking Interest');
+      console.log('Step 3: Calculating with distance-based tiers + weighted relevance');
       
-      // Convert distance confidence to numeric
-      let distanceScore = 0;
-      if (lead.distance_confidence === 'high') {
-        distanceScore = 95;
-      } else if (lead.distance_confidence === 'medium') {
-        distanceScore = 70;
-      } else if (lead.distance_confidence === 'low') {
-        distanceScore = 40;
+      // Get distance in miles (default to high distance if not available)
+      const distanceMiles = lead.distance_miles ?? 999;
+      
+      // Determine confidence tier and score range based on distance
+      let minScore: number;
+      let maxScore: number;
+      let confidenceTier: string;
+      
+      if (distanceMiles < 20) {
+        minScore = 60;
+        maxScore = 70;
+        confidenceTier = 'high';
+      } else if (distanceMiles <= 60) {
+        minScore = 20;
+        maxScore = 60;
+        confidenceTier = 'medium';
+      } else {
+        minScore = 0;
+        maxScore = 20;
+        confidenceTier = 'low';
       }
-
-      // Get other scores (0-100)
+      
+      // Get relevance scores (0-100)
       const domainScore = lead.domain_relevance_score || 0;
       const industryScore = lead.industry_relevance_score || 0;
       const vehicleTrackingScore = lead.vehicle_tracking_interest_score || 0;
-
-      // Calculate average of available scores
-      const scores = [distanceScore, domainScore, industryScore, vehicleTrackingScore].filter(s => s > 0);
       
-      if (scores.length > 0) {
-        matchScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-      } else {
-        matchScore = 0;
-      }
-
+      // Calculate weighted relevance: R = 0.5*D + 0.3*I + 0.2*V
+      const R = (0.5 * domainScore) + (0.3 * industryScore) + (0.2 * vehicleTrackingScore);
+      
+      // Normalize to 0-1
+      const r = R / 100;
+      
+      // Map relevance into the score range: Score = MIN + (RANGE * r)
+      const range = maxScore - minScore;
+      matchScore = Math.round(minScore + (range * r));
+      
       matchScoreSource = 'calculated';
-      console.log(`Step 3 result: Distance=${distanceScore}, Domain=${domainScore}, Industry=${industryScore}, VehicleTracking=${vehicleTrackingScore}, Average=${matchScore}`);
+      console.log(`Step 3 result: Distance=${distanceMiles}mi (${confidenceTier}), Range=[${minScore}-${maxScore}]`);
+      console.log(`Step 3 relevance: Domain=${domainScore}*0.5, Industry=${industryScore}*0.3, VTI=${vehicleTrackingScore}*0.2 = R:${R.toFixed(1)}, r:${r.toFixed(2)}`);
+      console.log(`Step 3 final: ${minScore} + (${range} * ${r.toFixed(2)}) = ${matchScore}`);
     }
 
     // Update the lead with match score
