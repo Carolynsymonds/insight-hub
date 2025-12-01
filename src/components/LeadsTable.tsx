@@ -113,6 +113,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
   const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
+  const [showTextModal, setShowTextModal] = useState(false);
+  const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -532,9 +534,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                 </div>
               </TableHead>
               <TableHead>Size</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="min-w-[250px]">Description</TableHead>
               <TableHead>Annual Revenue</TableHead>
-              <TableHead>Tech Stack</TableHead>
+              <TableHead className="min-w-[250px]">Tech Stack</TableHead>
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
               <TableHead>News</TableHead>
@@ -613,9 +615,35 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.size || "—"}</TableCell>
-                  <TableCell>{lead.description || "—"}</TableCell>
+                  <TableCell 
+                    className="max-w-[250px] cursor-pointer hover:text-primary"
+                    onClick={(e) => {
+                      if (lead.description) {
+                        e.stopPropagation();
+                        setModalContent({ title: "Description", text: lead.description });
+                        setShowTextModal(true);
+                      }
+                    }}
+                  >
+                    <div className="truncate">
+                      {lead.description || "—"}
+                    </div>
+                  </TableCell>
                   <TableCell>{lead.annual_revenue || "—"}</TableCell>
-                  <TableCell>{lead.tech_stack || "—"}</TableCell>
+                  <TableCell 
+                    className="max-w-[250px] cursor-pointer hover:text-primary"
+                    onClick={(e) => {
+                      if (lead.tech_stack) {
+                        e.stopPropagation();
+                        setModalContent({ title: "Tech Stack", text: lead.tech_stack });
+                        setShowTextModal(true);
+                      }
+                    }}
+                  >
+                    <div className="truncate">
+                      {lead.tech_stack || "—"}
+                    </div>
+                  </TableCell>
                   <TableCell>{lead.company_industry || "—"}</TableCell>
                   <TableCell>
                     {lead.linkedin ? (
@@ -1784,6 +1812,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={showTextModal} onOpenChange={setShowTextModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{modalContent.title}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-sm whitespace-pre-wrap">{modalContent.text}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         <DialogContent>
