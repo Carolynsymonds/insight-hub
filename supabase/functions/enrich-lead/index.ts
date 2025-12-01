@@ -299,6 +299,39 @@ async function enrichWithGoogle(
       }
     }
 
+    // STEP 4: Company name only search (if all previous steps failed)
+    if (!finalDomain) {
+      const step4Query = `"${company}"`;
+      console.log(`Step 4: Company name only search with query: ${step4Query}`);
+      
+      const step4Result = await performGoogleSearch(step4Query, serpApiKey);
+      
+      searchSteps.push({
+        step: 4,
+        query: step4Query,
+        resultFound: step4Result.domain !== null,
+        source: step4Result.sourceType || undefined,
+      });
+
+      if (step4Result.domain) {
+        finalDomain = step4Result.domain;
+        // Lowest confidence for step 4: 5% for knowledge_graph, 2% for local_results
+        finalConfidence = step4Result.sourceType === "knowledge_graph" ? 5 : 2;
+        finalSource = step4Result.sourceType === "knowledge_graph" 
+          ? "google_knowledge_graph" 
+          : "google_local_results";
+        finalSelectedOrg = step4Result.selectedOrg;
+        finalGpsCoordinates = step4Result.gpsCoordinates;
+        finalLatitude = step4Result.latitude;
+        finalLongitude = step4Result.longitude;
+        finalSearchInformation = step4Result.searchInformation;
+        
+        console.log(`Step 4 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+      } else {
+        console.log("Step 4 failed: No results found");
+      }
+    }
+
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
