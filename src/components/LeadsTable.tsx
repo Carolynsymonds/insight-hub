@@ -112,6 +112,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
   const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
+  const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -467,6 +468,44 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setScoringVehicleTracking(null);
+    }
+  };
+
+  const handleEnrichCompanyDetails = async (lead: Lead) => {
+    if (!lead.domain) {
+      toast({
+        title: "Cannot Enrich Company Details",
+        description: "Domain is required. Run enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEnrichingCompanyDetails(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-company-details", {
+        body: {
+          leadId: lead.id,
+          domain: lead.domain,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Company Details Enriched!",
+        description: "Size, revenue, industry, and more have been populated.",
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Enrichment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingCompanyDetails(null);
     }
   };
 
@@ -983,11 +1022,38 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </div>
                                             )}
                                          </div>
-                                       ) : null;
-                                     })()}
+                                        ) : null;
+                                      })()}
 
-                                     {/* Enrich Buttons */}
-                                     <div className="space-y-2 mt-4">
+                                      {/* Enrich Company Details Button - only show when domain is found */}
+                                      {lead.domain && (
+                                        <div className="pt-4 border-t">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleEnrichCompanyDetails(lead)}
+                                            disabled={enrichingCompanyDetails === lead.id}
+                                            className="w-full"
+                                          >
+                                            {enrichingCompanyDetails === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Enriching Company Details...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich Company Details
+                                              </>
+                                            )}
+                                          </Button>
+                                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                                            Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {/* Enrich Buttons */}
+                                      <div className="space-y-2 mt-4">
                                       <Button
                                         size="sm"
                                         onClick={() => handleEnrich(lead, "apollo")}
