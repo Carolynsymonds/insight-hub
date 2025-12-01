@@ -1225,8 +1225,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </p>
                                             )}
 
-                                            {/* Show Find Coordinates button if domain found via Google but no coordinates */}
-                                            {(!lead.latitude || !lead.longitude) && lead.domain && wasFoundViaGoogle(lead.enrichment_logs) && (
+                                            {/* Show Find Coordinates button if domain exists but no coordinates */}
+                                            {(!lead.latitude || !lead.longitude) && lead.domain && (
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1275,10 +1275,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </Button>
                                             )}
 
-                                            {/* Show message only if no Google domain and no coordinates */}
-                                            {(!lead.latitude || !lead.longitude) && (!lead.domain || !wasFoundViaGoogle(lead.enrichment_logs)) && (
+                                            {/* Show message only if no domain and no coordinates */}
+                                            {(!lead.latitude || !lead.longitude) && !lead.domain && (
                                               <p className="text-xs text-muted-foreground text-center">
-                                                Run Google enrichment first to get GPS coordinates
+                                                Run enrichment first to find a domain
                                               </p>
                                             )}
                                           </div>
