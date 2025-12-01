@@ -576,13 +576,21 @@ async function enrichWithApollo(
   console.log(`Enriching company: ${company}, locations: ${locations.join(", ")}`);
 
   try {
+    // Build the complete URL
+    const apolloUrl = `https://api.apollo.io/api/v1/mixed_companies/search?${
+      locations.length > 0 
+        ? locations.map(loc => `organization_locations[]=${encodeURIComponent(loc)}`).join("&") + "&"
+        : ""
+    }q_organization_name=${encodeURIComponent(company)}`;
+    
+    // Log the complete request URL
+    console.log("=== APOLLO API REQUEST ===");
+    console.log(`URL: ${apolloUrl}`);
+    console.log("=== END APOLLO API REQUEST ===");
+    
     // Call Apollo API
     const response = await fetch(
-      `https://api.apollo.io/api/v1/mixed_companies/search?${
-        locations.length > 0 
-          ? locations.map(loc => `organization_locations[]=${encodeURIComponent(loc)}`).join("&") + "&"
-          : ""
-      }q_organization_name=${encodeURIComponent(company)}`,
+      apolloUrl,
       {
         method: "POST",
         headers: {
