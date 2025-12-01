@@ -43,10 +43,15 @@ interface EnrichmentLog {
     results_for: string;
   };
   searchSteps?: {
-    step: number;
+    step: number | string;
     query: string;
     resultFound: boolean;
     source?: string;
+    spellingCorrection?: {
+      original: string;
+      corrected: string;
+    };
+    spellingCorrected?: boolean;
   }[];
 }
 
@@ -866,12 +871,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                               <div className="border rounded p-2 mb-2 bg-background/50">
                                                                 <p className="font-medium mb-2">Search Path:</p>
                                                                 <div className="space-y-2">
-                                                                  {latestLog.searchSteps.map((step, idx) => (
+                                                                   {latestLog.searchSteps.map((step, idx) => (
                                                                     <div
                                                                       key={idx}
                                                                       className="border-l-2 border-primary/30 pl-2"
                                                                     >
-                                                                      <div className="flex items-center gap-2 mb-1">
+                                                                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                                         <Badge
                                                                           variant={
                                                                             step.query.startsWith("Skipped")
@@ -884,6 +889,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                                         >
                                                                           Step {step.step}
                                                                         </Badge>
+                                                                        {step.spellingCorrected && (
+                                                                          <Badge variant="outline" className="text-xs h-5 bg-amber-50 text-amber-700 border-amber-300">
+                                                                            Corrected
+                                                                          </Badge>
+                                                                        )}
                                                                         {step.resultFound && step.source && (
                                                                           <span className="text-muted-foreground text-xs">
                                                                             via {step.source}
@@ -895,6 +905,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                                           </span>
                                                                         )}
                                                                       </div>
+                                                                      {step.spellingCorrection && (
+                                                                        <div className="text-amber-600 text-xs mt-1 mb-2 bg-amber-50 p-2 rounded border border-amber-200">
+                                                                          ✏️ Spelling correction: <span className="font-semibold">"{step.spellingCorrection.original}"</span> → <span className="font-semibold">"{step.spellingCorrection.corrected}"</span>
+                                                                        </div>
+                                                                      )}
                                                                       <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
                                                                         {step.query}
                                                                       </p>
