@@ -21,6 +21,7 @@ export type Database = {
           company: string | null
           company_industry: string | null
           created_at: string | null
+          description: string | null
           diagnosed_at: string | null
           diagnosis_category: string | null
           diagnosis_confidence: string | null
@@ -52,7 +53,7 @@ export type Database = {
           mics_subsector: string | null
           news: string | null
           phone: string | null
-          size_summary: string | null
+          size: string | null
           state: string | null
           tech_stack: string | null
           updated_at: string | null
@@ -67,6 +68,7 @@ export type Database = {
           company?: string | null
           company_industry?: string | null
           created_at?: string | null
+          description?: string | null
           diagnosed_at?: string | null
           diagnosis_category?: string | null
           diagnosis_confidence?: string | null
@@ -98,7 +100,7 @@ export type Database = {
           mics_subsector?: string | null
           news?: string | null
           phone?: string | null
-          size_summary?: string | null
+          size?: string | null
           state?: string | null
           tech_stack?: string | null
           updated_at?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           company?: string | null
           company_industry?: string | null
           created_at?: string | null
+          description?: string | null
           diagnosed_at?: string | null
           diagnosis_category?: string | null
           diagnosis_confidence?: string | null
@@ -144,7 +147,7 @@ export type Database = {
           mics_subsector?: string | null
           news?: string | null
           phone?: string | null
-          size_summary?: string | null
+          size?: string | null
           state?: string | null
           tech_stack?: string | null
           updated_at?: string | null

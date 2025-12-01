@@ -80,7 +80,8 @@ interface Lead {
   industry_relevance_explanation: string | null;
   vehicle_tracking_interest_score: number | null;
   vehicle_tracking_interest_explanation: string | null;
-  size_summary: string | null;
+  size: string | null;
+  description: string | null;
   annual_revenue: string | null;
   tech_stack: string | null;
   company_industry: string | null;
@@ -491,7 +492,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   Company Domain
                 </div>
               </TableHead>
-              <TableHead>Size Summary</TableHead>
+              <TableHead>Size</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Annual Revenue</TableHead>
               <TableHead>Tech Stack</TableHead>
               <TableHead>Company Industry</TableHead>
@@ -503,7 +505,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={15} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -571,7 +573,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
-                  <TableCell>{lead.size_summary || "—"}</TableCell>
+                  <TableCell>{lead.size || "—"}</TableCell>
+                  <TableCell>{lead.description || "—"}</TableCell>
                   <TableCell>{lead.annual_revenue || "—"}</TableCell>
                   <TableCell>{lead.tech_stack || "—"}</TableCell>
                   <TableCell>{lead.company_industry || "—"}</TableCell>
