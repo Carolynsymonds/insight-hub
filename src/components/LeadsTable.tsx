@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { StickyScrollTable } from "./StickyScrollTable";
 interface EnrichmentLog {
   timestamp: string;
   action: string;
@@ -551,7 +552,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   };
   return (
     <>
-      <div className="rounded-lg border overflow-hidden">
+      <StickyScrollTable className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1865,7 +1866,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
             )}
           </TableBody>
         </Table>
-      </div>
+      </StickyScrollTable>
 
       <Dialog open={showTextModal} onOpenChange={setShowTextModal}>
         <DialogContent className="max-w-2xl">
