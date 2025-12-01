@@ -601,6 +601,12 @@ async function enrichWithApollo(
     }
 
     const data: ApolloResponse = await response.json();
+    
+    // Log the entire Apollo API response for debugging
+    console.log("=== COMPLETE APOLLO API RESPONSE ===");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("=== END APOLLO API RESPONSE ===");
+    
     console.log(`Apollo API returned ${data.organizations?.length || 0} organizations`);
 
     // Extract domain from the first organization
