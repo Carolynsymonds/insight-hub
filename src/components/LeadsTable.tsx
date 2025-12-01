@@ -110,6 +110,45 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [expandedDiagnosis, setExpandedDiagnosis] = useState<string | null>(null);
   const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
   const [scoringVehicleTracking, setScoringVehicleTracking] = useState<string | null>(null);
+  const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
+
+  const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
+    if (!logs) return false;
+    return logs.some(log => 
+      log.domain && 
+      (log.source === 'google_knowledge_graph' || log.source === 'google_local_results')
+    );
+  };
+
+  const handleFindCoordinates = async (lead: Lead) => {
+    setFindingCoordinates(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("find-company-coordinates", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          domain: lead.domain,
+          city: lead.city,
+          state: lead.state,
+        },
+      });
+      if (error) throw error;
+      
+      toast({
+        title: "Coordinates Found!",
+        description: `Located at ${data.latitude}, ${data.longitude}`,
+      });
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Coordinate Lookup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFindingCoordinates(null);
+    }
+  };
 
   const handleDiagnose = async (lead: Lead) => {
     setDiagnosing({ leadId: lead.id, source: "all" });
@@ -1186,35 +1225,58 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </p>
                                             )}
 
-                                            {/* Calculate Button */}
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="w-full"
-                                              disabled={
-                                                !lead.latitude ||
-                                                !lead.longitude ||
-                                                !lead.city ||
-                                                !lead.zipcode ||
-                                                calculatingDistance === lead.id
-                                              }
-                                              onClick={() => handleCalculateDistance(lead)}
-                                            >
-                                              {calculatingDistance === lead.id ? (
-                                                <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  Calculating...
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <MapPin className="mr-2 h-4 w-4" />
-                                                  Calculate Distance
-                                                </>
-                                              )}
-                                            </Button>
+                                            {/* Show Find Coordinates button if domain found via Google but no coordinates */}
+                                            {(!lead.latitude || !lead.longitude) && lead.domain && wasFoundViaGoogle(lead.enrichment_logs) && (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                disabled={findingCoordinates === lead.id}
+                                                onClick={() => handleFindCoordinates(lead)}
+                                              >
+                                                {findingCoordinates === lead.id ? (
+                                                  <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Finding Coordinates...
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Search className="mr-2 h-4 w-4" />
+                                                    Find Coordinates from Company
+                                                  </>
+                                                )}
+                                              </Button>
+                                            )}
 
-                                            {/* Show message if GPS not available */}
-                                            {(!lead.latitude || !lead.longitude) && (
+                                            {/* Calculate Distance button (enabled when coordinates exist) */}
+                                            {lead.latitude && lead.longitude && (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                disabled={
+                                                  !lead.city ||
+                                                  !lead.zipcode ||
+                                                  calculatingDistance === lead.id
+                                                }
+                                                onClick={() => handleCalculateDistance(lead)}
+                                              >
+                                                {calculatingDistance === lead.id ? (
+                                                  <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Calculating...
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <MapPin className="mr-2 h-4 w-4" />
+                                                    Calculate Distance
+                                                  </>
+                                                )}
+                                              </Button>
+                                            )}
+
+                                            {/* Show message only if no Google domain and no coordinates */}
+                                            {(!lead.latitude || !lead.longitude) && (!lead.domain || !wasFoundViaGoogle(lead.enrichment_logs)) && (
                                               <p className="text-xs text-muted-foreground text-center">
                                                 Run Google enrichment first to get GPS coordinates
                                               </p>
