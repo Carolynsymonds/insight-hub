@@ -1193,39 +1193,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
-
-                                      {/* Enrich Company Details Button - only visible when domain exists */}
-                                      {lead.domain && (
-                                        <>
-                                          <div className="my-3 border-t pt-3">
-                                            <p className="text-xs text-muted-foreground mb-2">
-                                              Get detailed company information from Apollo
-                                            </p>
-                                          </div>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full"
-                                            disabled={enrichingCompanyDetails === lead.id}
-                                            onClick={() => handleEnrichCompanyDetails(lead)}
-                                          >
-                                            {enrichingCompanyDetails === lead.id ? (
-                                              <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Enriching Company Details...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Sparkles className="mr-2 h-4 w-4" />
-                                                Enrich Company Details
-                                              </>
-                                            )}
-                                          </Button>
-                                          <p className="text-xs text-muted-foreground mt-2 text-center">
-                                            Size • Revenue • Industry • Tech Stack • LinkedIn
-                                          </p>
-                                        </>
-                                      )}
                                     </div>
 
                                     {/* Nested Accordion for Distance */}
@@ -1755,12 +1722,57 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             )}
                                           </div>
                                         </AccordionContent>
-                                      </AccordionItem>
-                                    </Accordion>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            </Accordion>
+                                       </AccordionItem>
+                                     </Accordion>
+                                   </div>
+                                 </AccordionContent>
+                               </AccordionItem>
+
+                               {/* Company Details Accordion Item - Only visible when domain exists */}
+                               {lead.domain && (
+                                 <AccordionItem value="company-details" className="border-border">
+                                   <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                     Company Details
+                                   </AccordionTrigger>
+                                   <AccordionContent>
+                                     <div className="space-y-3 pt-2">
+                                       <p className="text-sm text-muted-foreground mb-3">
+                                         Enrich this lead with detailed company information from Apollo
+                                       </p>
+                                       
+                                       <Button
+                                         size="sm"
+                                         variant="default"
+                                         className="w-full"
+                                         disabled={enrichingCompanyDetails === lead.id}
+                                         onClick={() => handleEnrichCompanyDetails(lead)}
+                                       >
+                                         {enrichingCompanyDetails === lead.id ? (
+                                           <>
+                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                             Enriching Company Details...
+                                           </>
+                                         ) : (
+                                           <>
+                                             <Sparkles className="mr-2 h-4 w-4" />
+                                             Enrich Company Details
+                                           </>
+                                         )}
+                                       </Button>
+                                       
+                                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                         <span>• Company Size</span>
+                                         <span>• Annual Revenue</span>
+                                         <span>• Industry</span>
+                                         <span>• Description</span>
+                                         <span>• Tech Stack</span>
+                                         <span>• LinkedIn URL</span>
+                                       </div>
+                                     </div>
+                                   </AccordionContent>
+                                 </AccordionItem>
+                               )}
+                             </Accordion>
                           </div>
                         </DrawerContent>
                       </Drawer>
