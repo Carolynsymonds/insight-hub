@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.diagnose-enrichment]
 verify_jwt = false
 
+[functions.enrich-company-details]
+verify_jwt = false
+
 [functions.find-company-coordinates]
 verify_jwt = false
 
