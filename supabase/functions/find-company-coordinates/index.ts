@@ -14,9 +14,9 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, domain } = await req.json();
+    const { leadId, domain, sourceUrl } = await req.json();
 
-    console.log('Find coordinates request:', { leadId, domain });
+    console.log('Find coordinates request:', { leadId, domain, sourceUrl });
 
     // Validate required fields
     if (!leadId || !domain) {
@@ -28,9 +28,10 @@ serve(async (req) => {
       throw new Error('SERPAPI_KEY not configured');
     }
 
-    // Build search query: just the domain to find the actual business location
-    const searchQuery = `"${domain}"`;
-    console.log('Google Maps search query:', searchQuery);
+    // Use sourceUrl if available (more specific), otherwise fall back to domain
+    const searchTerm = sourceUrl || domain;
+    const searchQuery = `"${searchTerm}"`;
+    console.log('Google Maps search query:', searchQuery, '(using sourceUrl:', !!sourceUrl, ')');
 
     // Call SerpAPI Google Maps engine
     const serpApiUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(searchQuery)}&api_key=${serpApiKey}`;
