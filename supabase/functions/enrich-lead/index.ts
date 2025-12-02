@@ -484,7 +484,7 @@ async function enrichWithGoogle(
 
     // STEP 4: Company name only search (if all previous steps failed)
     if (!finalDomain) {
-      const step4Query = `"${company}"`;
+      const step4Query = `"${company}" ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
       console.log(`Step 4: Company name only search with query: ${step4Query}`);
 
       const step4Result = await performGoogleSearch(step4Query, serpApiKey);
