@@ -284,7 +284,7 @@ async function enrichWithGoogle(
   const locationPart = [city, state].filter(Boolean).join(" ");
 
   // STEP 1: Detailed search with company name and location
-  const step1Query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+  const step1Query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
   console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}`);
 
   const searchSteps: EnrichmentLog["searchSteps"] = [];
@@ -370,7 +370,7 @@ async function enrichWithGoogle(
     if (!finalDomain && micsSector) {
       // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
       // Step 2a: WITH filters
-      const step2Query = `${company} ${city || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+      const step2Query = `${company} ${city || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 2a: Industry fallback search with query: ${step2Query}`);
 
       const step2Result = await performGoogleSearch(step2Query, serpApiKey);
@@ -526,7 +526,7 @@ async function enrichWithGoogle(
     // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
     if (!finalDomain) {
       // Step 3a: WITH filters
-      const step3Query = `${company} ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+      const step3Query = `${company} ${locationPart} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 3a: Simple fallback search with query: ${step3Query}`);
 
       const step3Result = await performGoogleSearch(step3Query, serpApiKey);
@@ -672,7 +672,7 @@ async function enrichWithGoogle(
     // STEP 4: Company name only search (if all previous steps failed)
     if (!finalDomain) {
       // Step 4a: WITH filters
-      const step4Query = `"${company}" ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+      const step4Query = `"${company}" ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 4a: Company name only search with query: ${step4Query}`);
 
       const step4Result = await performGoogleSearch(step4Query, serpApiKey);
@@ -714,7 +714,7 @@ async function enrichWithGoogle(
             },
           });
 
-          const correctedQuery = `"${correctedName}" ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
+          const correctedQuery = `"${correctedName}" ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
           const step4bResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
           searchSteps.push({
