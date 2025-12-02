@@ -97,6 +97,10 @@ interface Lead {
   diagnosis_recommendation: string | null;
   diagnosis_confidence: string | null;
   diagnosed_at: string | null;
+  facebook: string | null;
+  founded_date: string | null;
+  logo_url: string | null;
+  products_services: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -536,6 +540,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead className="min-w-[250px]">Tech Stack</TableHead>
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
+              <TableHead>Facebook</TableHead>
+              <TableHead>Founded</TableHead>
+              <TableHead>Logo</TableHead>
+              <TableHead className="min-w-[200px]">Products/Services</TableHead>
               <TableHead>News</TableHead>
               <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">
                 Actions
@@ -545,7 +553,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={15} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={19} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -655,6 +663,51 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     ) : (
                       "—"
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {lead.facebook ? (
+                      <a
+                        href={lead.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>{lead.founded_date || "—"}</TableCell>
+                  <TableCell>
+                    {lead.logo_url ? (
+                      <a
+                        href={lead.logo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className="max-w-[200px] cursor-pointer hover:text-primary"
+                    onClick={(e) => {
+                      if (lead.products_services) {
+                        e.stopPropagation();
+                        setModalContent({ title: "Products/Services", text: lead.products_services });
+                        setShowTextModal(true);
+                      }
+                    }}
+                  >
+                    <div className="truncate">{lead.products_services || "—"}</div>
                   </TableCell>
                   <TableCell>{lead.news || "—"}</TableCell>
                   <TableCell
