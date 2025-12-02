@@ -46,15 +46,13 @@ Attempt ${idx + 1} (${log.source}):
     const systemPrompt = `You are an expert data analyst specializing in lead enrichment diagnostics. Your job is to analyze why a company domain enrichment failed and provide actionable insights.
 
 You must classify the failure into ONE of these specific categories:
-1. "Fake/test data" - Company name looks generated or nonsensical (e.g., "Test Company", "ACME", "Sample LLC")
-2. "Wrong input format" - Misspellings, incomplete information, formatting problems
-3. "Company doesn't exist" - Very small business with no web presence, or company may be closed
-4. "Data quality issues" - Missing critical fields (city, state) that make search impossible
-5. "Niche/local business" - May not have a web presence, hyper-local or specialized
+1. "Fake/test data" - Company name looks generated, nonsensical, or has wrong input format (misspellings, incomplete information, formatting problems)
+2. "Company doesn't exist / New company" - Very small business with no web presence, niche/local business, hyper-local/specialized, or company may be closed/new
+3. "Data quality issues" - Missing critical fields (city, state) that make search impossible
 
 Provide your response in exactly this JSON structure:
 {
-  "category": "<one of the 5 categories above, exact text>",
+  "category": "<one of the 3 categories above, exact text>",
   "diagnosis": "Brief explanation of why enrichment failed (2-3 sentences)",
   "recommendation": "Specific actionable suggestion (1-2 sentences)",
   "confidence": "high" | "medium" | "low"
