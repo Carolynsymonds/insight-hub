@@ -14,9 +14,9 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, companyName, domain } = await req.json();
+    const { leadId, companyName, domain, city, state, dma } = await req.json();
 
-    console.log('Score domain relevance request:', { leadId, companyName, domain });
+    console.log('Score domain relevance request:', { leadId, companyName, domain, city, state, dma });
 
     // Validate required fields
     if (!leadId || !companyName || !domain) {
@@ -78,6 +78,30 @@ serve(async (req) => {
             role: 'system',
             content: `You are an expert at evaluating if a domain name belongs to a company. Apply these STRICT scoring rules in order:
 
+**RULE 0: Geographic Mismatch Penalty (HIGHEST PRIORITY - CHECK FIRST)**
+If the domain contains a geographic qualifier (city name, state abbreviation, region, country) that does NOT match the company's known location:
+→ Score: 0-15 (HARD CAP - this overrides ALL other rules)
+
+This rule exists because different geographic regions usually mean different business entities, even with similar brand names.
+
+Examples:
+- Company Location: SC → Domain: claudettenyc.com (NYC mismatch) → Score: 0-10
+- Company Location: TX → Domain: companyla.com (LA mismatch) → Score: 0-10  
+- Company Location: FL → Domain: brandboston.com (Boston mismatch) → Score: 0-10
+- Company Location: GA → Domain: robertslondon.co.uk (International mismatch) → Score: 0-5
+
+Common geographic qualifiers to detect in domains:
+- US Cities: nyc, la, chi, bos, atl, sf, dc, phx, dal, hou, sea, mia, den, etc.
+- US States: ny, ca, tx, fl, il, pa, oh, ga, nc, mi, az, wa, ma, co, etc.
+- Regions: northeast, midwest, south, west, northwest, southeast, etc.
+- International: uk, london, paris, tokyo, sydney, etc.
+
+If the company is in a DIFFERENT city/state/region than what the domain suggests:
+→ Apply RULE 0 (score 0-15), DO NOT proceed to other rules
+
+If the geographic qualifier MATCHES the company's location, OR if there's no geographic qualifier in the domain:
+→ Skip RULE 0 and proceed to RULE 1
+
 **RULE 1: Exact Match Override**
 If the domain root (without TLD) exactly matches the company name (case-insensitive, spaces/punctuation removed):
 → Score: 100
@@ -121,7 +145,7 @@ If domain and company name refer to unrelated entities:
 → Score: 0-30
 Example: Company "Roof Masters" + Domain "eberspaecher.com" = 10
 
-Always explain which rule you applied and why. For generic names with branded domains, always apply RULE 4b.`
+Always explain which rule you applied and why. For geographic mismatches, apply RULE 0. For generic names with branded domains, apply RULE 4b.`
           },
           {
             role: 'user',
@@ -131,7 +155,14 @@ Normalized Company Name: ${normalizedCompany}
 Domain Root: ${domainRoot}
 Levenshtein Distance: ${distance}
 
-Score this domain's relevance to the company name using the strict scoring rules. Pay special attention to RULE 4 for generic company names.`
+**COMPANY LOCATION CONTEXT (for Geo-Penalty Rule 0):**
+City: ${city || 'Unknown'}
+State: ${state || 'Unknown'}
+DMA: ${dma || 'Unknown'}
+
+IMPORTANT: First check if the domain contains any geographic qualifier that doesn't match the company location above. If there's a geographic mismatch, apply RULE 0 immediately (score 0-15).
+
+Score this domain's relevance to the company name using the strict scoring rules.`
           }
         ],
         tools: [
@@ -153,7 +184,7 @@ Score this domain's relevance to the company name using the strict scoring rules
                   },
                   rule_applied: {
                     type: "string",
-                    enum: ["exact_match", "spelling_correction", "strong_brand", "generic_name_match", "generic_branded_mismatch", "mismatch"],
+                    enum: ["geo_mismatch", "exact_match", "spelling_correction", "strong_brand", "generic_name_match", "generic_branded_mismatch", "mismatch"],
                     description: "Which scoring rule was applied"
                   }
                 },
