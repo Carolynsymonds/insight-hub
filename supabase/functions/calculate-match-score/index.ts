@@ -66,21 +66,25 @@ serve(async (req) => {
       // Get distance in miles (default to high distance if not available)
       const distanceMiles = lead.distance_miles ?? 999;
       
-      // Convert distance to a 0-100 score (closer = higher score)
+      // Convert distance to a score based on ranges:
+      // < 50 miles = High confidence → Score 60-70
+      // 50-100 miles = Medium confidence → Score 20-60
+      // > 100 miles = Low confidence → Score 0-20
       let distanceScore: number;
       if (distanceMiles <= 0) {
-        distanceScore = 100;
-      } else if (distanceMiles < 20) {
-        // 100 at 0mi → 70 at 20mi (linear)
-        distanceScore = 100 - (distanceMiles * 1.5);
-      } else if (distanceMiles <= 60) {
-        // 70 at 20mi → 30 at 60mi (linear)
-        distanceScore = 70 - ((distanceMiles - 20) * 1);
+        distanceScore = 70; // Perfect distance = top of high range
+      } else if (distanceMiles < 50) {
+        // High confidence range: 60-70
+        // 0mi → 70, 50mi → 60 (linear interpolation)
+        distanceScore = 70 - (distanceMiles * 0.2);
       } else if (distanceMiles <= 100) {
-        // 30 at 60mi → 0 at 100mi (linear)
-        distanceScore = 30 - ((distanceMiles - 60) * 0.75);
+        // Medium confidence range: 20-60
+        // 50mi → 60, 100mi → 20 (linear interpolation)
+        distanceScore = 60 - ((distanceMiles - 50) * 0.8);
       } else {
-        distanceScore = 0;
+        // Low confidence range: 0-20
+        // 100mi → 20, 200mi+ → 0 (linear decay)
+        distanceScore = Math.max(0, 20 - ((distanceMiles - 100) * 0.2));
       }
       
       // Get relevance scores (0-100)
