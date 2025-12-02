@@ -113,7 +113,7 @@ async function performGoogleSearch(
   const requestUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`;
   const response = await fetch(requestUrl);
 
-  console.log(`Request URL: `, requestUrl);
+  console.log(`Request URL 2: `, requestUrl);
 
   if (!response.ok) {
     const errorText = await response.text();
