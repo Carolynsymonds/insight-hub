@@ -130,9 +130,97 @@ Deno.serve(async (req) => {
       updateData.logo_url = org.logo_url;
     }
 
-    // Products/Services: sanitized_phone or primary_domain or keywords (fallback to description)
-    if (org.keywords && Array.isArray(org.keywords) && org.keywords.length > 0) {
-      updateData.products_services = org.keywords.join(', ');
+    // Products/Services: Generate intelligent description using Lovable AI
+    const companyContext = {
+      name: org.name,
+      keywords: org.keywords || [],
+      industry: org.industry,
+      industries: org.industries || [],
+      sic_codes: org.sic_codes || [],
+      naics_codes: org.naics_codes || [],
+      short_description: org.short_description
+    };
+
+    // Check if we have enough data to generate a description
+    const hasContextData = companyContext.keywords.length > 0 || 
+                          companyContext.industry || 
+                          companyContext.industries.length > 0 || 
+                          companyContext.short_description;
+
+    if (hasContextData) {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      
+      if (LOVABLE_API_KEY) {
+        try {
+          console.log('Generating products/services description with Lovable AI...');
+          
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are an expert at writing concise, professional company descriptions. 
+Given company data, generate a single paragraph describing what products and/or services the company provides.
+Write in third person. Be specific and comprehensive. Do not include generic marketing language.
+Output ONLY the description paragraph, no preamble or explanation.`
+                },
+                {
+                  role: 'user',
+                  content: `Generate a products/services description for this company:
+
+Company Name: ${companyContext.name}
+Keywords: ${companyContext.keywords.join(', ') || 'N/A'}
+Industry: ${companyContext.industry || 'N/A'}
+Industries: ${companyContext.industries.join(', ') || 'N/A'}
+SIC Codes: ${JSON.stringify(companyContext.sic_codes)}
+NAICS Codes: ${JSON.stringify(companyContext.naics_codes)}
+Short Description: ${companyContext.short_description || 'N/A'}
+
+Write a comprehensive paragraph describing what products and services this company offers.`
+                }
+              ],
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const generatedDescription = aiData.choices?.[0]?.message?.content?.trim();
+            
+            if (generatedDescription) {
+              console.log('AI generated description:', generatedDescription);
+              updateData.products_services = generatedDescription;
+            } else {
+              console.log('AI returned empty response, falling back to keywords');
+              if (companyContext.keywords.length > 0) {
+                updateData.products_services = companyContext.keywords.join(', ');
+              }
+            }
+          } else {
+            console.error('AI API error:', aiResponse.status, await aiResponse.text());
+            // Fallback to keywords
+            if (companyContext.keywords.length > 0) {
+              updateData.products_services = companyContext.keywords.join(', ');
+            }
+          }
+        } catch (aiError) {
+          console.error('Error calling Lovable AI:', aiError);
+          // Fallback to keywords
+          if (companyContext.keywords.length > 0) {
+            updateData.products_services = companyContext.keywords.join(', ');
+          }
+        }
+      } else {
+        console.log('LOVABLE_API_KEY not configured, falling back to keywords');
+        if (companyContext.keywords.length > 0) {
+          updateData.products_services = companyContext.keywords.join(', ');
+        }
+      }
     }
 
     console.log("=== UPDATE DATA ===");
