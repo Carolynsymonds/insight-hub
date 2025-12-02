@@ -51,6 +51,7 @@ interface EnrichmentLog {
     foundedYear?: number;
   };
   domain: string | null;
+  sourceUrl?: string | null;
   confidence: number;
   source: string;
   gpsCoordinates?: {
@@ -85,6 +86,18 @@ function normalizeDomain(url: string): string {
     .replace(/\/+$/, ""); // Remove trailing slashes
 }
 
+function extractRootDomain(url: string): string {
+  // First normalize (remove protocol, www, trailing slashes)
+  let normalized = url
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "");
+  
+  // Extract just the domain (everything before the first /)
+  const domainOnly = normalized.split('/')[0];
+  return domainOnly;
+}
+
 function extractCorrectedCompanyName(spellingFix: string): string | null {
   // spelling_fix looks like: "\"Eberspacher\" (\"official site\" OR ...)"
   // We need to extract "Eberspacher" from the first quoted term
@@ -100,6 +113,7 @@ async function performGoogleSearch(
   serpApiKey: string,
 ): Promise<{
   domain: string | null;
+  sourceUrl: string | null;
   confidence: number;
   sourceType: string;
   gpsCoordinates?: { latitude: number; longitude: number };
@@ -126,30 +140,35 @@ async function performGoogleSearch(
   console.log(`SerpAPI returned local_results:`, data.local_results ? "found" : "not found");
 
   let domain: string | null = null;
+  let sourceUrl: string | null = null;
   let confidence = 0;
   let selectedOrg: { name: string; domain: string } | undefined = undefined;
   let sourceType = "";
 
   // Try knowledge graph first
   if (data.knowledge_graph && data.knowledge_graph.website) {
-    domain = normalizeDomain(data.knowledge_graph.website);
+    const fullUrl = normalizeDomain(data.knowledge_graph.website);
+    domain = extractRootDomain(data.knowledge_graph.website);
+    sourceUrl = fullUrl;
     confidence = 100;
     sourceType = "knowledge_graph";
     selectedOrg = {
       name: data.knowledge_graph.title || "",
       domain: domain,
     };
-    console.log(`Extracted domain from knowledge_graph: ${domain}`);
+    console.log(`Extracted domain from knowledge_graph: ${domain} (source: ${sourceUrl})`);
   } else if (data.local_results?.places?.[0]?.links?.website) {
     // Fallback to local results
-    domain = normalizeDomain(data.local_results.places[0].links.website);
+    const fullUrl = normalizeDomain(data.local_results.places[0].links.website);
+    domain = extractRootDomain(data.local_results.places[0].links.website);
+    sourceUrl = fullUrl;
     confidence = 50;
     sourceType = "local_results";
     selectedOrg = {
       name: data.local_results.places[0].title || "",
       domain: domain,
     };
-    console.log(`Extracted domain from local_results: ${domain}`);
+    console.log(`Extracted domain from local_results: ${domain} (source: ${sourceUrl})`);
   }
 
   // Extract GPS coordinates
@@ -181,6 +200,7 @@ async function performGoogleSearch(
 
   return {
     domain,
+    sourceUrl,
     confidence,
     sourceType,
     gpsCoordinates,
@@ -198,6 +218,7 @@ async function enrichWithGoogle(
   micsSector: string | null,
 ): Promise<{
   domain: string | null;
+  sourceUrl: string | null;
   confidence: number;
   source: string;
   log: EnrichmentLog;
@@ -220,6 +241,7 @@ async function enrichWithGoogle(
   const searchSteps: EnrichmentLog["searchSteps"] = [];
   let finalResult: any;
   let finalDomain: string | null = null;
+  let finalSourceUrl: string | null = null;
   let finalConfidence = 0;
   let finalSource = "";
   let finalSelectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
@@ -241,6 +263,7 @@ async function enrichWithGoogle(
     if (step1Result.domain) {
       // Step 1 found a result
       finalDomain = step1Result.domain;
+      finalSourceUrl = step1Result.sourceUrl;
       finalConfidence = step1Result.confidence; // 100 for knowledge_graph, 50 for local_results
       finalSource = step1Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
       finalSelectedOrg = step1Result.selectedOrg;
@@ -280,6 +303,7 @@ async function enrichWithGoogle(
 
         if (step1bResult.domain) {
           finalDomain = step1bResult.domain;
+          finalSourceUrl = step1bResult.sourceUrl;
           finalConfidence = step1bResult.confidence;
           finalSource =
             step1bResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -311,6 +335,7 @@ async function enrichWithGoogle(
       if (step2Result.domain) {
         // Step 2 found a result - reduce confidence
         finalDomain = step2Result.domain;
+        finalSourceUrl = step2Result.sourceUrl;
         // Reduce confidence for step 2: 25% for knowledge_graph, 15% for local_results
         finalConfidence = step2Result.sourceType === "knowledge_graph" ? 25 : 15;
         finalSource = step2Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -351,6 +376,7 @@ async function enrichWithGoogle(
 
           if (step2bResult.domain) {
             finalDomain = step2bResult.domain;
+            finalSourceUrl = step2bResult.sourceUrl;
             finalConfidence = step2bResult.sourceType === "knowledge_graph" ? 25 : 15;
             finalSource =
               step2bResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -395,6 +421,7 @@ async function enrichWithGoogle(
 
       if (step3Result.domain) {
         finalDomain = step3Result.domain;
+        finalSourceUrl = step3Result.sourceUrl;
         // Lower confidence for step 3: 10% for knowledge_graph, 5% for local_results
         finalConfidence = step3Result.sourceType === "knowledge_graph" ? 10 : 5;
         finalSource = step3Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -435,6 +462,7 @@ async function enrichWithGoogle(
 
           if (step3bResult.domain) {
             finalDomain = step3bResult.domain;
+            finalSourceUrl = step3bResult.sourceUrl;
             finalConfidence = step3bResult.sourceType === "knowledge_graph" ? 10 : 5;
             finalSource =
               step3bResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -470,6 +498,7 @@ async function enrichWithGoogle(
 
       if (step4Result.domain) {
         finalDomain = step4Result.domain;
+        finalSourceUrl = step4Result.sourceUrl;
         // Lowest confidence for step 4: 5% for knowledge_graph, 2% for local_results
         finalConfidence = step4Result.sourceType === "knowledge_graph" ? 5 : 2;
         finalSource = step4Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -510,6 +539,7 @@ async function enrichWithGoogle(
 
           if (step4bResult.domain) {
             finalDomain = step4bResult.domain;
+            finalSourceUrl = step4bResult.sourceUrl;
             finalConfidence = step4bResult.sourceType === "knowledge_graph" ? 5 : 2;
             finalSource =
               step4bResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
@@ -546,6 +576,7 @@ async function enrichWithGoogle(
       organizationsFound: finalDomain ? 1 : 0,
       selectedOrganization: finalSelectedOrg,
       domain: finalDomain,
+      sourceUrl: finalSourceUrl,
       confidence: finalConfidence,
       source: finalSource || "google_knowledge_graph",
       ...(finalGpsCoordinates && { gpsCoordinates: finalGpsCoordinates }),
@@ -555,6 +586,7 @@ async function enrichWithGoogle(
 
     return {
       domain: finalDomain,
+      sourceUrl: finalSourceUrl,
       confidence: finalConfidence,
       source: finalSource || "google_knowledge_graph",
       log,
@@ -583,6 +615,7 @@ async function enrichWithGoogle(
 
     return {
       domain: null,
+      sourceUrl: null,
       confidence: 0,
       source: "google_knowledge_graph_error",
       log,
@@ -593,7 +626,7 @@ async function enrichWithGoogle(
 async function enrichWithEmail(
   email: string | null,
   company: string,
-): Promise<{ domain: string | null; confidence: number; source: string; log: EnrichmentLog }> {
+): Promise<{ domain: string | null; sourceUrl: string | null; confidence: number; source: string; log: EnrichmentLog }> {
   const timestamp = new Date().toISOString();
 
   // List of common personal email domains to skip
@@ -637,7 +670,7 @@ async function enrichWithEmail(
       source: "email_not_provided",
       searchSteps,
     };
-    return { domain: null, confidence: 0, source: "email_not_provided", log };
+    return { domain: null, sourceUrl: null, confidence: 0, source: "email_not_provided", log };
   }
 
   // Step 2: Extract domain from email
@@ -660,7 +693,7 @@ async function enrichWithEmail(
       source: "email_invalid_format",
       searchSteps,
     };
-    return { domain: null, confidence: 0, source: "email_invalid_format", log };
+    return { domain: null, sourceUrl: null, confidence: 0, source: "email_invalid_format", log };
   }
 
   const emailDomain = emailParts[1].toLowerCase();
@@ -691,7 +724,7 @@ async function enrichWithEmail(
       source: "email_personal_domain_skipped",
       searchSteps,
     };
-    return { domain: null, confidence: 0, source: "email_personal_domain_skipped", log };
+    return { domain: null, sourceUrl: null, confidence: 0, source: "email_personal_domain_skipped", log };
   }
 
   searchSteps.push({
@@ -739,12 +772,13 @@ async function enrichWithEmail(
           domain: emailDomain,
         },
         domain: emailDomain,
+        sourceUrl: emailDomain,
         confidence: 95,
         source: "email_domain_verified",
         searchSteps,
       };
       console.log(`Domain verified via DNS with 95% confidence: ${emailDomain}`);
-      return { domain: emailDomain, confidence: 95, source: "email_domain_verified", log };
+      return { domain: emailDomain, sourceUrl: emailDomain, confidence: 95, source: "email_domain_verified", log };
     } else {
       // Domain not verified - no A records or NXDOMAIN
       const reason =
@@ -763,12 +797,13 @@ async function enrichWithEmail(
         searchParams: { company, email, extractedDomain: emailDomain },
         organizationsFound: 0,
         domain: null,
+        sourceUrl: null,
         confidence: 0,
         source: "email_domain_not_verified",
         searchSteps,
       };
       console.log(`Domain not verified: ${emailDomain} - ${reason}`);
-      return { domain: null, confidence: 0, source: "email_domain_not_verified", log };
+      return { domain: null, sourceUrl: null, confidence: 0, source: "email_domain_not_verified", log };
     }
   } catch (error) {
     console.error("Error verifying email domain:", error);
@@ -785,11 +820,12 @@ async function enrichWithEmail(
       searchParams: { company, email, extractedDomain: emailDomain },
       organizationsFound: 0,
       domain: null,
+      sourceUrl: null,
       confidence: 0,
       source: "email_domain_verification_error",
       searchSteps,
     };
-    return { domain: null, confidence: 0, source: "email_domain_verification_error", log };
+    return { domain: null, sourceUrl: null, confidence: 0, source: "email_domain_verification_error", log };
   }
 }
 
@@ -799,6 +835,7 @@ async function enrichWithApollo(
   state: string | null,
 ): Promise<{
   domain: string | null;
+  sourceUrl: string | null;
   confidence: number;
   source: string;
   log: EnrichmentLog;
@@ -866,6 +903,7 @@ async function enrichWithApollo(
 
     // Extract domain from the first organization
     let domain: string | null = null;
+    let sourceUrl: string | null = null;
     let confidence = 0;
     let selectedOrg: EnrichmentLog["selectedOrganization"] = undefined;
 
@@ -874,19 +912,14 @@ async function enrichWithApollo(
 
       // Try primary_domain first, then parse from website_url
       if (org.primary_domain) {
-        domain = org.primary_domain;
+        domain = extractRootDomain(org.primary_domain);
+        sourceUrl = normalizeDomain(org.primary_domain);
         confidence = 95;
       } else if (org.website_url) {
         // Parse domain from URL
-        try {
-          const url = new URL(org.website_url.startsWith("http") ? org.website_url : `https://${org.website_url}`);
-          domain = url.hostname.replace(/^www\./, "");
-          confidence = 90;
-        } catch (e) {
-          // If URL parsing fails, use as-is
-          domain = org.website_url.replace(/^(https?:\/\/)?(www\.)?/, "");
-          confidence = 85;
-        }
+        domain = extractRootDomain(org.website_url);
+        sourceUrl = normalizeDomain(org.website_url);
+        confidence = 90;
       }
 
       // Build selected org info for log
@@ -897,7 +930,7 @@ async function enrichWithApollo(
         foundedYear: org.founded_year || undefined,
       };
 
-      console.log(`Extracted domain: ${domain} with confidence ${confidence}%`);
+      console.log(`Extracted domain: ${domain} (source: ${sourceUrl}) with confidence ${confidence}%`);
     } else {
       console.log("No organizations found in Apollo response");
     }
@@ -914,12 +947,14 @@ async function enrichWithApollo(
       organizationsFound: data.organizations?.length || 0,
       selectedOrganization: selectedOrg,
       domain,
+      sourceUrl,
       confidence,
       source: "apollo_api",
     };
 
     return {
       domain,
+      sourceUrl,
       confidence,
       source: "apollo_api",
       log,
@@ -944,6 +979,7 @@ async function enrichWithApollo(
 
     return {
       domain: null,
+      sourceUrl: null,
       confidence: 0,
       source: "apollo_api_error",
       log,
@@ -997,6 +1033,10 @@ serve(async (req) => {
 
     if (result.domain) {
       updateData.domain = result.domain;
+    }
+    
+    if (result.sourceUrl) {
+      updateData.source_url = result.sourceUrl;
     }
 
     // Add GPS coordinates if found (only from Google enrichment)

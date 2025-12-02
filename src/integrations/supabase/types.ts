@@ -54,6 +54,7 @@ export type Database = {
           news: string | null
           phone: string | null
           size: string | null
+          source_url: string | null
           state: string | null
           tech_stack: string | null
           updated_at: string | null
@@ -101,6 +102,7 @@ export type Database = {
           news?: string | null
           phone?: string | null
           size?: string | null
+          source_url?: string | null
           state?: string | null
           tech_stack?: string | null
           updated_at?: string | null
@@ -148,6 +150,7 @@ export type Database = {
           news?: string | null
           phone?: string | null
           size?: string | null
+          source_url?: string | null
           state?: string | null
           tech_stack?: string | null
           updated_at?: string | null
