@@ -13,14 +13,14 @@ export function DashboardLayout({ children, activeView, onViewChange }: Dashboar
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar activeView={activeView} onViewChange={onViewChange} />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 overflow-hidden">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
             <SidebarTrigger />
             <h1 className="text-xl font-semibold">
               {activeView === "home" ? "Your Leads" : "Add Leads"}
             </h1>
           </header>
-          <main className="p-6">
+          <main className="flex-1 overflow-auto p-6">
             {children}
           </main>
         </SidebarInset>
