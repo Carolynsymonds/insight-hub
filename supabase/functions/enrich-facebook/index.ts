@@ -24,45 +24,59 @@ Deno.serve(async (req) => {
 
     console.log(`Searching Facebook page for: ${company}, ${city || ""}, ${state || ""}`);
 
-    // Build query: "Company Name" City State (facebook OR "facebook.com")
-    const locationPart = [city, state].filter(Boolean).join(" ");
-    const query = `"${company}" ${locationPart} (facebook OR "facebook.com")`;
-    const encodedQuery = encodeURIComponent(query);
-    const serpUrl = `https://serpapi.com/search.json?q=${encodedQuery}&num=10&api_key=${serpApiKey}`;
-
-    console.log(`SerpAPI query: ${query}`);
-
-    const response = await fetch(serpUrl);
-    const data = await response.json();
-
-    console.log(`SerpAPI response received`);
-
-    let facebookUrl: string | null = null;
-
-    // Search in organic results for Facebook URLs
-    if (data.organic_results && Array.isArray(data.organic_results)) {
-      for (const result of data.organic_results) {
-        const link = result.link || "";
-        if (link.includes("facebook.com")) {
-          // Prefer company pages (not marketplace, groups, etc.)
-          if (!link.includes("/marketplace/") && !link.includes("/groups/") && !link.includes("/events/")) {
-            facebookUrl = link;
-            console.log(`Found Facebook URL: ${facebookUrl}`);
-            break;
+    const findFacebookUrl = (data: any): string | null => {
+      // Search in organic results for Facebook URLs
+      if (data.organic_results && Array.isArray(data.organic_results)) {
+        for (const result of data.organic_results) {
+          const link = result.link || "";
+          if (link.includes("facebook.com")) {
+            // Prefer company pages (not marketplace, groups, etc.)
+            if (!link.includes("/marketplace/") && !link.includes("/groups/") && !link.includes("/events/")) {
+              return link;
+            }
           }
         }
       }
+
+      // Also check knowledge graph if available
+      if (data.knowledge_graph) {
+        const profiles = data.knowledge_graph.profiles || [];
+        for (const profile of profiles) {
+          if (profile.link && profile.link.includes("facebook.com")) {
+            return profile.link;
+          }
+        }
+      }
+
+      return null;
+    };
+
+    let facebookUrl: string | null = null;
+
+    // STEP 1: Search with company + location
+    const locationPart = [city, state].filter(Boolean).join(" ");
+    const step1Query = `"${company}" ${locationPart} (facebook OR "facebook.com")`;
+    console.log(`Step 1 query: ${step1Query}`);
+
+    const step1Response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(step1Query)}&num=10&api_key=${serpApiKey}`);
+    const step1Data = await step1Response.json();
+
+    facebookUrl = findFacebookUrl(step1Data);
+    if (facebookUrl) {
+      console.log(`Step 1: Found Facebook URL: ${facebookUrl}`);
     }
 
-    // Also check knowledge graph if available
-    if (!facebookUrl && data.knowledge_graph) {
-      const profiles = data.knowledge_graph.profiles || [];
-      for (const profile of profiles) {
-        if (profile.link && profile.link.includes("facebook.com")) {
-          facebookUrl = profile.link;
-          console.log(`Found Facebook URL in knowledge graph: ${facebookUrl}`);
-          break;
-        }
+    // STEP 2: Fallback with company name only
+    if (!facebookUrl) {
+      const step2Query = `"${company}" (facebook OR "facebook.com")`;
+      console.log(`Step 2 query: ${step2Query}`);
+
+      const step2Response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(step2Query)}&num=10&api_key=${serpApiKey}`);
+      const step2Data = await step2Response.json();
+
+      facebookUrl = findFacebookUrl(step2Data);
+      if (facebookUrl) {
+        console.log(`Step 2: Found Facebook URL: ${facebookUrl}`);
       }
     }
 
@@ -86,7 +100,6 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         facebook: facebookUrl,
-        query: query,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
