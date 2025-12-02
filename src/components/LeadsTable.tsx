@@ -140,8 +140,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           leadId: lead.id,
           company: lead.company,
           domain: lead.domain,
-          city: lead.city,
-          state: lead.state,
         },
       });
       if (error) throw error;
