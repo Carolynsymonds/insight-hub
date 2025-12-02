@@ -320,7 +320,7 @@ async function enrichWithGoogle(
 
     if (!finalDomain && micsSector) {
       // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
-      const step2Query = `${company} ${city || ""} ${micsSector}`;
+      const step2Query = `${company} ${city || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
       console.log(`Step 2: Industry fallback search with query: ${step2Query}`);
 
       const step2Result = await performGoogleSearch(step2Query, serpApiKey);
