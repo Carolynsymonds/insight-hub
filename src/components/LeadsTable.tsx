@@ -29,6 +29,7 @@ interface EnrichmentLog {
     foundedYear?: number;
   };
   domain: string | null;
+  sourceUrl?: string | null;
   confidence: number;
   source: string;
   gpsCoordinates?: {
@@ -832,6 +833,26 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </p>
                                                   )}
                                                 </div>
+
+                                                {/* Source URL Display (if different from domain) */}
+                                                {mostRecentLog.sourceUrl && mostRecentLog.sourceUrl !== mostRecentLog.domain && (
+                                                  <div style={{ userSelect: "text" }} className="mt-2">
+                                                    <p className="text-xs text-muted-foreground mb-1 select-text">
+                                                      Source URL:
+                                                    </p>
+                                                    <a
+                                                      href={`https://${mostRecentLog.sourceUrl}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      style={{ userSelect: "text" }}
+                                                    >
+                                                      {mostRecentLog.sourceUrl}
+                                                      <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                    </a>
+                                                  </div>
+                                                )}
 
                                                 {/* View Logs Button */}
                                                 <Button
