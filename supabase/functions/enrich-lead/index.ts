@@ -146,18 +146,54 @@ async function performGoogleSearch(
   let sourceType = "";
 
   // Try knowledge graph first
-  if (data.knowledge_graph && data.knowledge_graph.website) {
-    const fullUrl = normalizeDomain(data.knowledge_graph.website);
-    domain = extractRootDomain(data.knowledge_graph.website);
-    sourceUrl = fullUrl;
-    confidence = 100;
-    sourceType = "knowledge_graph";
-    selectedOrg = {
-      name: data.knowledge_graph.title || "",
-      domain: domain,
-    };
-    console.log(`Extracted domain from knowledge_graph: ${domain} (source: ${sourceUrl})`);
-  } else if (data.local_results?.places?.[0]?.links?.website) {
+  if (data.knowledge_graph) {
+    let websiteUrl: string | null = null;
+    
+    // First check direct website field
+    if (data.knowledge_graph.website) {
+      websiteUrl = data.knowledge_graph.website;
+      console.log('Found website in knowledge_graph.website');
+    } 
+    // If no direct website, check CEO links
+    else if (data.knowledge_graph.ceo_links && data.knowledge_graph.ceo_links.length > 0) {
+      const ceoLink = data.knowledge_graph.ceo_links[0].link;
+      if (ceoLink && !ceoLink.includes('google.com')) {
+        websiteUrl = ceoLink;
+        console.log('Found website in knowledge_graph.ceo_links');
+      }
+    }
+    // Check headquarters links
+    else if (data.knowledge_graph.headquarters_links && data.knowledge_graph.headquarters_links.length > 0) {
+      const hqLink = data.knowledge_graph.headquarters_links[0].link;
+      if (hqLink && !hqLink.includes('google.com')) {
+        websiteUrl = hqLink;
+        console.log('Found website in knowledge_graph.headquarters_links');
+      }
+    }
+    // Check subsidiaries links
+    else if (data.knowledge_graph.subsidiaries_links && data.knowledge_graph.subsidiaries_links.length > 0) {
+      const subLink = data.knowledge_graph.subsidiaries_links[0].link;
+      if (subLink && !subLink.includes('google.com')) {
+        websiteUrl = subLink;
+        console.log('Found website in knowledge_graph.subsidiaries_links');
+      }
+    }
+    
+    if (websiteUrl) {
+      const fullUrl = normalizeDomain(websiteUrl);
+      domain = extractRootDomain(websiteUrl);
+      sourceUrl = fullUrl;
+      confidence = 100;
+      sourceType = "knowledge_graph";
+      selectedOrg = {
+        name: data.knowledge_graph.title || "",
+        domain: domain,
+      };
+      console.log(`Extracted domain from knowledge_graph: ${domain} (source: ${sourceUrl})`);
+    }
+  }
+  
+  if (!domain && data.local_results?.places?.[0]?.links?.website) {
     // Fallback to local results
     const fullUrl = normalizeDomain(data.local_results.places[0].links.website);
     domain = extractRootDomain(data.local_results.places[0].links.website);
