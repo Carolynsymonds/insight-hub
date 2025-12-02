@@ -171,18 +171,31 @@ async function performGoogleSearch(
     console.log(`Extracted domain from local_results: ${domain} (source: ${sourceUrl})`);
   }
 
-  // Extract GPS coordinates
+  // Extract GPS coordinates - prioritize local_results.places (actual business location)
+  // over local_map (generic map viewport center)
   let gpsCoordinates: { latitude: number; longitude: number } | undefined = undefined;
   let latitude: number | undefined = undefined;
   let longitude: number | undefined = undefined;
 
-  if (data.local_map && data.local_map.gps_coordinates) {
+  // First, try to get coordinates from local_results.places (most accurate)
+  if (data.local_results?.places?.[0]?.gps_coordinates) {
+    gpsCoordinates = {
+      latitude: data.local_results.places[0].gps_coordinates.latitude,
+      longitude: data.local_results.places[0].gps_coordinates.longitude,
+    };
+    latitude = data.local_results.places[0].gps_coordinates.latitude;
+    longitude = data.local_results.places[0].gps_coordinates.longitude;
+    console.log('GPS coordinates extracted from local_results.places[0]:', gpsCoordinates);
+  } 
+  // Fallback to local_map if no local_results available
+  else if (data.local_map?.gps_coordinates) {
     gpsCoordinates = {
       latitude: data.local_map.gps_coordinates.latitude,
       longitude: data.local_map.gps_coordinates.longitude,
     };
     latitude = data.local_map.gps_coordinates.latitude;
     longitude = data.local_map.gps_coordinates.longitude;
+    console.log('GPS coordinates extracted from local_map (fallback):', gpsCoordinates);
   }
 
   // Extract search information
