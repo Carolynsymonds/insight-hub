@@ -707,7 +707,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     <div className="flex justify-end gap-2">
                       <Drawer
                         direction="right"
-                        dismissible={false}
                         open={openDrawer === lead.id}
                         onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
                       >
