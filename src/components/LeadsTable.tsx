@@ -580,7 +580,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
               <TableHead>News</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -702,7 +702,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.news || "—"}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <Drawer
                         direction="right"
