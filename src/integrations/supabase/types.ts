@@ -40,6 +40,7 @@ export type Database = {
           enrichment_source: string | null
           enrichment_status: string | null
           facebook: string | null
+          facebook_confidence: number | null
           founded_date: string | null
           full_name: string
           id: string
@@ -92,6 +93,7 @@ export type Database = {
           enrichment_source?: string | null
           enrichment_status?: string | null
           facebook?: string | null
+          facebook_confidence?: number | null
           founded_date?: string | null
           full_name: string
           id?: string
@@ -144,6 +146,7 @@ export type Database = {
           enrichment_source?: string | null
           enrichment_status?: string | null
           facebook?: string | null
+          facebook_confidence?: number | null
           founded_date?: string | null
           full_name?: string
           id?: string
