@@ -407,7 +407,7 @@ async function enrichWithGoogle(
 
     // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
     if (!finalDomain) {
-      const step3Query = `${company} ${locationPart}`;
+      const step3Query = `${company} ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
       console.log(`Step 3: Simple fallback search with query: ${step3Query}`);
 
       const step3Result = await performGoogleSearch(step3Query, serpApiKey);
