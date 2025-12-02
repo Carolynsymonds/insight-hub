@@ -17,6 +17,3 @@ verify_jwt = false
 
 [functions.score-industry-relevance]
 verify_jwt = false
-
-[functions.score-vehicle-tracking-interest]
-verify_jwt = false
