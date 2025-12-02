@@ -101,6 +101,7 @@ interface Lead {
   founded_date: string | null;
   logo_url: string | null;
   products_services: string | null;
+  source_url: string | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -139,6 +140,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         body: {
           leadId: lead.id,
           domain: lead.domain,
+          sourceUrl: lead.source_url,
         },
       });
       if (error) throw error;

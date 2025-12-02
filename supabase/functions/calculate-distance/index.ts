@@ -72,8 +72,34 @@ serve(async (req) => {
       throw new Error(`Google Routes API error: ${mapsData.error.message}`);
     }
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle case where no route found - set distance as null
     if (!mapsData.routes || mapsData.routes.length === 0) {
-      throw new Error('No route found between origin and destination');
+      console.log('No route found - setting distance to null');
+      
+      await supabase
+        .from('leads')
+        .update({ 
+          distance_miles: null,
+          distance_confidence: null
+        })
+        .eq('id', leadId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          distance_miles: null,
+          distance_confidence: null,
+          message: 'No route found - distance set to undefined',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const route = mapsData.routes[0];
@@ -92,11 +118,6 @@ serve(async (req) => {
     }
 
     console.log('Distance calculated:', { distanceMeters, distanceMiles, duration, distanceConfidence });
-
-    // Update lead with distance
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { error: updateError } = await supabase
       .from('leads')
