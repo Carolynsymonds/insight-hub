@@ -537,7 +537,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Size</TableHead>
               <TableHead className="min-w-[250px]">Description</TableHead>
               <TableHead>Annual Revenue</TableHead>
-              <TableHead className="min-w-[250px]">Tech Stack</TableHead>
+              
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
               <TableHead>Facebook</TableHead>
@@ -553,7 +553,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={19} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
                   No leads yet. Add your first lead above.
                 </TableCell>
               </TableRow>
@@ -635,18 +635,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     <div className="truncate">{lead.description || "—"}</div>
                   </TableCell>
                   <TableCell>{lead.annual_revenue || "—"}</TableCell>
-                  <TableCell
-                    className="max-w-[250px] cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      if (lead.tech_stack) {
-                        e.stopPropagation();
-                        setModalContent({ title: "Tech Stack", text: lead.tech_stack });
-                        setShowTextModal(true);
-                      }
-                    }}
-                  >
-                    <div className="truncate">{lead.tech_stack || "—"}</div>
-                  </TableCell>
                   <TableCell>{lead.company_industry || "—"}</TableCell>
                   <TableCell>
                     {lead.linkedin ? (
