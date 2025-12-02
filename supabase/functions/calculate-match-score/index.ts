@@ -30,7 +30,7 @@ serve(async (req) => {
     // Fetch the lead
     const { data: lead, error: fetchError } = await supabase
       .from('leads')
-      .select('enrichment_source, distance_miles, domain_relevance_score, industry_relevance_score')
+      .select('enrichment_source, enrichment_confidence, distance_miles, domain_relevance_score, industry_relevance_score')
       .eq('id', leadId)
       .single();
 
@@ -51,11 +51,13 @@ serve(async (req) => {
       matchScoreSource = 'email_domain';
       console.log('Step 1 applied: Email domain verified - 99%');
     }
-    // Step 2: Check if domain from Google Knowledge Graph
-    else if (lead.enrichment_source === 'google_knowledge_graph') {
+    // Step 2: Check if domain from Google Knowledge Graph (only for high-confidence filtered searches)
+    // Requires confidence >= 25 (Step 1a/1b at 100%, Step 2a/2b at 25%)
+    // Unfiltered searches (Step 2c at 20%, Step 3c at 8%, etc.) fall through to distance-based calculation
+    else if (lead.enrichment_source === 'google_knowledge_graph' && (lead.enrichment_confidence ?? 0) >= 25) {
       matchScore = 95;
       matchScoreSource = 'google_knowledge_graph';
-      console.log('Step 2 applied: Google Knowledge Graph - 95%');
+      console.log(`Step 2 applied: Google Knowledge Graph (confidence ${lead.enrichment_confidence}%) - 95%`);
     }
     // Step 3: Distance-based tiers + weighted relevance
     else {
