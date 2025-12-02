@@ -44,11 +44,13 @@ serve(async (req) => {
       travelMode: "DRIVE"
     };
 
+    const apiUrl = `https://routes.googleapis.com/directions/v2:computeRoutes?key=${googleMapsApiKey}`;
+    console.log('Google Routes API URL:', apiUrl);
     console.log('Calling Google Routes API v2:', requestBody);
 
     // Call Google Routes API v2
     const mapsResponse = await fetch(
-      `https://routes.googleapis.com/directions/v2:computeRoutes?key=${googleMapsApiKey}`,
+      apiUrl,
       {
         method: 'POST',
         headers: {
