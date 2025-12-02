@@ -1035,15 +1035,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                        <p className="text-sm text-muted-foreground">No enrichment data yet</p>
                                      )}
 
-                                     {/* Generic Diagnose Button - appears when no domains found in Apollo and Google */}
-                                     {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (() => {
-                                       const hasApolloOrGoogle = lead.enrichment_logs.some(log => 
-                                         log.source === "apollo_api" || 
-                                         log.source.startsWith("google_")
-                                       );
-                                       const hasAnyDomain = lead.enrichment_logs.some(log => log.domain);
-                                       
-                                       return hasApolloOrGoogle && !hasAnyDomain ? (
+                                      {/* Generic Diagnose Button - appears when no domain currently found */}
+                                      {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (() => {
+                                        const hasApolloOrGoogle = lead.enrichment_logs.some(log => 
+                                          log.source === "apollo_api" || 
+                                          log.source.startsWith("google_")
+                                        );
+                                        
+                                        return hasApolloOrGoogle && !lead.domain ? (
                                          <div className="mt-4 pt-4 border-t space-y-3">
                                            <Button
                                              size="sm"
