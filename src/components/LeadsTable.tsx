@@ -343,6 +343,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           leadId: lead.id,
           companyName: lead.company,
           domain: lead.domain,
+          city: lead.city,
+          state: lead.state,
+          dma: lead.dma,
         },
       });
 
