@@ -145,10 +145,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
       if (error) throw error;
 
-      toast({
-        title: "Coordinates Found!",
-        description: `Located at ${data.latitude}, ${data.longitude}`,
-      });
+      if (data.notFound) {
+        toast({
+          title: "No Coordinates Found",
+          description: "Could not locate GPS coordinates for this company",
+        });
+      } else {
+        toast({
+          title: "Coordinates Found!",
+          description: `Located at ${data.latitude}, ${data.longitude}`,
+        });
+      }
       onEnrichComplete();
     } catch (error: any) {
       toast({
@@ -1352,14 +1359,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     ? "default"
                                                     : lead.distance_confidence === "medium"
                                                       ? "secondary"
-                                                      : "destructive"
+                                                      : lead.distance_confidence === "undefined"
+                                                        ? "outline"
+                                                        : "destructive"
                                                 }
                                                 className={
                                                   lead.distance_confidence === "high"
                                                     ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
                                                     : lead.distance_confidence === "medium"
                                                       ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                      : lead.distance_confidence === "undefined"
+                                                        ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
+                                                        : "bg-red-500 hover:bg-red-600 text-white border-red-500"
                                                 }
                                                 onClick={(e) => e.stopPropagation()}
                                               >
@@ -1367,7 +1378,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   ? "🟢 High"
                                                   : lead.distance_confidence === "medium"
                                                     ? "🟡 Medium"
-                                                    : "🔴 Low"}
+                                                    : lead.distance_confidence === "undefined"
+                                                      ? "⚪ Undefined"
+                                                      : "🔴 Low"}
                                               </Badge>
                                             )}
                                           </div>
@@ -1399,28 +1412,36 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                           ? "default"
                                                           : lead.distance_confidence === "medium"
                                                             ? "secondary"
-                                                            : "destructive"
+                                                            : lead.distance_confidence === "undefined"
+                                                              ? "outline"
+                                                              : "destructive"
                                                       }
                                                       className={
                                                         lead.distance_confidence === "high"
                                                           ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
                                                           : lead.distance_confidence === "medium"
                                                             ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                            : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                            : lead.distance_confidence === "undefined"
+                                                              ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
+                                                              : "bg-red-500 hover:bg-red-600 text-white border-red-500"
                                                       }
                                                     >
                                                       {lead.distance_confidence === "high"
                                                         ? "🟢 High Confidence"
                                                         : lead.distance_confidence === "medium"
                                                           ? "🟡 Medium Confidence"
-                                                          : "🔴 Low Confidence"}
+                                                          : lead.distance_confidence === "undefined"
+                                                            ? "⚪ Undefined"
+                                                            : "🔴 Low Confidence"}
                                                     </Badge>
                                                     <p className="text-xs text-muted-foreground mt-2">
                                                       {lead.distance_confidence === "high"
-                                                        ? "Lead is within 20 miles - likely a strong match"
+                                                        ? "Lead is within 50 miles - likely a strong match"
                                                         : lead.distance_confidence === "medium"
-                                                          ? "Lead is 20-60 miles away - moderate match"
-                                                          : "Lead is over 60 miles away - lower match likelihood"}
+                                                          ? "Lead is 50-100 miles away - moderate match"
+                                                          : lead.distance_confidence === "undefined"
+                                                            ? "No coordinates found for this company"
+                                                            : "Lead is over 100 miles away - lower match likelihood"}
                                                     </p>
                                                   </div>
                                                 )}

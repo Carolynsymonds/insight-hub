@@ -59,7 +59,38 @@ serve(async (req) => {
     }
 
     if (!latitude || !longitude) {
-      throw new Error('No GPS coordinates found in search results');
+      console.log('No GPS coordinates found in search results - setting to null/undefined');
+      
+      // Update lead with null coordinates and undefined confidence
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ 
+          latitude: null,
+          longitude: null,
+          distance_miles: null,
+          distance_confidence: 'undefined'
+        })
+        .eq('id', leadId);
+
+      if (updateError) {
+        console.error('Error updating lead with null coordinates:', updateError);
+        throw updateError;
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          notFound: true,
+          message: 'No GPS coordinates found for this company'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     console.log('GPS coordinates found:', { latitude, longitude });
