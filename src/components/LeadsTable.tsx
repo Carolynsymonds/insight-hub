@@ -123,9 +123,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
-    return logs.some(log => 
-      log.domain && 
-      (log.source === 'google_knowledge_graph' || log.source === 'google_local_results')
+    return logs.some(
+      (log) => log.domain && (log.source === "google_knowledge_graph" || log.source === "google_local_results"),
     );
   };
 
@@ -142,7 +141,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         },
       });
       if (error) throw error;
-      
+
       toast({
         title: "Coordinates Found!",
         description: `Located at ${data.latitude}, ${data.longitude}`,
@@ -161,32 +160,32 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
   const handleDiagnose = async (lead: Lead) => {
     setDiagnosing({ leadId: lead.id, source: "all" });
-    
+
     try {
-    const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
-      body: {
-        leadId: lead.id,
-        leadData: {
-          company: lead.company,
-          city: lead.city,
-          state: lead.state,
-          zipcode: lead.zipcode,
-          email: lead.email,
-          mics_sector: lead.mics_sector,
-          full_name: lead.full_name,
+      const { data, error } = await supabase.functions.invoke("diagnose-enrichment", {
+        body: {
+          leadId: lead.id,
+          leadData: {
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            zipcode: lead.zipcode,
+            email: lead.email,
+            mics_sector: lead.mics_sector,
+            full_name: lead.full_name,
+          },
+          enrichmentLogs: lead.enrichment_logs || [],
         },
-        enrichmentLogs: lead.enrichment_logs || [],
-      },
-    });
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    toast({
-      title: "Diagnosis Complete",
-      description: "AI analysis has been generated.",
-    });
+      toast({
+        title: "Diagnosis Complete",
+        description: "AI analysis has been generated.",
+      });
 
-    onEnrichComplete();
+      onEnrichComplete();
     } catch (error: any) {
       console.error("Diagnosis error:", error);
       toast({
@@ -438,7 +437,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     }
   };
 
-
   const handleEnrichCompanyDetails = async (lead: Lead) => {
     if (!lead.domain) {
       toast({
@@ -481,13 +479,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     setFetchingNews(lead.id);
 
     try {
-      const { data, error } = await supabase.functions.invoke('get-company-news', {
-        body: { 
-          leadId: lead.id, 
+      const { data, error } = await supabase.functions.invoke("get-company-news", {
+        body: {
+          leadId: lead.id,
           company: lead.company,
           state: lead.state,
-          domain: lead.domain
-        }
+          domain: lead.domain,
+        },
       });
 
       if (error) throw error;
@@ -499,7 +497,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
       onEnrichComplete();
     } catch (error: any) {
-      console.error('Error fetching company news:', error);
+      console.error("Error fetching company news:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to fetch company news",
@@ -539,7 +537,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
               <TableHead>News</TableHead>
-              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">Actions</TableHead>
+              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -614,7 +614,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.size || "—"}</TableCell>
-                  <TableCell 
+                  <TableCell
                     className="max-w-[250px] cursor-pointer hover:text-primary"
                     onClick={(e) => {
                       if (lead.description) {
@@ -624,12 +624,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       }
                     }}
                   >
-                    <div className="truncate">
-                      {lead.description || "—"}
-                    </div>
+                    <div className="truncate">{lead.description || "—"}</div>
                   </TableCell>
                   <TableCell>{lead.annual_revenue || "—"}</TableCell>
-                  <TableCell 
+                  <TableCell
                     className="max-w-[250px] cursor-pointer hover:text-primary"
                     onClick={(e) => {
                       if (lead.tech_stack) {
@@ -639,9 +637,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       }
                     }}
                   >
-                    <div className="truncate">
-                      {lead.tech_stack || "—"}
-                    </div>
+                    <div className="truncate">{lead.tech_stack || "—"}</div>
                   </TableCell>
                   <TableCell>{lead.company_industry || "—"}</TableCell>
                   <TableCell>
@@ -661,7 +657,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.news || "—"}</TableCell>
-                  <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]" onClick={(e) => e.stopPropagation()}>
+                  <TableCell
+                    className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex justify-end gap-2">
                       <Drawer
                         direction="right"
@@ -773,7 +772,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   <p className="text-xs text-muted-foreground mb-1 select-text">
                                                     Domain:
                                                   </p>
-                                                {mostRecentLog.domain ? (
+                                                  {mostRecentLog.domain ? (
                                                     <a
                                                       href={`https://${mostRecentLog.domain}`}
                                                       target="_blank"
@@ -793,24 +792,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 </div>
 
                                                 {/* Source URL Display (if different from domain) */}
-                                                {mostRecentLog.sourceUrl && mostRecentLog.sourceUrl !== mostRecentLog.domain && (
-                                                  <div style={{ userSelect: "text" }} className="mt-2">
-                                                    <p className="text-xs text-muted-foreground mb-1 select-text">
-                                                      Source URL:
-                                                    </p>
-                                                    <a
-                                                      href={`https://${mostRecentLog.sourceUrl}`}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      style={{ userSelect: "text" }}
-                                                    >
-                                                      {mostRecentLog.sourceUrl}
-                                                      <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                                    </a>
-                                                  </div>
-                                                )}
+                                                {mostRecentLog.sourceUrl &&
+                                                  mostRecentLog.sourceUrl !== mostRecentLog.domain && (
+                                                    <div style={{ userSelect: "text" }} className="mt-2">
+                                                      <p className="text-xs text-muted-foreground mb-1 select-text">
+                                                        Source URL:
+                                                      </p>
+                                                      <a
+                                                        href={`https://${mostRecentLog.sourceUrl}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{ userSelect: "text" }}
+                                                      >
+                                                        {mostRecentLog.sourceUrl}
+                                                        <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                      </a>
+                                                    </div>
+                                                  )}
 
                                                 {/* View Logs Button */}
                                                 <Button
@@ -850,7 +850,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                               <div className="border rounded p-2 mb-2 bg-background/50">
                                                                 <p className="font-medium mb-2">Search Path:</p>
                                                                 <div className="space-y-2">
-                                                                   {latestLog.searchSteps.map((step, idx) => (
+                                                                  {latestLog.searchSteps.map((step, idx) => (
                                                                     <div
                                                                       key={idx}
                                                                       className="border-l-2 border-primary/30 pl-2"
@@ -869,7 +869,10 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                                           Step {step.step}
                                                                         </Badge>
                                                                         {step.spellingCorrected && (
-                                                                          <Badge variant="outline" className="text-xs h-5 bg-amber-50 text-amber-700 border-amber-300">
+                                                                          <Badge
+                                                                            variant="outline"
+                                                                            className="text-xs h-5 bg-amber-50 text-amber-700 border-amber-300"
+                                                                          >
                                                                             Corrected
                                                                           </Badge>
                                                                         )}
@@ -886,7 +889,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                                       </div>
                                                                       {step.spellingCorrection && (
                                                                         <div className="text-amber-600 text-xs mt-1 mb-2 bg-amber-50 p-2 rounded border border-amber-200">
-                                                                          ✏️ Spelling correction: <span className="font-semibold">"{step.spellingCorrection.original}"</span> → <span className="font-semibold">"{step.spellingCorrection.corrected}"</span>
+                                                                          ✏️ Spelling correction:{" "}
+                                                                          <span className="font-semibold">
+                                                                            "{step.spellingCorrection.original}"
+                                                                          </span>{" "}
+                                                                          →{" "}
+                                                                          <span className="font-semibold">
+                                                                            "{step.spellingCorrection.corrected}"
+                                                                          </span>
                                                                         </div>
                                                                       )}
                                                                       <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
@@ -987,47 +997,50 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               </div>
                                             );
                                           });
-                                         })()}
-                                       </>
-                                     ) : (
-                                       <p className="text-sm text-muted-foreground">No enrichment data yet</p>
-                                     )}
+                                        })()}
+                                      </>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">No enrichment data yet</p>
+                                    )}
 
-                                      {/* Generic Diagnose Button - appears when no domain currently found */}
-                                      {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (() => {
-                                        const hasApolloOrGoogle = lead.enrichment_logs.some(log => 
-                                          log.source === "apollo_api" || 
-                                          log.source.startsWith("google_")
+                                    {/* Generic Diagnose Button - appears when no domain currently found */}
+                                    {lead.enrichment_logs &&
+                                      lead.enrichment_logs.length > 0 &&
+                                      (() => {
+                                        const hasApolloOrGoogle = lead.enrichment_logs.some(
+                                          (log) => log.source === "apollo_api" || log.source.startsWith("google_"),
                                         );
-                                        
+
                                         return hasApolloOrGoogle && !lead.domain ? (
-                                         <div className="mt-4 pt-4 border-t space-y-3">
-                                           <Button
-                                             size="sm"
-                                             variant="outline"
-                                             onClick={() => handleDiagnose(lead)}
-                                             disabled={diagnosing?.leadId === lead.id}
-                                             className="w-full select-none"
-                                           >
-                                             {diagnosing?.leadId === lead.id ? (
-                                               <>
-                                                 <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                                 Diagnosing...
-                                               </>
-                                             ) : (
-                                               <>
-                                                 <Sparkles className="h-3 w-3 mr-2" />
-                                                 Diagnose Why No Domain Found
-                                               </>
-                                             )}
-                                           </Button>
-                                            
+                                          <div className="mt-4 pt-4 border-t space-y-3">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => handleDiagnose(lead)}
+                                              disabled={diagnosing?.leadId === lead.id}
+                                              className="w-full select-none"
+                                            >
+                                              {diagnosing?.leadId === lead.id ? (
+                                                <>
+                                                  <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                                  Diagnosing...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Sparkles className="h-3 w-3 mr-2" />
+                                                  Diagnose Why No Domain Found
+                                                </>
+                                              )}
+                                            </Button>
+
                                             {/* Diagnosis Results */}
                                             {lead.diagnosis_category && (
                                               <div className="border rounded-lg overflow-hidden">
                                                 {/* Category Header - Collapsible */}
                                                 <button
-                                                  onClick={() => setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)}
+                                                  onClick={() =>
+                                                    setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)
+                                                  }
                                                   className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
                                                 >
                                                   <div className="flex items-center gap-2 flex-1">
@@ -1035,13 +1048,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     <span className="text-sm font-medium">
                                                       {lead.diagnosis_category}
                                                     </span>
-                                                    <Badge 
+                                                    <Badge
                                                       variant={
-                                                        lead.diagnosis_confidence === "high" 
-                                                          ? "default" 
+                                                        lead.diagnosis_confidence === "high"
+                                                          ? "default"
                                                           : lead.diagnosis_confidence === "medium"
-                                                          ? "secondary"
-                                                          : "outline"
+                                                            ? "secondary"
+                                                            : "outline"
                                                       }
                                                       className="text-xs"
                                                     >
@@ -1049,15 +1062,20 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </Badge>
                                                   </div>
                                                   <svg
-                                                    className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? 'rotate-180' : ''}`}
+                                                    className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? "rotate-180" : ""}`}
                                                     fill="none"
                                                     stroke="currentColor"
                                                     viewBox="0 0 24 24"
                                                   >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M19 9l-7 7-7-7"
+                                                    />
                                                   </svg>
                                                 </button>
-                                                
+
                                                 {/* Expanded Details */}
                                                 {expandedDiagnosis === lead.id && (
                                                   <div className="p-3 bg-background space-y-2 border-t">
@@ -1077,39 +1095,39 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 )}
                                               </div>
                                             )}
-                                         </div>
+                                          </div>
                                         ) : null;
                                       })()}
 
-                                      {/* Enrich Company Details Button - only show when domain is found */}
-                                      {lead.domain && (
-                                        <div className="pt-4 border-t">
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleEnrichCompanyDetails(lead)}
-                                            disabled={enrichingCompanyDetails === lead.id}
-                                            className="w-full"
-                                          >
-                                            {enrichingCompanyDetails === lead.id ? (
-                                              <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Enriching Company Details...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Sparkles className="mr-2 h-4 w-4" />
-                                                Enrich Company Details
-                                              </>
-                                            )}
-                                          </Button>
-                                          <p className="text-xs text-muted-foreground mt-2 text-center">
-                                            Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
-                                          </p>
-                                        </div>
-                                      )}
+                                    {/* Enrich Company Details Button - only show when domain is found */}
+                                    {lead.domain && (
+                                      <div className="pt-4 border-t">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleEnrichCompanyDetails(lead)}
+                                          disabled={enrichingCompanyDetails === lead.id}
+                                          className="w-full"
+                                        >
+                                          {enrichingCompanyDetails === lead.id ? (
+                                            <>
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                              Enriching Company Details...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Sparkles className="mr-2 h-4 w-4" />
+                                              Enrich Company Details
+                                            </>
+                                          )}
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                                          Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
+                                        </p>
+                                      </div>
+                                    )}
 
-                                      {/* Enrich Buttons */}
-                                      <div className="space-y-2 mt-4">
+                                    {/* Enrich Buttons */}
+                                    <div className="space-y-2 mt-4">
                                       <Button
                                         size="sm"
                                         onClick={() => handleEnrich(lead, "apollo")}
@@ -1351,7 +1369,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             )}
 
                                             {/* Show Find Coordinates button if domain exists but no coordinates */}
-                                            {(!lead.latitude || !lead.longitude) && lead.domain && (
+                                            {lead.domain && (
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1380,9 +1398,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 variant="outline"
                                                 className="w-full"
                                                 disabled={
-                                                  !lead.city ||
-                                                  !lead.zipcode ||
-                                                  calculatingDistance === lead.id
+                                                  !lead.city || !lead.zipcode || calculatingDistance === lead.id
                                                 }
                                                 onClick={() => handleCalculateDistance(lead)}
                                               >
@@ -1610,7 +1626,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                   )}
                                                   {lead.mics_subsector && (
                                                     <p className="text-sm text-foreground mt-1">
-                                                      <span className="font-medium">Subsector:</span> {lead.mics_subsector}
+                                                      <span className="font-medium">Subsector:</span>{" "}
+                                                      {lead.mics_subsector}
                                                     </p>
                                                   )}
                                                   {lead.mics_segment && (
@@ -1659,77 +1676,76 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </div>
                                         </AccordionContent>
                                       </AccordionItem>
+                                    </Accordion>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
 
-                                     </Accordion>
-                                   </div>
-                                 </AccordionContent>
-                               </AccordionItem>
+                              {/* Company Details Accordion Item - Only visible when domain exists */}
+                              {lead.domain && (
+                                <AccordionItem value="company-details" className="border-border">
+                                  <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                    Company Details
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="space-y-3 pt-2">
+                                      <p className="text-sm text-muted-foreground mb-3">
+                                        Enrich this lead with detailed company information from Apollo
+                                      </p>
 
-                               {/* Company Details Accordion Item - Only visible when domain exists */}
-                               {lead.domain && (
-                                 <AccordionItem value="company-details" className="border-border">
-                                   <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                     Company Details
-                                   </AccordionTrigger>
-                                   <AccordionContent>
-                                     <div className="space-y-3 pt-2">
-                                       <p className="text-sm text-muted-foreground mb-3">
-                                         Enrich this lead with detailed company information from Apollo
-                                       </p>
-                                       
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="w-full"
-                          disabled={enrichingCompanyDetails === lead.id}
-                          onClick={() => handleEnrichCompanyDetails(lead)}
-                        >
-                          {enrichingCompanyDetails === lead.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enriching Company Details...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Enrich Company Details
-                            </>
-                          )}
-                        </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        className="w-full"
+                                        disabled={enrichingCompanyDetails === lead.id}
+                                        onClick={() => handleEnrichCompanyDetails(lead)}
+                                      >
+                                        {enrichingCompanyDetails === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Enriching Company Details...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich Company Details
+                                          </>
+                                        )}
+                                      </Button>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full"
-                          disabled={fetchingNews === lead.id}
-                          onClick={() => handleGetCompanyNews(lead)}
-                        >
-                          {fetchingNews === lead.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Fetching News...
-                            </>
-                          ) : (
-                            <>
-                              <Search className="mr-2 h-4 w-4" />
-                              Get Company News
-                            </>
-                          )}
-                        </Button>
-                        
-                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                         <span>• Company Size</span>
-                                         <span>• Annual Revenue</span>
-                                         <span>• Industry</span>
-                                         <span>• Description</span>
-                                         <span>• Tech Stack</span>
-                                         <span>• LinkedIn URL</span>
-                                       </div>
-                                     </div>
-                                   </AccordionContent>
-                                 </AccordionItem>
-                               )}
-                             </Accordion>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full"
+                                        disabled={fetchingNews === lead.id}
+                                        onClick={() => handleGetCompanyNews(lead)}
+                                      >
+                                        {fetchingNews === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Fetching News...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Search className="mr-2 h-4 w-4" />
+                                            Get Company News
+                                          </>
+                                        )}
+                                      </Button>
+
+                                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                        <span>• Company Size</span>
+                                        <span>• Annual Revenue</span>
+                                        <span>• Industry</span>
+                                        <span>• Description</span>
+                                        <span>• Tech Stack</span>
+                                        <span>• LinkedIn URL</span>
+                                      </div>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              )}
+                            </Accordion>
                           </div>
                         </DrawerContent>
                       </Drawer>
