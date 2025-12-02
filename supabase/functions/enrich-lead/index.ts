@@ -369,23 +369,24 @@ async function enrichWithGoogle(
 
     if (!finalDomain && micsSector) {
       // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
+      // Step 2a: WITH filters
       const step2Query = `${company} ${city || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
-      console.log(`Step 2: Industry fallback search with query: ${step2Query}`);
+      console.log(`Step 2a: Industry fallback search with query: ${step2Query}`);
 
       const step2Result = await performGoogleSearch(step2Query, serpApiKey);
 
       searchSteps.push({
-        step: 2,
+        step: "2a",
         query: step2Query,
         resultFound: step2Result.domain !== null,
         source: step2Result.sourceType || undefined,
       });
 
       if (step2Result.domain) {
-        // Step 2 found a result - reduce confidence
+        // Step 2a found a result - reduce confidence
         finalDomain = step2Result.domain;
         finalSourceUrl = step2Result.sourceUrl;
-        // Reduce confidence for step 2: 25% for knowledge_graph, 15% for local_results
+        // Reduce confidence for step 2a: 25% for knowledge_graph, 15% for local_results
         finalConfidence = step2Result.sourceType === "knowledge_graph" ? 25 : 15;
         finalSource = step2Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
         finalSelectedOrg = step2Result.selectedOrg;
@@ -394,16 +395,16 @@ async function enrichWithGoogle(
         finalLongitude = step2Result.longitude;
         finalSearchInformation = step2Result.searchInformation;
 
-        console.log(`Step 2 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        console.log(`Step 2a successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else if (step2Result.searchInformation?.spelling_fix) {
-        // Step 2 failed but spelling correction detected
+        // Step 2a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step2Result.searchInformation.spelling_fix);
 
         if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 2 spelling correction: "${company}" → "${correctedName}"`);
+          console.log(`Step 2a spelling correction: "${company}" → "${correctedName}"`);
 
           searchSteps.push({
-            step: "2-correction",
+            step: "2a-correction",
             query: `Spelling correction detected: "${company}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
@@ -437,13 +438,81 @@ async function enrichWithGoogle(
 
             console.log(`Step 2b successful with corrected spelling: ${finalDomain}`);
           }
-        } else {
-          console.log("Step 2 failed: No results found");
         }
-      } else {
-        console.log("Step 2 failed: No results found");
       }
-    } else {
+
+      // Step 2c: WITHOUT filters (if 2a and 2b failed)
+      if (!finalDomain) {
+        const step2cQuery = `${company} ${city || ""} ${micsSector}`;
+        console.log(`Step 2c: Industry search without filters: ${step2cQuery}`);
+
+        const step2cResult = await performGoogleSearch(step2cQuery, serpApiKey);
+
+        searchSteps.push({
+          step: "2c",
+          query: step2cQuery,
+          resultFound: step2cResult.domain !== null,
+          source: step2cResult.sourceType || undefined,
+        });
+
+        if (step2cResult.domain) {
+          finalDomain = step2cResult.domain;
+          finalSourceUrl = step2cResult.sourceUrl;
+          // Lower confidence for unfiltered: 20% for knowledge_graph, 12% for local_results
+          finalConfidence = step2cResult.sourceType === "knowledge_graph" ? 20 : 12;
+          finalSource = step2cResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+          finalSelectedOrg = step2cResult.selectedOrg;
+          finalGpsCoordinates = step2cResult.gpsCoordinates;
+          finalLatitude = step2cResult.latitude;
+          finalLongitude = step2cResult.longitude;
+          finalSearchInformation = step2cResult.searchInformation;
+
+          console.log(`Step 2c successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        } else if (step2cResult.searchInformation?.spelling_fix) {
+          const correctedName = extractCorrectedCompanyName(step2cResult.searchInformation.spelling_fix);
+
+          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
+            console.log(`Step 2c spelling correction: "${company}" → "${correctedName}"`);
+
+            searchSteps.push({
+              step: "2c-correction",
+              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              resultFound: false,
+              spellingCorrection: {
+                original: company,
+                corrected: correctedName,
+              },
+            });
+
+            const correctedQuery = step2cQuery.replace(company, correctedName);
+            const step2dResult = await performGoogleSearch(correctedQuery, serpApiKey);
+
+            searchSteps.push({
+              step: "2d",
+              query: correctedQuery,
+              resultFound: step2dResult.domain !== null,
+              source: step2dResult.sourceType || undefined,
+              spellingCorrected: true,
+            });
+
+            if (step2dResult.domain) {
+              finalDomain = step2dResult.domain;
+              finalSourceUrl = step2dResult.sourceUrl;
+              finalConfidence = step2dResult.sourceType === "knowledge_graph" ? 20 : 12;
+              finalSource =
+                step2dResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+              finalSelectedOrg = step2dResult.selectedOrg;
+              finalGpsCoordinates = step2dResult.gpsCoordinates;
+              finalLatitude = step2dResult.latitude;
+              finalLongitude = step2dResult.longitude;
+              finalSearchInformation = step2dResult.searchInformation;
+
+              console.log(`Step 2d successful with corrected spelling: ${finalDomain}`);
+            }
+          }
+        }
+      }
+    } else if (!finalDomain) {
       console.log("Step 1 failed and no MICS sector available for Step 2");
       // Log that Step 2 was skipped
       searchSteps.push({
@@ -456,13 +525,14 @@ async function enrichWithGoogle(
 
     // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
     if (!finalDomain) {
+      // Step 3a: WITH filters
       const step3Query = `${company} ${locationPart} ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
-      console.log(`Step 3: Simple fallback search with query: ${step3Query}`);
+      console.log(`Step 3a: Simple fallback search with query: ${step3Query}`);
 
       const step3Result = await performGoogleSearch(step3Query, serpApiKey);
 
       searchSteps.push({
-        step: 3,
+        step: "3a",
         query: step3Query,
         resultFound: step3Result.domain !== null,
         source: step3Result.sourceType || undefined,
@@ -471,7 +541,7 @@ async function enrichWithGoogle(
       if (step3Result.domain) {
         finalDomain = step3Result.domain;
         finalSourceUrl = step3Result.sourceUrl;
-        // Lower confidence for step 3: 10% for knowledge_graph, 5% for local_results
+        // Lower confidence for step 3a: 10% for knowledge_graph, 5% for local_results
         finalConfidence = step3Result.sourceType === "knowledge_graph" ? 10 : 5;
         finalSource = step3Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
         finalSelectedOrg = step3Result.selectedOrg;
@@ -480,16 +550,16 @@ async function enrichWithGoogle(
         finalLongitude = step3Result.longitude;
         finalSearchInformation = step3Result.searchInformation;
 
-        console.log(`Step 3 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        console.log(`Step 3a successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else if (step3Result.searchInformation?.spelling_fix) {
-        // Step 3 failed but spelling correction detected
+        // Step 3a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step3Result.searchInformation.spelling_fix);
 
         if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 3 spelling correction: "${company}" → "${correctedName}"`);
+          console.log(`Step 3a spelling correction: "${company}" → "${correctedName}"`);
 
           searchSteps.push({
-            step: "3-correction",
+            step: "3a-correction",
             query: `Spelling correction detected: "${company}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
@@ -523,23 +593,92 @@ async function enrichWithGoogle(
 
             console.log(`Step 3b successful with corrected spelling: ${finalDomain}`);
           }
-        } else {
-          console.log("Step 3 failed: No results found");
         }
-      } else {
-        console.log("Step 3 failed: No results found");
+      }
+
+      // Step 3c: WITHOUT filters (if 3a and 3b failed)
+      if (!finalDomain) {
+        const step3cQuery = `${company} ${locationPart}`;
+        console.log(`Step 3c: Simple search without filters: ${step3cQuery}`);
+
+        const step3cResult = await performGoogleSearch(step3cQuery, serpApiKey);
+
+        searchSteps.push({
+          step: "3c",
+          query: step3cQuery,
+          resultFound: step3cResult.domain !== null,
+          source: step3cResult.sourceType || undefined,
+        });
+
+        if (step3cResult.domain) {
+          finalDomain = step3cResult.domain;
+          finalSourceUrl = step3cResult.sourceUrl;
+          // Lower confidence for unfiltered: 8% for knowledge_graph, 4% for local_results
+          finalConfidence = step3cResult.sourceType === "knowledge_graph" ? 8 : 4;
+          finalSource = step3cResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+          finalSelectedOrg = step3cResult.selectedOrg;
+          finalGpsCoordinates = step3cResult.gpsCoordinates;
+          finalLatitude = step3cResult.latitude;
+          finalLongitude = step3cResult.longitude;
+          finalSearchInformation = step3cResult.searchInformation;
+
+          console.log(`Step 3c successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        } else if (step3cResult.searchInformation?.spelling_fix) {
+          const correctedName = extractCorrectedCompanyName(step3cResult.searchInformation.spelling_fix);
+
+          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
+            console.log(`Step 3c spelling correction: "${company}" → "${correctedName}"`);
+
+            searchSteps.push({
+              step: "3c-correction",
+              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              resultFound: false,
+              spellingCorrection: {
+                original: company,
+                corrected: correctedName,
+              },
+            });
+
+            const correctedQuery = step3cQuery.replace(company, correctedName);
+            const step3dResult = await performGoogleSearch(correctedQuery, serpApiKey);
+
+            searchSteps.push({
+              step: "3d",
+              query: correctedQuery,
+              resultFound: step3dResult.domain !== null,
+              source: step3dResult.sourceType || undefined,
+              spellingCorrected: true,
+            });
+
+            if (step3dResult.domain) {
+              finalDomain = step3dResult.domain;
+              finalSourceUrl = step3dResult.sourceUrl;
+              finalConfidence = step3dResult.sourceType === "knowledge_graph" ? 8 : 4;
+              finalSource =
+                step3dResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+              finalSelectedOrg = step3dResult.selectedOrg;
+              finalGpsCoordinates = step3dResult.gpsCoordinates;
+              finalLatitude = step3dResult.latitude;
+              finalLongitude = step3dResult.longitude;
+              finalSearchInformation = step3dResult.searchInformation;
+
+              console.log(`Step 3d successful with corrected spelling: ${finalDomain}`);
+            }
+          }
+        }
       }
     }
 
     // STEP 4: Company name only search (if all previous steps failed)
     if (!finalDomain) {
+      // Step 4a: WITH filters
       const step4Query = `"${company}" ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
-      console.log(`Step 4: Company name only search with query: ${step4Query}`);
+      console.log(`Step 4a: Company name only search with query: ${step4Query}`);
 
       const step4Result = await performGoogleSearch(step4Query, serpApiKey);
 
       searchSteps.push({
-        step: 4,
+        step: "4a",
         query: step4Query,
         resultFound: step4Result.domain !== null,
         source: step4Result.sourceType || undefined,
@@ -548,7 +687,7 @@ async function enrichWithGoogle(
       if (step4Result.domain) {
         finalDomain = step4Result.domain;
         finalSourceUrl = step4Result.sourceUrl;
-        // Lowest confidence for step 4: 5% for knowledge_graph, 2% for local_results
+        // Lowest confidence for step 4a: 5% for knowledge_graph, 2% for local_results
         finalConfidence = step4Result.sourceType === "knowledge_graph" ? 5 : 2;
         finalSource = step4Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
         finalSelectedOrg = step4Result.selectedOrg;
@@ -557,16 +696,16 @@ async function enrichWithGoogle(
         finalLongitude = step4Result.longitude;
         finalSearchInformation = step4Result.searchInformation;
 
-        console.log(`Step 4 successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        console.log(`Step 4a successful: ${finalDomain} with confidence ${finalConfidence}%`);
       } else if (step4Result.searchInformation?.spelling_fix) {
-        // Step 4 failed but spelling correction detected
+        // Step 4a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step4Result.searchInformation.spelling_fix);
 
         if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 4 spelling correction: "${company}" → "${correctedName}"`);
+          console.log(`Step 4a spelling correction: "${company}" → "${correctedName}"`);
 
           searchSteps.push({
-            step: "4-correction",
+            step: "4a-correction",
             query: `Spelling correction detected: "${company}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
@@ -575,7 +714,7 @@ async function enrichWithGoogle(
             },
           });
 
-          const correctedQuery = `"${correctedName}"`;
+          const correctedQuery = `"${correctedName}" ("official site" OR "website" OR "home page") -jobs -careers -indeed -glassdoor -facebook -yelp`;
           const step4bResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
           searchSteps.push({
@@ -600,11 +739,79 @@ async function enrichWithGoogle(
 
             console.log(`Step 4b successful with corrected spelling: ${finalDomain}`);
           }
-        } else {
-          console.log("Step 4 failed: No results found");
         }
-      } else {
-        console.log("Step 4 failed: No results found");
+      }
+
+      // Step 4c: WITHOUT filters (if 4a and 4b failed)
+      if (!finalDomain) {
+        const step4cQuery = `"${company}"`;
+        console.log(`Step 4c: Company name only without filters: ${step4cQuery}`);
+
+        const step4cResult = await performGoogleSearch(step4cQuery, serpApiKey);
+
+        searchSteps.push({
+          step: "4c",
+          query: step4cQuery,
+          resultFound: step4cResult.domain !== null,
+          source: step4cResult.sourceType || undefined,
+        });
+
+        if (step4cResult.domain) {
+          finalDomain = step4cResult.domain;
+          finalSourceUrl = step4cResult.sourceUrl;
+          // Lowest confidence for unfiltered: 3% for knowledge_graph, 1% for local_results
+          finalConfidence = step4cResult.sourceType === "knowledge_graph" ? 3 : 1;
+          finalSource = step4cResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+          finalSelectedOrg = step4cResult.selectedOrg;
+          finalGpsCoordinates = step4cResult.gpsCoordinates;
+          finalLatitude = step4cResult.latitude;
+          finalLongitude = step4cResult.longitude;
+          finalSearchInformation = step4cResult.searchInformation;
+
+          console.log(`Step 4c successful: ${finalDomain} with confidence ${finalConfidence}%`);
+        } else if (step4cResult.searchInformation?.spelling_fix) {
+          const correctedName = extractCorrectedCompanyName(step4cResult.searchInformation.spelling_fix);
+
+          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
+            console.log(`Step 4c spelling correction: "${company}" → "${correctedName}"`);
+
+            searchSteps.push({
+              step: "4c-correction",
+              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              resultFound: false,
+              spellingCorrection: {
+                original: company,
+                corrected: correctedName,
+              },
+            });
+
+            const correctedQuery = `"${correctedName}"`;
+            const step4dResult = await performGoogleSearch(correctedQuery, serpApiKey);
+
+            searchSteps.push({
+              step: "4d",
+              query: correctedQuery,
+              resultFound: step4dResult.domain !== null,
+              source: step4dResult.sourceType || undefined,
+              spellingCorrected: true,
+            });
+
+            if (step4dResult.domain) {
+              finalDomain = step4dResult.domain;
+              finalSourceUrl = step4dResult.sourceUrl;
+              finalConfidence = step4dResult.sourceType === "knowledge_graph" ? 3 : 1;
+              finalSource =
+                step4dResult.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
+              finalSelectedOrg = step4dResult.selectedOrg;
+              finalGpsCoordinates = step4dResult.gpsCoordinates;
+              finalLatitude = step4dResult.latitude;
+              finalLongitude = step4dResult.longitude;
+              finalSearchInformation = step4dResult.searchInformation;
+
+              console.log(`Step 4d successful with corrected spelling: ${finalDomain}`);
+            }
+          }
+        }
       }
     }
 
