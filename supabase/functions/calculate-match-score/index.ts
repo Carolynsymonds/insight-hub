@@ -30,7 +30,7 @@ serve(async (req) => {
     // Fetch the lead
     const { data: lead, error: fetchError } = await supabase
       .from('leads')
-      .select('enrichment_source, distance_miles, domain_relevance_score, industry_relevance_score, vehicle_tracking_interest_score')
+      .select('enrichment_source, distance_miles, domain_relevance_score, industry_relevance_score')
       .eq('id', leadId)
       .single();
 
@@ -86,10 +86,9 @@ serve(async (req) => {
       // Get relevance scores (0-100)
       const domainScore = lead.domain_relevance_score || 0;
       const industryScore = lead.industry_relevance_score || 0;
-      const vehicleTrackingScore = lead.vehicle_tracking_interest_score || 0;
       
-      // Calculate weighted relevance: R = 0.5*D + 0.3*I + 0.2*V
-      const R = (0.5 * domainScore) + (0.3 * industryScore) + (0.2 * vehicleTrackingScore);
+      // Calculate weighted relevance: R = 0.6*D + 0.4*I
+      const R = (0.6 * domainScore) + (0.4 * industryScore);
       
       // Normalize to 0-1
       const r = R / 100;
@@ -100,7 +99,7 @@ serve(async (req) => {
       
       matchScoreSource = 'calculated';
       console.log(`Step 3 result: Distance=${distanceMiles}mi (${confidenceTier}), Range=[${minScore}-${maxScore}]`);
-      console.log(`Step 3 relevance: Domain=${domainScore}*0.5, Industry=${industryScore}*0.3, VTI=${vehicleTrackingScore}*0.2 = R:${R.toFixed(1)}, r:${r.toFixed(2)}`);
+      console.log(`Step 3 relevance: Domain=${domainScore}*0.6, Industry=${industryScore}*0.4 = R:${R.toFixed(1)}, r:${r.toFixed(2)}`);
       console.log(`Step 3 final: ${minScore} + (${range} * ${r.toFixed(2)}) = ${matchScore}`);
     }
 
