@@ -666,7 +666,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         direction="right"
                         open={openDrawer === lead.id}
                         onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
-                        dismissible={false}
                       >
                         <DrawerTrigger asChild>
                           <Button size="sm" variant="outline">
