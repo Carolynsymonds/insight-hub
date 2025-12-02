@@ -9,6 +9,12 @@ verify_jwt = false
 [functions.enrich-company-details]
 verify_jwt = false
 
+[functions.enrich-facebook]
+verify_jwt = false
+
+[functions.enrich-lead]
+verify_jwt = false
+
 [functions.find-company-coordinates]
 verify_jwt = false
 

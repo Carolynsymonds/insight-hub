@@ -123,6 +123,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
   const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
   const [fetchingNews, setFetchingNews] = useState<string | null>(null);
+  const [enrichingFacebook, setEnrichingFacebook] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
 
@@ -466,6 +467,38 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setScoringIndustry(null);
+    }
+  };
+
+  const handleEnrichFacebook = async (lead: Lead) => {
+    setEnrichingFacebook(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-facebook", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+        },
+      });
+      if (error) throw error;
+
+      toast({
+        title: data.facebook ? "Facebook Found!" : "No Facebook Found",
+        description: data.facebook
+          ? `Found: ${data.facebook}`
+          : "No Facebook page found for this company",
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Facebook Enrichment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingFacebook(null);
     }
   };
 
@@ -1252,6 +1285,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           <>
                                             <Sparkles className="mr-2 h-4 w-4" />
                                             Enrich with Email
+                                          </>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleEnrichFacebook(lead)}
+                                        disabled={enrichingFacebook === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingFacebook === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Finding Facebook...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich with Google (FB)
                                           </>
                                         )}
                                       </Button>
