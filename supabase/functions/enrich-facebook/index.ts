@@ -55,9 +55,9 @@ Deno.serve(async (req) => {
     let facebookConfidence: number = 0;
     let foundInStep: number | null = null;
 
-    // STEP 1: Search with company + location
+    // STEP 1: Search with company + location + "company" keyword
     const locationPart = [city, state].filter(Boolean).join(" ");
-    const step1Query = `"${company}" ${locationPart} (facebook OR "facebook.com")`;
+    const step1Query = `"${company}" company ${locationPart} (facebook OR "facebook.com")`;
     console.log(`Step 1 query: ${step1Query}`);
 
     const step1Response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(step1Query)}&num=10&api_key=${serpApiKey}`);
@@ -70,9 +70,9 @@ Deno.serve(async (req) => {
       console.log(`Step 1: Found Facebook URL: ${facebookUrl} (${facebookConfidence}% confidence)`);
     }
 
-    // STEP 2: Fallback with company name only
+    // STEP 2: Fallback with company name only + "company" keyword
     if (!facebookUrl) {
-      const step2Query = `"${company}" (facebook OR "facebook.com")`;
+      const step2Query = `"${company}" company (facebook OR "facebook.com")`;
       console.log(`Step 2 query: ${step2Query}`);
 
       const step2Response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(step2Query)}&num=10&api_key=${serpApiKey}`);
