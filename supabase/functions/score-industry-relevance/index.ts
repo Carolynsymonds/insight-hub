@@ -20,6 +20,39 @@ serve(async (req) => {
       throw new Error("leadId and domain are required");
     }
 
+    // Check if ANY MICS data is available
+    const hasMicsData = micsSector || micsSubsector || micsSegment;
+
+    if (!hasMicsData) {
+      console.log("No MICS classification data available - cannot score industry relevance");
+      
+      // Update database to set score as null with explanation
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error("Missing Supabase credentials");
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      await supabase
+        .from("leads")
+        .update({
+          industry_relevance_score: null,
+          industry_relevance_explanation: "No MICS classification data available - cannot score industry relevance",
+        })
+        .eq("id", leadId);
+
+      return new Response(
+        JSON.stringify({ 
+          score: null, 
+          explanation: "No MICS classification data available - cannot score industry relevance",
+          skipped: true 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get Lovable API key
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
