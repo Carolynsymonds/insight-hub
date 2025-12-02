@@ -138,7 +138,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       const { data, error } = await supabase.functions.invoke("find-company-coordinates", {
         body: {
           leadId: lead.id,
-          company: lead.company,
           domain: lead.domain,
         },
       });

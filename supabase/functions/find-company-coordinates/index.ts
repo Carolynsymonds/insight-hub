@@ -14,13 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, domain } = await req.json();
+    const { leadId, domain } = await req.json();
 
-    console.log('Find coordinates request:', { leadId, company, domain });
+    console.log('Find coordinates request:', { leadId, domain });
 
     // Validate required fields
-    if (!leadId || !company || !domain) {
-      throw new Error('Missing required fields: leadId, company, domain');
+    if (!leadId || !domain) {
+      throw new Error('Missing required fields: leadId, domain');
     }
 
     const serpApiKey = Deno.env.get('SERPAPI_KEY');
@@ -28,8 +28,8 @@ serve(async (req) => {
       throw new Error('SERPAPI_KEY not configured');
     }
 
-    // Build search query: {company} "{domain}" - no address to find actual company location
-    const searchQuery = `${company} "${domain}"`;
+    // Build search query: just the domain to find the actual business location
+    const searchQuery = `"${domain}"`;
     console.log('Google Maps search query:', searchQuery);
 
     // Call SerpAPI Google Maps engine
