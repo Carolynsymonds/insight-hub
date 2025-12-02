@@ -109,9 +109,9 @@ serve(async (req) => {
 
     // Calculate distance confidence
     let distanceConfidence: string;
-    if (distanceMiles < 20) {
+    if (distanceMiles < 50) {
       distanceConfidence = "high";
-    } else if (distanceMiles <= 60) {
+    } else if (distanceMiles <= 100) {
       distanceConfidence = "medium";
     } else {
       distanceConfidence = "low";
