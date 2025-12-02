@@ -407,6 +407,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       return;
     }
 
+    // Check if any MICS data is available
+    const hasMicsData = lead.mics_sector || lead.mics_subsector || lead.mics_segment;
+    if (!hasMicsData) {
+      toast({
+        title: "Cannot Score Industry Relevance",
+        description: "No MICS classification data available. Industry relevance requires MICS Sector, Subsector, or Segment to compare against.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setScoringIndustry(lead.id);
     try {
       const { data, error } = await supabase.functions.invoke("score-industry-relevance", {
@@ -421,10 +432,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
       if (error) throw error;
 
-      toast({
-        title: "Industry Relevance Scored!",
-        description: `Score: ${data.score}/100`,
-      });
+      // Handle skipped case when no MICS data
+      if (data.skipped) {
+        toast({
+          title: "Industry Relevance",
+          description: data.explanation,
+        });
+      } else {
+        toast({
+          title: "Industry Relevance Scored!",
+          description: `Score: ${data.score}/100`,
+        });
+      }
 
       onEnrichComplete();
     } catch (error: any) {
@@ -1691,7 +1710,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               size="sm"
                                               variant="outline"
                                               className="w-full"
-                                              disabled={!lead.domain || scoringIndustry === lead.id}
+                                              disabled={
+                                                !lead.domain || 
+                                                scoringIndustry === lead.id ||
+                                                (!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment)
+                                              }
                                               onClick={() => handleScoreIndustryRelevance(lead)}
                                             >
                                               {scoringIndustry === lead.id ? (
@@ -1710,6 +1733,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             {!lead.domain && (
                                               <p className="text-xs text-muted-foreground text-center">
                                                 Run domain enrichment first
+                                              </p>
+                                            )}
+                                            {lead.domain && !lead.mics_sector && !lead.mics_subsector && !lead.mics_segment && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                No MICS classification data - cannot score industry relevance
                                               </p>
                                             )}
                                           </div>
