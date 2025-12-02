@@ -39,12 +39,15 @@ export type Database = {
           enrichment_logs: Json | null
           enrichment_source: string | null
           enrichment_status: string | null
+          facebook: string | null
+          founded_date: string | null
           full_name: string
           id: string
           industry_relevance_explanation: string | null
           industry_relevance_score: number | null
           latitude: number | null
           linkedin: string | null
+          logo_url: string | null
           longitude: number | null
           match_score: number | null
           match_score_source: string | null
@@ -53,6 +56,7 @@ export type Database = {
           mics_subsector: string | null
           news: string | null
           phone: string | null
+          products_services: string | null
           size: string | null
           source_url: string | null
           state: string | null
@@ -87,12 +91,15 @@ export type Database = {
           enrichment_logs?: Json | null
           enrichment_source?: string | null
           enrichment_status?: string | null
+          facebook?: string | null
+          founded_date?: string | null
           full_name: string
           id?: string
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           latitude?: number | null
           linkedin?: string | null
+          logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
@@ -101,6 +108,7 @@ export type Database = {
           mics_subsector?: string | null
           news?: string | null
           phone?: string | null
+          products_services?: string | null
           size?: string | null
           source_url?: string | null
           state?: string | null
@@ -135,12 +143,15 @@ export type Database = {
           enrichment_logs?: Json | null
           enrichment_source?: string | null
           enrichment_status?: string | null
+          facebook?: string | null
+          founded_date?: string | null
           full_name?: string
           id?: string
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           latitude?: number | null
           linkedin?: string | null
+          logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
@@ -149,6 +160,7 @@ export type Database = {
           mics_subsector?: string | null
           news?: string | null
           phone?: string | null
+          products_services?: string | null
           size?: string | null
           source_url?: string | null
           state?: string | null

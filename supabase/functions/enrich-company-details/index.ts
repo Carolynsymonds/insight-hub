@@ -115,6 +115,26 @@ Deno.serve(async (req) => {
       updateData.linkedin = org.linkedin_url;
     }
 
+    // Facebook: facebook_url
+    if (org.facebook_url) {
+      updateData.facebook = org.facebook_url;
+    }
+
+    // Founded Date: founded_year
+    if (org.founded_year) {
+      updateData.founded_date = org.founded_year.toString();
+    }
+
+    // Logo URL: logo_url
+    if (org.logo_url) {
+      updateData.logo_url = org.logo_url;
+    }
+
+    // Products/Services: sanitized_phone or primary_domain or keywords (fallback to description)
+    if (org.keywords && Array.isArray(org.keywords) && org.keywords.length > 0) {
+      updateData.products_services = org.keywords.join(', ');
+    }
+
     console.log("=== UPDATE DATA ===");
     console.log(JSON.stringify(updateData, null, 2));
 
