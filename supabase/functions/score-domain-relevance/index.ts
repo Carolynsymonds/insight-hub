@@ -76,7 +76,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert at evaluating if a domain name belongs to a company. Apply these STRICT scoring rules:
+            content: `You are an expert at evaluating if a domain name belongs to a company. Apply these STRICT scoring rules in order:
 
 **RULE 1: Exact Match Override**
 If the domain root (without TLD) exactly matches the company name (case-insensitive, spaces/punctuation removed):
@@ -98,11 +98,19 @@ If the company name is distinctive/unique and the domain clearly matches it:
 - Known official brand website
 → Score: 90-100
 
-**RULE 4: Generic Company Names (LOWER DEFAULT)**
-If the company name is generic or category-like (e.g., "Home Health Aide", "Plumbing", "Cleaning Service"):
-- Hard to determine brand relevance
-- Domain may serve that category but isn't a brand match
-→ Score: 20-60, depending on closeness
+**RULE 4: Generic Company Names — STRICT PENALTY (CRITICAL RULE)**
+If the company name is a generic term, service category, job title, or professional role:
+Examples of generic names: "Home Health Aide", "Plumber", "Cleaning Service", "Electrician", "HVAC", "Lawn Care", "Roofing", "Landscaping", "Auto Repair", "Tax Services", "Dental Care"
+
+Sub-rule 4a: If domain exactly contains the full generic name (e.g., company "Home Health Aide" + domain "homehealthaide.com")
+→ Score: 40-60
+
+Sub-rule 4b: If company name is generic AND domain is a different branded provider (no root similarity, no spelling correction)
+→ Score: 0-5 (HARD CAP - this is critical!)
+Example: "Home Health Aide" + "brightstarcare.com" = 0-5 (generic name paired with unrelated branded domain)
+Example: "Plumber" + "rotorooter.com" = 0-5 (generic role paired with branded company)
+
+Generic names should NEVER receive medium or high scores when paired with unrelated branded domains.
 
 **RULE 5: Real Mismatch (LOW)**
 If domain and company name refer to unrelated entities:
@@ -113,7 +121,7 @@ If domain and company name refer to unrelated entities:
 → Score: 0-30
 Example: Company "Roof Masters" + Domain "eberspaecher.com" = 10
 
-Always explain which rule you applied and why.`
+Always explain which rule you applied and why. For generic names with branded domains, always apply RULE 4b.`
           },
           {
             role: 'user',
@@ -123,7 +131,7 @@ Normalized Company Name: ${normalizedCompany}
 Domain Root: ${domainRoot}
 Levenshtein Distance: ${distance}
 
-Score this domain's relevance to the company name using the 5-tier scoring rules.`
+Score this domain's relevance to the company name using the strict scoring rules. Pay special attention to RULE 4 for generic company names.`
           }
         ],
         tools: [
@@ -145,7 +153,7 @@ Score this domain's relevance to the company name using the 5-tier scoring rules
                   },
                   rule_applied: {
                     type: "string",
-                    enum: ["exact_match", "spelling_correction", "strong_brand", "generic_name", "mismatch"],
+                    enum: ["exact_match", "spelling_correction", "strong_brand", "generic_name_match", "generic_branded_mismatch", "mismatch"],
                     description: "Which scoring rule was applied"
                   }
                 },

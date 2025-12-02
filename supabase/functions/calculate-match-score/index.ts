@@ -59,50 +59,44 @@ serve(async (req) => {
       matchScoreSource = 'google_knowledge_graph';
       console.log(`Step 2 applied: Google Knowledge Graph (confidence ${lead.enrichment_confidence}%) - 95%`);
     }
-    // Step 3: Distance-based tiers + weighted relevance
+    // Step 3: Equal-weighted calculation (33.33% each: distance, domain, industry)
     else {
-      console.log('Step 3: Calculating with distance-based tiers + weighted relevance');
+      console.log('Step 3: Calculating with equal weights (distance, domain, industry)');
       
       // Get distance in miles (default to high distance if not available)
       const distanceMiles = lead.distance_miles ?? 999;
       
-      // Determine confidence tier and score range based on distance
-      let minScore: number;
-      let maxScore: number;
-      let confidenceTier: string;
-      
-      if (distanceMiles < 20) {
-        minScore = 60;
-        maxScore = 70;
-        confidenceTier = 'high';
+      // Convert distance to a 0-100 score (closer = higher score)
+      let distanceScore: number;
+      if (distanceMiles <= 0) {
+        distanceScore = 100;
+      } else if (distanceMiles < 20) {
+        // 100 at 0mi → 70 at 20mi (linear)
+        distanceScore = 100 - (distanceMiles * 1.5);
       } else if (distanceMiles <= 60) {
-        minScore = 20;
-        maxScore = 60;
-        confidenceTier = 'medium';
+        // 70 at 20mi → 30 at 60mi (linear)
+        distanceScore = 70 - ((distanceMiles - 20) * 1);
+      } else if (distanceMiles <= 100) {
+        // 30 at 60mi → 0 at 100mi (linear)
+        distanceScore = 30 - ((distanceMiles - 60) * 0.75);
       } else {
-        minScore = 0;
-        maxScore = 20;
-        confidenceTier = 'low';
+        distanceScore = 0;
       }
       
       // Get relevance scores (0-100)
       const domainScore = lead.domain_relevance_score || 0;
       const industryScore = lead.industry_relevance_score || 0;
       
-      // Calculate weighted relevance: R = 0.6*D + 0.4*I
-      const R = (0.6 * domainScore) + (0.4 * industryScore);
+      // Equal weights: 33.33% each
+      const combinedScore = (distanceScore + domainScore + industryScore) / 3;
       
-      // Normalize to 0-1
-      const r = R / 100;
-      
-      // Map relevance into the score range: Score = MIN + (RANGE * r)
-      const range = maxScore - minScore;
-      matchScore = Math.round(minScore + (range * r));
+      // Scale to 0-70 range (keeping headroom for email/KG verified leads at 95-99)
+      matchScore = Math.round(combinedScore * 0.7);
       
       matchScoreSource = 'calculated';
-      console.log(`Step 3 result: Distance=${distanceMiles}mi (${confidenceTier}), Range=[${minScore}-${maxScore}]`);
-      console.log(`Step 3 relevance: Domain=${domainScore}*0.6, Industry=${industryScore}*0.4 = R:${R.toFixed(1)}, r:${r.toFixed(2)}`);
-      console.log(`Step 3 final: ${minScore} + (${range} * ${r.toFixed(2)}) = ${matchScore}`);
+      console.log(`Step 3 inputs: Distance=${distanceMiles}mi → ${distanceScore.toFixed(1)}, Domain=${domainScore}, Industry=${industryScore}`);
+      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore} + ${industryScore}) / 3 = ${combinedScore.toFixed(1)}`);
+      console.log(`Step 3 final: ${combinedScore.toFixed(1)} * 0.7 = ${matchScore}`);
     }
 
     // Update the lead with match score
