@@ -557,7 +557,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   };
   return (
     <>
-      <StickyScrollTable className="rounded-lg border overflow-hidden">
+      <StickyScrollTable className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -580,7 +580,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Company Industry</TableHead>
               <TableHead>Linkedin</TableHead>
               <TableHead>News</TableHead>
-              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>
+              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -594,7 +594,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               leads.map((lead) => (
                 <TableRow
                   key={lead.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-muted/50 group"
                   onClick={() => showLeadDetails(lead)}
                 >
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
@@ -702,7 +702,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.news || "—"}</TableCell>
-                  <TableCell className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <Drawer
                         direction="right"
