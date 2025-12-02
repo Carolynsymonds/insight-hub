@@ -283,9 +283,10 @@ async function enrichWithGoogle(
   const timestamp = new Date().toISOString();
   const locationPart = [city, state].filter(Boolean).join(" ");
 
-  // STEP 1: Detailed search with company name and location
-  const step1Query = `"${company}" ${locationPart} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
-  console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}`);
+  // STEP 1: Detailed search with company name, location, and MICS sector (if available)
+  const micsPartStep1 = micsSector ? ` ${micsSector}` : "";
+  const step1Query = `"${company}" ${locationPart}${micsPartStep1} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
+  console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}${micsSector ? `, MICS: ${micsSector}` : ""}`);
 
   const searchSteps: EnrichmentLog["searchSteps"] = [];
   let finalResult: any;
@@ -339,7 +340,7 @@ async function enrichWithGoogle(
           },
         });
 
-        const correctedQuery = step1Query.replace(`"${company}"`, `"${correctedName}"`);
+        const correctedQuery = `"${correctedName}" ${locationPart}${micsPartStep1} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
         const step1bResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
         searchSteps.push({
