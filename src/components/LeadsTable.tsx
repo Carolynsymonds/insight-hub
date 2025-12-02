@@ -98,6 +98,7 @@ interface Lead {
   diagnosis_confidence: string | null;
   diagnosed_at: string | null;
   facebook: string | null;
+  facebook_confidence: number | null;
   founded_date: string | null;
   logo_url: string | null;
   products_services: string | null;
@@ -1104,6 +1105,49 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       </>
                                     ) : (
                                       <p className="text-sm text-muted-foreground">No enrichment data yet</p>
+                                    )}
+
+                                    {/* Facebook Profile Section */}
+                                    {lead.facebook && (
+                                      <div className="border rounded-lg p-3 space-y-3">
+                                        <div className="flex items-center justify-between select-none">
+                                          <h4 className="font-semibold text-sm select-none">Facebook</h4>
+                                          {lead.facebook_confidence && (
+                                            <div className="flex items-center gap-1">
+                                              <Badge variant="outline" className="text-xs">
+                                                {lead.facebook_confidence}% confidence
+                                              </Badge>
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-xs">
+                                                      {lead.facebook_confidence === 85
+                                                        ? "85% - Found with company name + location (high confidence)"
+                                                        : "50% - Found with company name only (medium confidence)"}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div style={{ userSelect: "text" }}>
+                                          <p className="text-xs text-muted-foreground mb-1 select-text">Profile:</p>
+                                          <a
+                                            href={lead.facebook}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {lead.facebook}
+                                            <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                          </a>
+                                        </div>
+                                      </div>
                                     )}
 
                                     {/* Generic Diagnose Button - appears when no domain currently found */}

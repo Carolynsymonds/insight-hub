@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
     };
 
     let facebookUrl: string | null = null;
+    let facebookConfidence: number = 0;
+    let foundInStep: number | null = null;
 
     // STEP 1: Search with company + location
     const locationPart = [city, state].filter(Boolean).join(" ");
@@ -63,7 +65,9 @@ Deno.serve(async (req) => {
 
     facebookUrl = findFacebookUrl(step1Data);
     if (facebookUrl) {
-      console.log(`Step 1: Found Facebook URL: ${facebookUrl}`);
+      facebookConfidence = 85;
+      foundInStep = 1;
+      console.log(`Step 1: Found Facebook URL: ${facebookUrl} (${facebookConfidence}% confidence)`);
     }
 
     // STEP 2: Fallback with company name only
@@ -76,7 +80,9 @@ Deno.serve(async (req) => {
 
       facebookUrl = findFacebookUrl(step2Data);
       if (facebookUrl) {
-        console.log(`Step 2: Found Facebook URL: ${facebookUrl}`);
+        facebookConfidence = 50;
+        foundInStep = 2;
+        console.log(`Step 2: Found Facebook URL: ${facebookUrl} (${facebookConfidence}% confidence)`);
       }
     }
 
@@ -87,7 +93,10 @@ Deno.serve(async (req) => {
 
     const { error: updateError } = await supabase
       .from("leads")
-      .update({ facebook: facebookUrl })
+      .update({ 
+        facebook: facebookUrl,
+        facebook_confidence: facebookConfidence > 0 ? facebookConfidence : null
+      })
       .eq("id", leadId);
 
     if (updateError) {
@@ -100,6 +109,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         facebook: facebookUrl,
+        confidence: facebookConfidence > 0 ? facebookConfidence : null,
+        foundInStep: foundInStep,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
