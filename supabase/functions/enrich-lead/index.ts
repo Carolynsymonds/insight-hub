@@ -1031,13 +1031,9 @@ serve(async (req) => {
       enrichment_logs: updatedLogs,
     };
 
-    if (result.domain) {
-      updateData.domain = result.domain;
-    }
-    
-    if (result.sourceUrl) {
-      updateData.source_url = result.sourceUrl;
-    }
+    // Always update domain field - set to null if no domain found to clear old values
+    updateData.domain = result.domain || null;
+    updateData.source_url = result.sourceUrl || null;
 
     // Add GPS coordinates if found (only from Google enrichment)
     if (
