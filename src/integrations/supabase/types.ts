@@ -21,6 +21,8 @@ export type Database = {
           city: string | null
           company: string | null
           company_industry: string | null
+          contact_email: string | null
+          contact_email_personal: boolean | null
           created_at: string | null
           description: string | null
           diagnosed_at: string | null
@@ -76,6 +78,8 @@ export type Database = {
           city?: string | null
           company?: string | null
           company_industry?: string | null
+          contact_email?: string | null
+          contact_email_personal?: boolean | null
           created_at?: string | null
           description?: string | null
           diagnosed_at?: string | null
@@ -131,6 +135,8 @@ export type Database = {
           city?: string | null
           company?: string | null
           company_industry?: string | null
+          contact_email?: string | null
+          contact_email_personal?: boolean | null
           created_at?: string | null
           description?: string | null
           diagnosed_at?: string | null

@@ -27,6 +27,239 @@ interface ScrapedData {
   services: string[];
 }
 
+interface DeepScrapeResult {
+  founded_year: string | null;
+  employee_count: string | null;
+  contact_email: string | null;
+  contact_email_personal: boolean;
+  sources: {
+    founded_year_source?: string;
+    employee_count_source?: string;
+    contact_email_source?: string;
+  };
+}
+
+// High-value URL patterns for deep scraping
+const HIGH_VALUE_PATTERNS = [
+  'about', 'history', 'company', 'services', 
+  'team', 'contact', 'reach', 'our-story', 'story'
+];
+
+// Personal email domains to flag
+const PERSONAL_EMAIL_DOMAINS = [
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+  'live.com', 'msn.com', 'aol.com', 'icloud.com', 'me.com'
+];
+
+function filterHighValueUrls(navLinks: string[], domain: string): string[] {
+  return navLinks
+    .filter(link => {
+      const lower = link.toLowerCase();
+      return HIGH_VALUE_PATTERNS.some(pattern => lower.includes(pattern));
+    })
+    .slice(0, 5)
+    .map(link => `https://${domain}${link}`);
+}
+
+function extractFoundedYear(html: string): string | null {
+  // Remove HTML tags for cleaner text matching
+  const textContent = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  
+  // Pattern 1: "Founded in 1987", "Established in 1995", "Since 2003"
+  const pattern1 = /(?:founded|established|since|started|opened)\s+(?:in\s+)?(\d{4})/gi;
+  let match = pattern1.exec(textContent);
+  if (match && match[1]) {
+    const year = parseInt(match[1]);
+    if (year >= 1800 && year <= 2025) {
+      return year.toString();
+    }
+  }
+  
+  // Pattern 2: "Serving Anchorage since 1978"
+  const pattern2 = /serving\s+[\w\s,]+since\s+(\d{4})/gi;
+  match = pattern2.exec(textContent);
+  if (match && match[1]) {
+    const year = parseInt(match[1]);
+    if (year >= 1800 && year <= 2025) {
+      return year.toString();
+    }
+  }
+  
+  // Pattern 3: "Over 20 years of experience" - calculate from current year
+  const pattern3 = /(?:over|more\s+than)\s+(\d+)\s+years?\s+(?:of\s+)?(?:experience|in\s+business|serving)/gi;
+  match = pattern3.exec(textContent);
+  if (match && match[1]) {
+    const years = parseInt(match[1]);
+    if (years > 0 && years < 200) {
+      const calculatedYear = new Date().getFullYear() - years;
+      return calculatedYear.toString();
+    }
+  }
+  
+  return null;
+}
+
+function extractEmployeeCount(html: string): string | null {
+  const textContent = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  
+  // Pattern 1: "12 employees", "30+ staff", "team of 8"
+  const patterns = [
+    /(\d+)\s*\+?\s*(?:employees|staff|team\s*members|professionals|workers)/gi,
+    /team\s+of\s+(\d+)/gi,
+    /crew\s+of\s+(\d+)/gi,
+    /(?:over|more\s+than)\s+(\d+)\s+(?:skilled|dedicated|experienced)?\s*(?:employees|staff|professionals)?/gi
+  ];
+  
+  for (const pattern of patterns) {
+    const match = pattern.exec(textContent);
+    if (match && match[1]) {
+      const count = parseInt(match[1]);
+      if (count > 0 && count < 100000) {
+        return `${count} employees`;
+      }
+    }
+  }
+  
+  return null;
+}
+
+function extractContactEmail(html: string): { email: string | null; isPersonal: boolean } {
+  // General email pattern
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/gi;
+  const matches = html.match(emailPattern) || [];
+  
+  // Filter out common non-contact emails and duplicates
+  const seen = new Set<string>();
+  const filtered = matches.filter(email => {
+    const lower = email.toLowerCase();
+    if (seen.has(lower)) return false;
+    seen.add(lower);
+    
+    return !lower.includes('example.com') && 
+           !lower.includes('domain.com') &&
+           !lower.includes('sentry') &&
+           !lower.includes('wixpress') &&
+           !lower.includes('wordpress') &&
+           !lower.includes('@2x') &&
+           !lower.includes('.png') &&
+           !lower.includes('.jpg');
+  });
+  
+  if (filtered.length > 0) {
+    const email = filtered[0];
+    const domain = email.split('@')[1].toLowerCase();
+    const isPersonal = PERSONAL_EMAIL_DOMAINS.includes(domain);
+    return { email, isPersonal };
+  }
+  
+  return { email: null, isPersonal: false };
+}
+
+async function scrapeHighValuePages(
+  navLinks: string[], 
+  domain: string, 
+  scraperApiKey: string,
+  homepageHtml: string
+): Promise<DeepScrapeResult> {
+  const result: DeepScrapeResult = {
+    founded_year: null,
+    employee_count: null,
+    contact_email: null,
+    contact_email_personal: false,
+    sources: {}
+  };
+  
+  // First check homepage HTML
+  const homepageFoundedYear = extractFoundedYear(homepageHtml);
+  const homepageEmployeeCount = extractEmployeeCount(homepageHtml);
+  const homepageEmail = extractContactEmail(homepageHtml);
+  
+  if (homepageFoundedYear) {
+    result.founded_year = homepageFoundedYear;
+    result.sources.founded_year_source = 'Homepage';
+    console.log(`Found founded year on homepage: ${homepageFoundedYear}`);
+  }
+  if (homepageEmployeeCount) {
+    result.employee_count = homepageEmployeeCount;
+    result.sources.employee_count_source = 'Homepage';
+    console.log(`Found employee count on homepage: ${homepageEmployeeCount}`);
+  }
+  if (homepageEmail.email) {
+    result.contact_email = homepageEmail.email;
+    result.contact_email_personal = homepageEmail.isPersonal;
+    result.sources.contact_email_source = 'Homepage';
+    console.log(`Found email on homepage: ${homepageEmail.email} (personal: ${homepageEmail.isPersonal})`);
+  }
+  
+  // Exit early if all found on homepage
+  if (result.founded_year && result.employee_count && result.contact_email) {
+    console.log('All deep scrape fields found on homepage');
+    return result;
+  }
+  
+  // Scrape high-value internal pages
+  const highValueUrls = filterHighValueUrls(navLinks, domain);
+  console.log(`Deep scraping ${highValueUrls.length} high-value pages: ${highValueUrls.join(', ')}`);
+  
+  for (const pageUrl of highValueUrls) {
+    try {
+      console.log(`Scraping: ${pageUrl}`);
+      const response = await fetch(
+        `http://api.scraperapi.com/?api_key=${scraperApiKey}&url=${encodeURIComponent(pageUrl)}`
+      );
+      
+      if (!response.ok) {
+        console.log(`Failed to scrape ${pageUrl}: ${response.status}`);
+        continue;
+      }
+      
+      const html = await response.text();
+      const pageName = pageUrl.split('/').pop() || 'unknown';
+      
+      // Extract founded year if not found yet
+      if (!result.founded_year) {
+        const year = extractFoundedYear(html);
+        if (year) {
+          result.founded_year = year;
+          result.sources.founded_year_source = pageName;
+          console.log(`Found founded year: ${year} on ${pageName}`);
+        }
+      }
+      
+      // Extract employee count if not found yet
+      if (!result.employee_count) {
+        const count = extractEmployeeCount(html);
+        if (count) {
+          result.employee_count = count;
+          result.sources.employee_count_source = pageName;
+          console.log(`Found employee count: ${count} on ${pageName}`);
+        }
+      }
+      
+      // Extract contact email if not found yet
+      if (!result.contact_email) {
+        const emailResult = extractContactEmail(html);
+        if (emailResult.email) {
+          result.contact_email = emailResult.email;
+          result.contact_email_personal = emailResult.isPersonal;
+          result.sources.contact_email_source = pageName;
+          console.log(`Found email: ${emailResult.email} (personal: ${emailResult.isPersonal}) on ${pageName}`);
+        }
+      }
+      
+      // Exit early if all fields found
+      if (result.founded_year && result.employee_count && result.contact_email) {
+        console.log('All deep scrape fields found, stopping early');
+        break;
+      }
+    } catch (error) {
+      console.error(`Error scraping ${pageUrl}:`, error);
+    }
+  }
+  
+  return result;
+}
+
 function parseScrapedHtml(html: string, domain: string): ScrapedData | null {
   try {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -672,6 +905,75 @@ Generate professional outputs for all three fields.`
       fieldsPopulated
     };
 
+    // Step 5: Deep scrape high-value pages for additional data
+    let deepScrapeResult: DeepScrapeResult | null = null;
+
+    if (scrapedData.nav_links.length > 0) {
+      const deepScrapeStepNum = aiStepNum + 1;
+      const highValueUrls = filterHighValueUrls(scrapedData.nav_links, normalizedDomain);
+      
+      enrichmentSteps.push({
+        step: deepScrapeStepNum,
+        action: 'deep_scrape',
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        details: { 
+          message: 'Scraping high-value pages for founded year, employees, email...',
+          highValueUrls
+        }
+      });
+      console.log(`Step ${deepScrapeStepNum}: Deep scraping high-value pages...`);
+      
+      deepScrapeResult = await scrapeHighValuePages(
+        scrapedData.nav_links, 
+        normalizedDomain, 
+        scraperApiKey,
+        html
+      );
+      
+      enrichmentSteps[enrichmentSteps.length - 1].status = 'success';
+      enrichmentSteps[enrichmentSteps.length - 1].details = {
+        ...enrichmentSteps[enrichmentSteps.length - 1].details,
+        result: deepScrapeResult
+      };
+      
+      // Add deep scrape results to updateData
+      if (deepScrapeResult.founded_year && !updateData.founded_date) {
+        updateData.founded_date = deepScrapeResult.founded_year;
+        fieldsPopulated.push('founded_date');
+      }
+      if (deepScrapeResult.employee_count && !updateData.size) {
+        updateData.size = deepScrapeResult.employee_count;
+        fieldsPopulated.push('size');
+      }
+      if (deepScrapeResult.contact_email) {
+        updateData.contact_email = deepScrapeResult.contact_email;
+        updateData.contact_email_personal = deepScrapeResult.contact_email_personal;
+        fieldsPopulated.push('contact_email');
+      }
+    } else {
+      // No nav links, but still check homepage for these fields
+      console.log('No nav links found, checking homepage only for deep scrape fields...');
+      
+      const homepageFoundedYear = extractFoundedYear(html);
+      const homepageEmployeeCount = extractEmployeeCount(html);
+      const homepageEmail = extractContactEmail(html);
+      
+      if (homepageFoundedYear && !updateData.founded_date) {
+        updateData.founded_date = homepageFoundedYear;
+        fieldsPopulated.push('founded_date');
+      }
+      if (homepageEmployeeCount && !updateData.size) {
+        updateData.size = homepageEmployeeCount;
+        fieldsPopulated.push('size');
+      }
+      if (homepageEmail.email) {
+        updateData.contact_email = homepageEmail.email;
+        updateData.contact_email_personal = homepageEmail.isPersonal;
+        fieldsPopulated.push('contact_email');
+      }
+    }
+
     // Save the scraped data for transparency/debugging
     updateData.scraped_data_log = scrapedData;
 
@@ -700,7 +1002,8 @@ Generate professional outputs for all three fields.`
         enrichedFields: fieldsPopulated,
         enrichmentSteps,
         source: 'scraper',
-        scrapedData
+        scrapedData,
+        deepScrapeResult
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
