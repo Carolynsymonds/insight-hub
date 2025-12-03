@@ -32,11 +32,18 @@ interface DeepScrapeResult {
   employee_count: string | null;
   contact_email: string | null;
   contact_email_personal: boolean;
+  all_emails_found: string[];
   sources: {
     founded_year_source?: string;
     employee_count_source?: string;
     contact_email_source?: string;
   };
+}
+
+interface CompanyContact {
+  email: string;
+  source: string;
+  is_personal: boolean;
 }
 
 // High-value URL patterns for deep scraping
@@ -155,6 +162,59 @@ function extractContactEmail(html: string): { email: string | null; isPersonal: 
   return { email: null, isPersonal: false };
 }
 
+function extractAllEmails(html: string): string[] {
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/gi;
+  const matches = html.match(emailPattern) || [];
+  
+  const seen = new Set<string>();
+  return matches.filter(email => {
+    const lower = email.toLowerCase();
+    if (seen.has(lower)) return false;
+    seen.add(lower);
+    
+    return !lower.includes('example.com') && 
+           !lower.includes('domain.com') &&
+           !lower.includes('sentry') &&
+           !lower.includes('wixpress') &&
+           !lower.includes('wordpress') &&
+           !lower.includes('@2x') &&
+           !lower.includes('.png') &&
+           !lower.includes('.jpg');
+  });
+}
+
+function validateEmailMatch(
+  leadEmail: string | null, 
+  scrapedEmail: string | null
+): { isValidated: boolean; matchType: 'exact' | 'domain' | 'none' } {
+  if (!leadEmail || !scrapedEmail) {
+    return { isValidated: false, matchType: 'none' };
+  }
+  
+  const leadEmailLower = leadEmail.toLowerCase().trim();
+  const scrapedEmailLower = scrapedEmail.toLowerCase().trim();
+  
+  // Exact email match (case-insensitive)
+  if (leadEmailLower === scrapedEmailLower) {
+    return { isValidated: true, matchType: 'exact' };
+  }
+  
+  // Domain match (same company domain)
+  const leadDomain = leadEmailLower.split('@')[1];
+  const scrapedDomain = scrapedEmailLower.split('@')[1];
+  
+  // Skip if lead email is from a personal domain
+  if (leadDomain && PERSONAL_EMAIL_DOMAINS.includes(leadDomain)) {
+    return { isValidated: false, matchType: 'none' };
+  }
+  
+  if (leadDomain && scrapedDomain && leadDomain === scrapedDomain) {
+    return { isValidated: true, matchType: 'domain' };
+  }
+  
+  return { isValidated: false, matchType: 'none' };
+}
+
 async function scrapeHighValuePages(
   navLinks: string[], 
   domain: string, 
@@ -166,8 +226,14 @@ async function scrapeHighValuePages(
     employee_count: null,
     contact_email: null,
     contact_email_personal: false,
+    all_emails_found: [],
     sources: {}
   };
+  
+  const allEmails = new Set<string>();
+  
+  // Collect all emails from homepage
+  extractAllEmails(homepageHtml).forEach(e => allEmails.add(e.toLowerCase()));
   
   // First check homepage HTML
   const homepageFoundedYear = extractFoundedYear(homepageHtml);
@@ -191,13 +257,13 @@ async function scrapeHighValuePages(
     console.log(`Found email on homepage: ${homepageEmail.email} (personal: ${homepageEmail.isPersonal})`);
   }
   
-  // Exit early if all found on homepage
-  if (result.founded_year && result.employee_count && result.contact_email) {
+  // Exit early if all basic fields found on homepage (but still collect emails from other pages)
+  const foundAllBasicFields = result.founded_year && result.employee_count && result.contact_email;
+  if (foundAllBasicFields) {
     console.log('All deep scrape fields found on homepage');
-    return result;
   }
   
-  // Scrape high-value internal pages
+  // Scrape high-value internal pages for additional data and emails
   const highValueUrls = filterHighValueUrls(navLinks, domain);
   console.log(`Deep scraping ${highValueUrls.length} high-value pages: ${highValueUrls.join(', ')}`);
   
@@ -215,6 +281,9 @@ async function scrapeHighValuePages(
       
       const html = await response.text();
       const pageName = pageUrl.split('/').pop() || 'unknown';
+      
+      // Collect all emails from this page
+      extractAllEmails(html).forEach(e => allEmails.add(e.toLowerCase()));
       
       // Extract founded year if not found yet
       if (!result.founded_year) {
@@ -246,16 +315,14 @@ async function scrapeHighValuePages(
           console.log(`Found email: ${emailResult.email} (personal: ${emailResult.isPersonal}) on ${pageName}`);
         }
       }
-      
-      // Exit early if all fields found
-      if (result.founded_year && result.employee_count && result.contact_email) {
-        console.log('All deep scrape fields found, stopping early');
-        break;
-      }
     } catch (error) {
       console.error(`Error scraping ${pageUrl}:`, error);
     }
   }
+  
+  // Store all collected emails
+  result.all_emails_found = Array.from(allEmails);
+  console.log(`Total unique emails collected: ${result.all_emails_found.length}`);
   
   return result;
 }
@@ -389,6 +456,16 @@ Deno.serve(async (req) => {
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch the lead's email for validation
+    const { data: leadData, error: leadFetchError } = await supabase
+      .from('leads')
+      .select('email')
+      .eq('id', leadId)
+      .single();
+    
+    const leadEmail = leadData?.email || null;
+    console.log(`Lead Email: ${leadEmail}`);
 
     const enrichmentSteps: EnrichmentStep[] = [];
     const isDirectApollo = enrichmentSource === 'apollo_api';
@@ -950,6 +1027,35 @@ Generate professional outputs for all three fields.`
         updateData.contact_email = deepScrapeResult.contact_email;
         updateData.contact_email_personal = deepScrapeResult.contact_email_personal;
         fieldsPopulated.push('contact_email');
+        
+        // Validate email match
+        const emailValidation = validateEmailMatch(leadEmail, deepScrapeResult.contact_email);
+        if (emailValidation.isValidated) {
+          updateData.email_domain_validated = true;
+          updateData.domain_relevance_score = 100;
+          updateData.domain_relevance_explanation = `Domain validated: Scraped email ${deepScrapeResult.contact_email} matches lead email (${emailValidation.matchType} match)`;
+          fieldsPopulated.push('email_domain_validated');
+          console.log(`✅ Email validated (${emailValidation.matchType} match): ${leadEmail} ↔ ${deepScrapeResult.contact_email}`);
+        }
+        
+        // Collect company contacts (all emails found except the one matching lead)
+        if (deepScrapeResult.all_emails_found.length > 0) {
+          const contactEmailLower = deepScrapeResult.contact_email?.toLowerCase() || '';
+          const companyContacts: CompanyContact[] = deepScrapeResult.all_emails_found
+            .filter(e => e.toLowerCase() !== leadEmail?.toLowerCase())
+            .filter(e => e.toLowerCase() !== contactEmailLower)
+            .map(email => ({
+              email: email,
+              source: 'website_scrape',
+              is_personal: PERSONAL_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
+            }));
+          
+          if (companyContacts.length > 0) {
+            updateData.company_contacts = companyContacts;
+            fieldsPopulated.push('company_contacts');
+            console.log(`Found ${companyContacts.length} additional company contacts`);
+          }
+        }
       }
     } else {
       // No nav links, but still check homepage for these fields
@@ -971,6 +1077,35 @@ Generate professional outputs for all three fields.`
         updateData.contact_email = homepageEmail.email;
         updateData.contact_email_personal = homepageEmail.isPersonal;
         fieldsPopulated.push('contact_email');
+        
+        // Validate email match for homepage-only case
+        const emailValidation = validateEmailMatch(leadEmail, homepageEmail.email);
+        if (emailValidation.isValidated) {
+          updateData.email_domain_validated = true;
+          updateData.domain_relevance_score = 100;
+          updateData.domain_relevance_explanation = `Domain validated: Scraped email ${homepageEmail.email} matches lead email (${emailValidation.matchType} match)`;
+          fieldsPopulated.push('email_domain_validated');
+          console.log(`✅ Email validated (${emailValidation.matchType} match): ${leadEmail} ↔ ${homepageEmail.email}`);
+        }
+        
+        // Collect homepage emails as company contacts
+        const homepageAllEmails = extractAllEmails(html);
+        if (homepageAllEmails.length > 0) {
+          const companyContacts: CompanyContact[] = homepageAllEmails
+            .filter(e => e.toLowerCase() !== leadEmail?.toLowerCase())
+            .filter(e => e.toLowerCase() !== homepageEmail.email?.toLowerCase())
+            .map(email => ({
+              email: email,
+              source: 'website_scrape',
+              is_personal: PERSONAL_EMAIL_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))
+            }));
+          
+          if (companyContacts.length > 0) {
+            updateData.company_contacts = companyContacts;
+            fieldsPopulated.push('company_contacts');
+            console.log(`Found ${companyContacts.length} additional company contacts`);
+          }
+        }
       }
     }
 
