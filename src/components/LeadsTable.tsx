@@ -1321,8 +1321,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                     )}
                                     {lead.domain && (lead.enrichment_confidence ?? 0) < 50 && (
                                       <div className="pt-4 border-t">
-                                        <p className="text-xs text-muted-foreground text-center">
-                                          Company details enrichment requires ≥50% confidence
+                                        <p className="text-xs text-destructive/70 text-center">
+                                          Blocked: Domain confidence is {lead.enrichment_confidence ?? 0}% (requires ≥50%)
                                         </p>
                                       </div>
                                     )}
@@ -1961,8 +1961,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         )}
                                       </Button>
                                       {(lead.enrichment_confidence ?? 0) < 50 && (
-                                        <p className="text-xs text-muted-foreground">
-                                          Requires ≥50% enrichment confidence
+                                        <p className="text-xs text-destructive/70">
+                                          Blocked: Domain confidence is {lead.enrichment_confidence ?? 0}% (requires ≥50%)
                                         </p>
                                       )}
 
@@ -2019,7 +2019,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         size="sm"
                                         variant="outline"
                                         className="w-full"
-                                        disabled={fetchingNews === lead.id}
+                                        disabled={fetchingNews === lead.id || (lead.enrichment_confidence ?? 0) < 50}
                                         onClick={() => handleGetCompanyNews(lead)}
                                       >
                                         {fetchingNews === lead.id ? (
