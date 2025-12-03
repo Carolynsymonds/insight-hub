@@ -18,6 +18,7 @@ interface ScrapedData {
   title: string | null;
   h1: string | null;
   meta_description: string | null;
+  meta_keywords: string | null;
   logo_url: string | null;
   linkedin: string | null;
   facebook: string | null;
@@ -38,6 +39,12 @@ function parseScrapedHtml(html: string, domain: string): ScrapedData | null {
 
     // Meta description
     const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute("content") || null;
+
+    // Meta keywords - check both quote styles
+    let metaKeywords = doc.querySelector('meta[name="keywords"]')?.getAttribute("content") || null;
+    if (!metaKeywords) {
+      metaKeywords = doc.querySelector("meta[name='keywords']")?.getAttribute("content") || null;
+    }
 
     // Logo (img with "logo" in class or id)
     let logo_url: string | null = null;
@@ -94,6 +101,7 @@ function parseScrapedHtml(html: string, domain: string): ScrapedData | null {
       title,
       h1,
       meta_description: metaDesc,
+      meta_keywords: metaKeywords,
       logo_url,
       linkedin,
       facebook,
@@ -578,7 +586,10 @@ Output ONLY valid JSON in this exact format:
 Website Title: ${scrapedData.title || 'N/A'}
 Main Heading (H1): ${scrapedData.h1 || 'N/A'}
 Meta Description: ${scrapedData.meta_description || 'N/A'}
+Meta Keywords: ${scrapedData.meta_keywords || 'N/A'}
 Services/Items found on page: ${scrapedData.services.slice(0, 20).join(', ') || 'N/A'}
+
+IMPORTANT: If Meta Keywords are available, prioritize them for the products_services field as they typically contain the most accurate list of company services curated by the website owner.
 
 Generate a professional description and products/services summary.`
               }
