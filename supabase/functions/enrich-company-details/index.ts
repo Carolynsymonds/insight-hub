@@ -692,6 +692,26 @@ Write a comprehensive paragraph describing what products and services this compa
               organizationName: org.name
             };
 
+            // Store Apollo enrichment log for UI display
+            updateData.scraped_data_log = {
+              source: 'apollo',
+              organization_name: org.name,
+              domain: org.primary_domain || normalizedDomain,
+              fields_populated: fieldsPopulated,
+              enrichment_steps: enrichmentSteps,
+              apollo_data: {
+                estimated_employees: org.estimated_num_employees,
+                revenue: org.organization_revenue_printed,
+                industry: org.industry,
+                industries: org.industries,
+                keywords: org.keywords?.slice(0, 10),
+                founded_year: org.founded_year,
+                city: org.city,
+                state: org.state,
+                country: org.country
+              }
+            };
+
             console.log("=== UPDATE DATA (Apollo) ===");
             console.log(JSON.stringify(updateData, null, 2));
 

@@ -113,16 +113,40 @@ interface Lead {
     is_personal: boolean;
   }> | null;
   scraped_data_log: {
-    title: string | null;
-    h1: string | null;
-    meta_description: string | null;
-    meta_keywords: string | null;
-    logo_url: string | null;
-    linkedin: string | null;
-    facebook: string | null;
-    about_pages: string[];
-    nav_links: string[];
-    services: string[];
+    // Common
+    source?: 'apollo' | 'scraper';
+    // Apollo-specific
+    organization_name?: string;
+    fields_populated?: string[];
+    enrichment_steps?: Array<{
+      step: number;
+      action: string;
+      status: string;
+      timestamp: string;
+      details?: Record<string, any>;
+    }>;
+    apollo_data?: {
+      estimated_employees?: number;
+      revenue?: string;
+      industry?: string;
+      industries?: string[];
+      keywords?: string[];
+      founded_year?: number;
+      city?: string;
+      state?: string;
+      country?: string;
+    };
+    // Scraper-specific
+    title?: string;
+    h1?: string;
+    meta_description?: string;
+    meta_keywords?: string;
+    logo_url?: string;
+    linkedin?: string;
+    facebook?: string;
+    about_pages?: string[];
+    nav_links?: string[];
+    services?: string[];
     deep_scrape?: {
       pages_scraped: string[];
       founded_year: string | null;
@@ -2191,14 +2215,115 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           <AccordionItem value="scraped-data" className="border rounded-lg bg-muted/30">
                                             <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
                                               <div className="flex items-center gap-2">
-                                                <span>📄 View Scraped Data</span>
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                                  {lead.scraped_data_log.services?.length || 0} services found
-                                                </Badge>
+                                                {lead.scraped_data_log.source === 'apollo' ? (
+                                                  <>
+                                                    <span>🚀 Apollo Enrichment Log</span>
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
+                                                      {lead.scraped_data_log.fields_populated?.length || 0} fields
+                                                    </Badge>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <span>📄 View Scraped Data</span>
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                      {lead.scraped_data_log.services?.length || 0} services found
+                                                    </Badge>
+                                                  </>
+                                                )}
                                               </div>
                                             </AccordionTrigger>
                                             <AccordionContent className="px-3 pb-3">
                                               <div className="space-y-2 text-xs">
+                                                {/* Apollo Data Display */}
+                                                {lead.scraped_data_log.source === 'apollo' && lead.scraped_data_log.apollo_data && (
+                                                  <div className="grid gap-1.5">
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Organization:</span>
+                                                      <span className="font-medium">{lead.scraped_data_log.organization_name}</span>
+                                                    </div>
+                                                    {lead.scraped_data_log.apollo_data.industry && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Industry:</span>
+                                                        <span>{lead.scraped_data_log.apollo_data.industry}</span>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.apollo_data.estimated_employees && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Employees:</span>
+                                                        <span>{lead.scraped_data_log.apollo_data.estimated_employees.toLocaleString()}</span>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.apollo_data.revenue && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Revenue:</span>
+                                                        <span>{lead.scraped_data_log.apollo_data.revenue}</span>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.apollo_data.founded_year && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Founded:</span>
+                                                        <span>{lead.scraped_data_log.apollo_data.founded_year}</span>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.apollo_data.city && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">HQ Location:</span>
+                                                        <span>
+                                                          {[lead.scraped_data_log.apollo_data.city, lead.scraped_data_log.apollo_data.state, lead.scraped_data_log.apollo_data.country].filter(Boolean).join(', ')}
+                                                        </span>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.apollo_data.keywords && lead.scraped_data_log.apollo_data.keywords.length > 0 && (
+                                                      <div>
+                                                        <span className="text-muted-foreground block mb-1">Keywords:</span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                          {lead.scraped_data_log.apollo_data.keywords.map((kw, idx) => (
+                                                            <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                                                              {kw}
+                                                            </span>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                    {lead.scraped_data_log.fields_populated && lead.scraped_data_log.fields_populated.length > 0 && (
+                                                      <div className="mt-2 pt-2 border-t border-dashed">
+                                                        <span className="text-muted-foreground block mb-1">Fields Populated:</span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                          {lead.scraped_data_log.fields_populated.map((field, idx) => (
+                                                            <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                              {field}
+                                                            </Badge>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                    {/* Enrichment Steps */}
+                                                    {lead.scraped_data_log.enrichment_steps && lead.scraped_data_log.enrichment_steps.length > 0 && (
+                                                      <div className="mt-2 pt-2 border-t border-dashed">
+                                                        <span className="text-muted-foreground block mb-1">Enrichment Steps:</span>
+                                                        <div className="space-y-1">
+                                                          {lead.scraped_data_log.enrichment_steps.map((step, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2 text-[10px]">
+                                                              <Badge 
+                                                                variant={step.status === 'success' ? 'default' : step.status === 'failed' ? 'destructive' : 'secondary'}
+                                                                className="text-[9px] px-1 py-0"
+                                                              >
+                                                                Step {step.step}
+                                                              </Badge>
+                                                              <span className="text-muted-foreground">{step.action.replace(/_/g, ' ')}</span>
+                                                              <span className={step.status === 'success' ? 'text-green-600' : step.status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}>
+                                                                {step.status === 'success' ? '✓' : step.status === 'failed' ? '✗' : '...'}
+                                                              </span>
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+
+                                                {/* Scraper Data Display (existing) */}
+                                                {lead.scraped_data_log.source !== 'apollo' && (
                                                 <div className="grid gap-1.5">
                                                   <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Title:</span>
@@ -2457,6 +2582,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </div>
                                                   )}
                                                 </div>
+                                                )}
                                               </div>
                                             </AccordionContent>
                                           </AccordionItem>
