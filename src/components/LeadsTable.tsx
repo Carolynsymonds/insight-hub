@@ -759,7 +759,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   >
                     <div className="truncate">{lead.products_services || "—"}</div>
                   </TableCell>
-                  <TableCell>{lead.news || "—"}</TableCell>
+                  <TableCell
+                    className="max-w-[200px] cursor-pointer hover:text-primary"
+                    onClick={(e) => {
+                      if (lead.news) {
+                        e.stopPropagation();
+                        setModalContent({ title: "News", text: lead.news });
+                        setShowTextModal(true);
+                      }
+                    }}
+                  >
+                    <div className="truncate">{lead.news || "—"}</div>
+                  </TableCell>
                   <TableCell
                     className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
                     onClick={(e) => e.stopPropagation()}
