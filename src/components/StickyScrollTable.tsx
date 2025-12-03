@@ -61,7 +61,7 @@ export const StickyScrollTable = ({ children, className }: StickyScrollTableProp
   };
 
   return (
-    <div className="relative h-[calc(100vh-140px)]">
+    <div className="relative h-[calc(100vh-112px)]">
       <div
         ref={tableRef}
         className={`${className} h-full overflow-y-auto`}
