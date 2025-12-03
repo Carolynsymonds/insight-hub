@@ -117,6 +117,18 @@ interface Lead {
     about_pages: string[];
     nav_links: string[];
     services: string[];
+    deep_scrape?: {
+      pages_scraped: string[];
+      founded_year: string | null;
+      employee_count: string | null;
+      contact_email: string | null;
+      contact_email_personal: boolean;
+      sources: {
+        founded_year_source?: string;
+        employee_count_source?: string;
+        contact_email_source?: string;
+      } | null;
+    };
   } | null;
 }
 interface LeadsTableProps {
@@ -2286,6 +2298,112 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                       <div className="text-[10px] bg-muted/50 p-1.5 rounded max-h-24 overflow-y-auto">
                                                         {lead.scraped_data_log.services.join(' • ')}
                                                       </div>
+                                                    </div>
+                                                  )}
+                                                  
+                                                  {/* Deep Scrape Results Section */}
+                                                  {lead.scraped_data_log.deep_scrape && (
+                                                    <div className="mt-3 pt-3 border-t border-dashed">
+                                                      <span className="text-muted-foreground font-medium block mb-2">🔍 Deep Scrape Results</span>
+                                                      
+                                                      {/* Pages Scraped */}
+                                                      {lead.scraped_data_log.deep_scrape.pages_scraped?.length > 0 ? (
+                                                        <div className="mb-2">
+                                                          <span className="text-muted-foreground block mb-1">
+                                                            Pages Scraped ({lead.scraped_data_log.deep_scrape.pages_scraped.length}):
+                                                          </span>
+                                                          <div className="flex flex-wrap gap-1">
+                                                            {lead.scraped_data_log.deep_scrape.pages_scraped.map((url, idx) => (
+                                                              <a 
+                                                                key={idx}
+                                                                href={url.startsWith('http') ? url : `https://${lead.domain}${url.startsWith('/') ? '' : '/'}${url}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20"
+                                                              >
+                                                                {url.split('/').pop() || url}
+                                                              </a>
+                                                            ))}
+                                                          </div>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="mb-2 text-muted-foreground/50 italic text-[10px]">
+                                                          No high-value pages found to scrape
+                                                        </div>
+                                                      )}
+                                                      
+                                                      {/* Found Data Grid */}
+                                                      <div className="grid gap-1.5 text-[11px]">
+                                                        {/* Founded Year */}
+                                                        <div className="flex justify-between items-center">
+                                                          <span className="text-muted-foreground">Founded Year:</span>
+                                                          {lead.scraped_data_log.deep_scrape.founded_year ? (
+                                                            <span className="flex items-center gap-1">
+                                                              {lead.scraped_data_log.deep_scrape.founded_year}
+                                                              {lead.scraped_data_log.deep_scrape.sources?.founded_year_source && (
+                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
+                                                                  from {lead.scraped_data_log.deep_scrape.sources.founded_year_source}
+                                                                </Badge>
+                                                              )}
+                                                            </span>
+                                                          ) : (
+                                                            <span className="text-muted-foreground/50 italic">Not found</span>
+                                                          )}
+                                                        </div>
+                                                        
+                                                        {/* Employee Count */}
+                                                        <div className="flex justify-between items-center">
+                                                          <span className="text-muted-foreground">Employee Count:</span>
+                                                          {lead.scraped_data_log.deep_scrape.employee_count ? (
+                                                            <span className="flex items-center gap-1">
+                                                              {lead.scraped_data_log.deep_scrape.employee_count}
+                                                              {lead.scraped_data_log.deep_scrape.sources?.employee_count_source && (
+                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
+                                                                  from {lead.scraped_data_log.deep_scrape.sources.employee_count_source}
+                                                                </Badge>
+                                                              )}
+                                                            </span>
+                                                          ) : (
+                                                            <span className="text-muted-foreground/50 italic">Not found</span>
+                                                          )}
+                                                        </div>
+                                                        
+                                                        {/* Contact Email */}
+                                                        <div className="flex justify-between items-center">
+                                                          <span className="text-muted-foreground">Contact Email:</span>
+                                                          {lead.scraped_data_log.deep_scrape.contact_email ? (
+                                                            <span className="flex items-center gap-1">
+                                                              <a 
+                                                                href={`mailto:${lead.scraped_data_log.deep_scrape.contact_email}`}
+                                                                className="text-primary hover:underline"
+                                                              >
+                                                                {lead.scraped_data_log.deep_scrape.contact_email}
+                                                              </a>
+                                                              {lead.scraped_data_log.deep_scrape.contact_email_personal && (
+                                                                <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-100 text-amber-700">
+                                                                  Personal
+                                                                </Badge>
+                                                              )}
+                                                              {lead.scraped_data_log.deep_scrape.sources?.contact_email_source && (
+                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
+                                                                  from {lead.scraped_data_log.deep_scrape.sources.contact_email_source}
+                                                                </Badge>
+                                                              )}
+                                                            </span>
+                                                          ) : (
+                                                            <span className="text-muted-foreground/50 italic">Not found</span>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  
+                                                  {/* Show message if no deep scrape was performed */}
+                                                  {!lead.scraped_data_log.deep_scrape && (
+                                                    <div className="mt-3 pt-3 border-t border-dashed">
+                                                      <span className="text-muted-foreground/50 italic text-[10px]">
+                                                        🔍 Deep Scrape: Not performed
+                                                      </span>
                                                     </div>
                                                   )}
                                                 </div>

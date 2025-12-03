@@ -974,8 +974,22 @@ Generate professional outputs for all three fields.`
       }
     }
 
-    // Save the scraped data for transparency/debugging
-    updateData.scraped_data_log = scrapedData;
+    // Save the scraped data for transparency/debugging (including deep scrape results)
+    const highValueUrls = scrapedData.nav_links.length > 0 
+      ? filterHighValueUrls(scrapedData.nav_links, normalizedDomain) 
+      : [];
+    
+    updateData.scraped_data_log = {
+      ...scrapedData,
+      deep_scrape: {
+        pages_scraped: highValueUrls,
+        founded_year: deepScrapeResult?.founded_year || null,
+        employee_count: deepScrapeResult?.employee_count || null,
+        contact_email: deepScrapeResult?.contact_email || null,
+        contact_email_personal: deepScrapeResult?.contact_email_personal || false,
+        sources: deepScrapeResult?.sources || null
+      }
+    };
 
     console.log("=== UPDATE DATA (Scraped) ===");
     console.log(JSON.stringify(updateData, null, 2));
