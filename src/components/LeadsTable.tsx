@@ -104,6 +104,8 @@ interface Lead {
   products_services: string | null;
   source_url: string | null;
   apollo_not_found: boolean | null;
+  contact_email: string | null;
+  contact_email_personal: boolean | null;
   scraped_data_log: {
     title: string | null;
     h1: string | null;
@@ -654,6 +656,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Linkedin</TableHead>
               <TableHead>Facebook</TableHead>
               <TableHead>Founded</TableHead>
+              <TableHead>Contact Email</TableHead>
               <TableHead>Logo</TableHead>
               <TableHead className="min-w-[200px]">Products/Services</TableHead>
               <TableHead>News</TableHead>
@@ -781,6 +784,27 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>{lead.founded_date || "—"}</TableCell>
+                  <TableCell>
+                    {lead.contact_email ? (
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={`mailto:${lead.contact_email}`}
+                          className="text-primary hover:underline text-xs truncate max-w-[150px]"
+                          onClick={(e) => e.stopPropagation()}
+                          title={lead.contact_email}
+                        >
+                          {lead.contact_email}
+                        </a>
+                        {lead.contact_email_personal && (
+                          <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded" title="Personal email (Gmail, Yahoo, etc.)">
+                            Personal
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {lead.logo_url ? (
                       <a
