@@ -23,6 +23,7 @@ interface ScrapedData {
   linkedin: string | null;
   facebook: string | null;
   about_pages: string[];
+  nav_links: string[];
   services: string[];
 }
 
@@ -64,25 +65,36 @@ function parseScrapedHtml(html: string, domain: string): ScrapedData | null {
       }
     }
 
-    // Social links
+    // Social links and navigation
     let linkedin: string | null = null;
     let facebook: string | null = null;
     const aboutPages: string[] = [];
+    const navLinks: string[] = [];
     const links = doc.querySelectorAll("a[href]");
     
     for (const link of links) {
       const el = link as unknown as { getAttribute: (name: string) => string | null };
       const href = el.getAttribute("href") || "";
+      
+      // Social links
       if (href.includes("linkedin.com") && !linkedin) linkedin = href;
       if (href.includes("facebook.com") && !facebook) facebook = href;
+      
+      // About/History pages (keep as absolute URLs)
       if ((href.includes("about") || href.includes("history")) && !href.includes("#")) {
-        // Make absolute URL if relative
         let absoluteHref = href;
         if (!href.startsWith("http")) {
           absoluteHref = `https://${domain}${href.startsWith("/") ? "" : "/"}${href}`;
         }
         if (!aboutPages.includes(absoluteHref)) {
           aboutPages.push(absoluteHref);
+        }
+      }
+      
+      // Capture internal navigation links (relative paths starting with /)
+      if (href.startsWith("/") && !href.includes("#") && href.length > 1) {
+        if (!navLinks.includes(href)) {
+          navLinks.push(href);
         }
       }
     }
@@ -106,6 +118,7 @@ function parseScrapedHtml(html: string, domain: string): ScrapedData | null {
       linkedin,
       facebook,
       about_pages: aboutPages.slice(0, 5),
+      nav_links: navLinks.slice(0, 15),
       services: services.slice(0, 30)
     };
   } catch (error) {
