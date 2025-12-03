@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
@@ -108,9 +108,16 @@ interface Lead {
   contact_email_personal: boolean | null;
   email_domain_validated: boolean | null;
   company_contacts: Array<{
+    id?: string;
+    name?: string;
+    first_name?: string;
+    last_name?: string;
+    title?: string;
     email: string;
+    email_status?: string;
+    linkedin_url?: string;
     source: string;
-    is_personal: boolean;
+    is_personal?: boolean;
   }> | null;
   scraped_data_log: {
     // Common
@@ -2609,6 +2616,76 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </AccordionItem>
                                         </Accordion>
                                       )}
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              )}
+
+                              {/* Company Contacts Accordion Item - Discovered via Apollo People Search */}
+                              {lead.company_contacts && Array.isArray(lead.company_contacts) && lead.company_contacts.length > 0 && 
+                               lead.company_contacts.some(c => c.name) && (
+                                <AccordionItem value="company-contacts" className="border-border">
+                                  <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                      <Users className="h-4 w-4" />
+                                      <span>Company Contacts</span>
+                                      <Badge variant="secondary" className="ml-2">
+                                        {lead.company_contacts.filter(c => c.name).length}
+                                      </Badge>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div className="space-y-3 pt-2">
+                                      <p className="text-xs text-muted-foreground">
+                                        Key contacts discovered via Apollo People Search
+                                      </p>
+                                      <div className="space-y-2">
+                                        {lead.company_contacts
+                                          .filter(contact => contact.name)
+                                          .map((contact, idx) => (
+                                          <div key={idx} className="p-3 border rounded-lg bg-muted/30">
+                                            <div className="flex items-start justify-between">
+                                              <div>
+                                                <p className="font-medium text-sm">{contact.name}</p>
+                                                {contact.title && (
+                                                  <p className="text-xs text-muted-foreground">{contact.title}</p>
+                                                )}
+                                              </div>
+                                              {contact.email_status === 'verified' && (
+                                                <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                  Verified
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <div className="mt-2 space-y-1">
+                                              {contact.email && (
+                                                <div className="flex items-center gap-2 text-xs">
+                                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                                  <a 
+                                                    href={`mailto:${contact.email}`} 
+                                                    className="text-primary hover:underline"
+                                                  >
+                                                    {contact.email}
+                                                  </a>
+                                                </div>
+                                              )}
+                                              {contact.linkedin_url && (
+                                                <div className="flex items-center gap-2 text-xs">
+                                                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                                  <a 
+                                                    href={contact.linkedin_url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-primary hover:underline"
+                                                  >
+                                                    LinkedIn Profile
+                                                  </a>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
                                   </AccordionContent>
                                 </AccordionItem>
