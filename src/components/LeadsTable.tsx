@@ -113,11 +113,12 @@ interface Lead {
     first_name?: string;
     last_name?: string;
     title?: string;
-    email: string;
-    email_status?: string;
+    email?: string | null;
+    email_status?: string | null;
     linkedin_url?: string;
     source: string;
     is_personal?: boolean;
+    found_without_role_filter?: boolean;
   }> | null;
   scraped_data_log: {
     // Common
@@ -2899,15 +2900,24 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     <TableCell className="font-medium">{contact.name || `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || '—'}</TableCell>
                     <TableCell>{contact.title || '—'}</TableCell>
                     <TableCell>
-                      <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
-                        {contact.email}
-                      </a>
+                      {contact.found_without_role_filter ? (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      ) : contact.email ? (
+                        <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
+                          {contact.email}
+                        </a>
+                      ) : '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Apollo</Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Apollo</Badge>
+                        {contact.found_without_role_filter && (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px]">Name Only</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {contact.email_status === 'verified' && (
+                      {contact.email_status === 'verified' && !contact.found_without_role_filter && (
                         <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>
                       )}
                     </TableCell>
