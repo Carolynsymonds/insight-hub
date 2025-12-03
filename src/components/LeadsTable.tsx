@@ -582,7 +582,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     <>
       <StickyScrollTable className="rounded-lg border overflow-x-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background z-20">
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
