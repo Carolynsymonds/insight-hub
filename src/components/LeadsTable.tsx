@@ -123,6 +123,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
   const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
+  const [companyDetailsStep, setCompanyDetailsStep] = useState<{ step: number; message: string } | null>(null);
   const [fetchingNews, setFetchingNews] = useState<string | null>(null);
   const [enrichingFacebook, setEnrichingFacebook] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -513,20 +514,42 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       return;
     }
 
+    const isDirectApollo = lead.enrichment_source === 'apollo_api';
+    
     setEnrichingCompanyDetails(lead.id);
+    setCompanyDetailsStep({ 
+      step: 1, 
+      message: isDirectApollo 
+        ? 'Retrieving details from Apollo...' 
+        : 'Searching Apollo for domain...' 
+    });
+
     try {
+      // Simulate brief delay for step visibility
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (!isDirectApollo) {
+        setCompanyDetailsStep({ step: 1, message: 'Domain found in Apollo!' });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setCompanyDetailsStep({ step: 2, message: 'Retrieving company details...' });
+      } else {
+        setCompanyDetailsStep({ step: 1, message: 'Retrieving company details...' });
+      }
+
       const { data, error } = await supabase.functions.invoke("enrich-company-details", {
         body: {
           leadId: lead.id,
           domain: lead.domain,
+          enrichmentSource: lead.enrichment_source,
         },
       });
 
       if (error) throw error;
 
+      const fieldsCount = data.enrichedFields?.length || 0;
       toast({
         title: "Company Details Enriched!",
-        description: "Size, revenue, industry, and more have been populated.",
+        description: `${fieldsCount} fields populated from Apollo.`,
       });
 
       onEnrichComplete();
@@ -538,6 +561,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingCompanyDetails(null);
+      setCompanyDetailsStep(null);
     }
   };
 
@@ -1264,7 +1288,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
                                     {/* Enrich Company Details Button - only show when domain is found */}
                                     {lead.domain && (
-                                      <div className="pt-4 border-t">
+                                      <div className="pt-4 border-t space-y-2">
+                                        {lead.enrichment_source === 'apollo_api' && (
+                                          <p className="text-xs text-primary">
+                                            ✓ Domain found via Apollo - direct retrieval
+                                          </p>
+                                        )}
                                         <Button
                                           size="sm"
                                           onClick={() => handleEnrichCompanyDetails(lead)}
@@ -1274,7 +1303,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           {enrichingCompanyDetails === lead.id ? (
                                             <>
                                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                              Enriching Company Details...
+                                              {companyDetailsStep?.message || 'Enriching...'}
                                             </>
                                           ) : (
                                             <>
@@ -1283,9 +1312,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             </>
                                           )}
                                         </Button>
-                                        <p className="text-xs text-muted-foreground mt-2 text-center">
-                                          Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
-                                        </p>
+                                        {enrichingCompanyDetails !== lead.id && (
+                                          <p className="text-xs text-muted-foreground text-center">
+                                            Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
+                                          </p>
+                                        )}
                                       </div>
                                     )}
 
@@ -1896,6 +1927,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                     <div className="space-y-3 pt-2">
                                       <p className="text-sm text-muted-foreground mb-3">
                                         Enrich this lead with detailed company information from Apollo
+                                        {lead.enrichment_source === 'apollo_api' && (
+                                          <span className="block text-xs text-primary mt-1">
+                                            ✓ Domain found via Apollo - direct retrieval available
+                                          </span>
+                                        )}
                                       </p>
 
                                       <Button
@@ -1908,7 +1944,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         {enrichingCompanyDetails === lead.id ? (
                                           <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Enriching Company Details...
+                                            {companyDetailsStep?.message || 'Enriching...'}
                                           </>
                                         ) : (
                                           <>
@@ -1917,6 +1953,55 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
+
+                                      {/* Step progress indicator */}
+                                      {enrichingCompanyDetails === lead.id && companyDetailsStep && (
+                                        <div className="bg-muted/50 rounded-md p-3 space-y-2">
+                                          <div className="flex items-center gap-2">
+                                            {lead.enrichment_source === 'apollo_api' ? (
+                                              // Single step for direct Apollo
+                                              <div className="flex items-center gap-2 text-xs">
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                  companyDetailsStep.step === 1 
+                                                    ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                    : 'bg-green-500 text-white'
+                                                }`}>
+                                                  1
+                                                </div>
+                                                <span className="text-muted-foreground">Direct retrieval</span>
+                                              </div>
+                                            ) : (
+                                              // Two steps for non-Apollo sources
+                                              <>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    companyDetailsStep.step === 1 
+                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                      : 'bg-green-500 text-white'
+                                                  }`}>
+                                                    1
+                                                  </div>
+                                                  <span className="text-muted-foreground">Search Apollo</span>
+                                                </div>
+                                                <div className="w-4 h-px bg-border" />
+                                                <div className="flex items-center gap-2 text-xs">
+                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    companyDetailsStep.step === 2 
+                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                      : companyDetailsStep.step > 2 
+                                                        ? 'bg-green-500 text-white' 
+                                                        : 'bg-muted text-muted-foreground'
+                                                  }`}>
+                                                    2
+                                                  </div>
+                                                  <span className="text-muted-foreground">Get details</span>
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">{companyDetailsStep.message}</p>
+                                        </div>
+                                      )}
 
                                       <Button
                                         size="sm"
