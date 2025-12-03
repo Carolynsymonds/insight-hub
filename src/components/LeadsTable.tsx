@@ -192,6 +192,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [enrichingFacebook, setEnrichingFacebook] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
+  const [findingContacts, setFindingContacts] = useState<string | null>(null);
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -565,6 +566,36 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingFacebook(null);
+    }
+  };
+
+  const handleFindContacts = async (lead: Lead) => {
+    setFindingContacts(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("find-company-contacts", {
+        body: {
+          leadId: lead.id,
+          domain: lead.domain,
+        },
+      });
+      if (error) throw error;
+
+      toast({
+        title: data.contactsFound > 0 ? "Contacts Found!" : "No Contacts Found",
+        description: data.contactsFound > 0
+          ? `Found ${data.contactsFound} key contacts at this company`
+          : "No key contacts found for this company",
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Contact Search Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFindingContacts(null);
     }
   };
 
@@ -2621,75 +2652,116 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionItem>
                               )}
 
-                              {/* Company Contacts Accordion Item - Discovered via Apollo People Search */}
-                              {lead.company_contacts && Array.isArray(lead.company_contacts) && lead.company_contacts.length > 0 && 
-                               lead.company_contacts.some(c => c.name) && (
-                                <AccordionItem value="company-contacts" className="border-border">
-                                  <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                    <div className="flex items-center gap-2">
-                                      <Users className="h-4 w-4" />
-                                      <span>Company Contacts</span>
+                              {/* Find Contacts Accordion - Always visible when Apollo enriched */}
+                              <AccordionItem value="find-contacts" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    <span>Find Contacts</span>
+                                    {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
                                       <Badge variant="secondary" className="ml-2">
-                                        {lead.company_contacts.filter(c => c.name).length}
+                                        {lead.company_contacts.filter(c => c.name).length} found
                                       </Badge>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-4">
+                                    {/* Find Contacts Button */}
+                                    <div className="space-y-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full"
+                                        disabled={
+                                          findingContacts === lead.id ||
+                                          lead.enrichment_source !== 'apollo_api' ||
+                                          !lead.domain
+                                        }
+                                        onClick={() => handleFindContacts(lead)}
+                                      >
+                                        {findingContacts === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Searching Contacts...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Users className="mr-2 h-4 w-4" />
+                                            Find Company Contacts
+                                          </>
+                                        )}
+                                      </Button>
+
+                                      {/* Show disabled state reason */}
+                                      {lead.enrichment_source !== 'apollo_api' && (
+                                        <p className="text-xs text-muted-foreground text-center">
+                                          ⚠️ Requires Apollo enrichment to search for contacts
+                                        </p>
+                                      )}
+                                      {lead.enrichment_source === 'apollo_api' && !lead.domain && (
+                                        <p className="text-xs text-muted-foreground text-center">
+                                          ⚠️ Domain required. Run enrichment first.
+                                        </p>
+                                      )}
                                     </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="space-y-3 pt-2">
-                                      <p className="text-xs text-muted-foreground">
-                                        Key contacts discovered via Apollo People Search
-                                      </p>
-                                      <div className="space-y-2">
-                                        {lead.company_contacts
-                                          .filter(contact => contact.name)
-                                          .map((contact, idx) => (
-                                          <div key={idx} className="p-3 border rounded-lg bg-muted/30">
-                                            <div className="flex items-start justify-between">
-                                              <div>
-                                                <p className="font-medium text-sm">{contact.name}</p>
-                                                {contact.title && (
-                                                  <p className="text-xs text-muted-foreground">{contact.title}</p>
-                                                )}
+
+                                    {/* Display Found Contacts */}
+                                    {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
+                                      <div className="space-y-3 pt-2 border-t">
+                                        <p className="text-xs text-muted-foreground">Discovered Contacts:</p>
+                                        <div className="space-y-2">
+                                          {lead.company_contacts
+                                            .filter(contact => contact.name)
+                                            .map((contact, idx) => (
+                                              <div key={idx} className="p-3 border rounded-lg bg-muted/30">
+                                                <div className="flex items-start justify-between">
+                                                  <div>
+                                                    <p className="font-medium text-sm">{contact.name}</p>
+                                                    {contact.title && (
+                                                      <p className="text-xs text-muted-foreground">{contact.title}</p>
+                                                    )}
+                                                  </div>
+                                                  {contact.email_status === 'verified' && (
+                                                    <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                      Verified
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <div className="mt-2 space-y-1">
+                                                  {contact.email && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <Mail className="h-3 w-3 text-muted-foreground" />
+                                                      <a
+                                                        href={`mailto:${contact.email}`}
+                                                        className="text-primary hover:underline"
+                                                      >
+                                                        {contact.email}
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {contact.linkedin_url && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                                      <a
+                                                        href={contact.linkedin_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline"
+                                                      >
+                                                        LinkedIn Profile
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                </div>
                                               </div>
-                                              {contact.email_status === 'verified' && (
-                                                <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
-                                                  Verified
-                                                </Badge>
-                                              )}
-                                            </div>
-                                            <div className="mt-2 space-y-1">
-                                              {contact.email && (
-                                                <div className="flex items-center gap-2 text-xs">
-                                                  <Mail className="h-3 w-3 text-muted-foreground" />
-                                                  <a 
-                                                    href={`mailto:${contact.email}`} 
-                                                    className="text-primary hover:underline"
-                                                  >
-                                                    {contact.email}
-                                                  </a>
-                                                </div>
-                                              )}
-                                              {contact.linkedin_url && (
-                                                <div className="flex items-center gap-2 text-xs">
-                                                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                                                  <a 
-                                                    href={contact.linkedin_url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="text-primary hover:underline"
-                                                  >
-                                                    LinkedIn Profile
-                                                  </a>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
                             </Accordion>
                           </div>
                         </DrawerContent>
