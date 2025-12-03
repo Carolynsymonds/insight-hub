@@ -113,6 +113,7 @@ interface Lead {
     linkedin: string | null;
     facebook: string | null;
     about_pages: string[];
+    nav_links: string[];
     services: string[];
   } | null;
 }
@@ -2232,6 +2233,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                           >
                                                             {page}
                                                           </a>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.nav_links && lead.scraped_data_log.nav_links.length > 0 && (
+                                                    <div>
+                                                      <span className="text-muted-foreground block mb-1">Nav Links ({lead.scraped_data_log.nav_links.length}):</span>
+                                                      <div className="flex flex-wrap gap-1">
+                                                        {lead.scraped_data_log.nav_links.slice(0, 15).map((link, idx) => (
+                                                          <span 
+                                                            key={idx}
+                                                            className="text-[10px] bg-muted px-1.5 py-0.5 rounded"
+                                                          >
+                                                            {link}
+                                                          </span>
                                                         ))}
                                                       </div>
                                                     </div>
