@@ -61,10 +61,10 @@ export const StickyScrollTable = ({ children, className }: StickyScrollTableProp
   };
 
   return (
-    <div className="relative">
+    <div className="relative h-[calc(100vh-140px)]">
       <div
         ref={tableRef}
-        className={`${className} max-h-[calc(100vh-180px)] overflow-y-auto`}
+        className={`${className} h-full overflow-y-auto`}
         onScroll={syncScrollFromTable}
       >
         {children}
