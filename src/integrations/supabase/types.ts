@@ -20,6 +20,7 @@ export type Database = {
           apollo_not_found: boolean | null
           city: string | null
           company: string | null
+          company_contacts: Json | null
           company_industry: string | null
           contact_email: string | null
           contact_email_personal: boolean | null
@@ -37,6 +38,7 @@ export type Database = {
           domain_relevance_explanation: string | null
           domain_relevance_score: number | null
           email: string | null
+          email_domain_validated: boolean | null
           enriched_at: string | null
           enrichment_confidence: number | null
           enrichment_logs: Json | null
@@ -77,6 +79,7 @@ export type Database = {
           apollo_not_found?: boolean | null
           city?: string | null
           company?: string | null
+          company_contacts?: Json | null
           company_industry?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
@@ -94,6 +97,7 @@ export type Database = {
           domain_relevance_explanation?: string | null
           domain_relevance_score?: number | null
           email?: string | null
+          email_domain_validated?: boolean | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           enrichment_logs?: Json | null
@@ -134,6 +138,7 @@ export type Database = {
           apollo_not_found?: boolean | null
           city?: string | null
           company?: string | null
+          company_contacts?: Json | null
           company_industry?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
@@ -151,6 +156,7 @@ export type Database = {
           domain_relevance_explanation?: string | null
           domain_relevance_score?: number | null
           email?: string | null
+          email_domain_validated?: boolean | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           enrichment_logs?: Json | null

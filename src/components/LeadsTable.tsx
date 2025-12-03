@@ -106,6 +106,12 @@ interface Lead {
   apollo_not_found: boolean | null;
   contact_email: string | null;
   contact_email_personal: boolean | null;
+  email_domain_validated: boolean | null;
+  company_contacts: Array<{
+    email: string;
+    source: string;
+    is_personal: boolean;
+  }> | null;
   scraped_data_log: {
     title: string | null;
     h1: string | null;
@@ -2394,6 +2400,50 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                             <span className="text-muted-foreground/50 italic">Not found</span>
                                                           )}
                                                         </div>
+                                                        
+                                                        {/* Email Validation Status */}
+                                                        <div className="flex justify-between items-center">
+                                                          <span className="text-muted-foreground">Email Validation:</span>
+                                                          {lead.email_domain_validated ? (
+                                                            <span className="flex items-center gap-1 text-green-600">
+                                                              <span className="text-[10px]">✓ Matches lead email</span>
+                                                              <Badge className="text-[9px] px-1 py-0 bg-green-100 text-green-700 border-green-300">
+                                                                100% Valid
+                                                              </Badge>
+                                                            </span>
+                                                          ) : lead.scraped_data_log?.deep_scrape?.contact_email && lead.email ? (
+                                                            <span className="text-amber-600 text-[10px]">
+                                                              Different from lead
+                                                            </span>
+                                                          ) : (
+                                                            <span className="text-muted-foreground/50 italic text-[10px]">—</span>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  
+                                                  {/* Company Contacts Found */}
+                                                  {lead.company_contacts && lead.company_contacts.length > 0 && (
+                                                    <div className="mt-3 pt-3 border-t border-dashed">
+                                                      <span className="text-muted-foreground font-medium block mb-2">
+                                                        📧 Additional Contacts ({lead.company_contacts.length})
+                                                      </span>
+                                                      <div className="flex flex-wrap gap-1.5">
+                                                        {lead.company_contacts.map((contact, idx) => (
+                                                          <a 
+                                                            key={idx}
+                                                            href={`mailto:${contact.email}`}
+                                                            className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-1 hover:bg-blue-100"
+                                                          >
+                                                            {contact.email}
+                                                            {contact.is_personal && (
+                                                              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-amber-100 text-amber-700">
+                                                                Personal
+                                                              </Badge>
+                                                            )}
+                                                          </a>
+                                                        ))}
                                                       </div>
                                                     </div>
                                                   )}
