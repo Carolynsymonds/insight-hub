@@ -792,7 +792,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                           className="bg-background [&_*]:select-text [&_button]:select-none [&_[role=button]]:select-none"
                         >
                           <DrawerHeader className="flex flex-row items-center justify-between select-none">
-                            <DrawerTitle className="select-none">Enrichments</DrawerTitle>
+                            <div>
+                              <DrawerTitle className="select-none">Enrichments</DrawerTitle>
+                              {lead.domain && (
+                                <p className="text-sm text-muted-foreground mt-1 select-text">{lead.domain}</p>
+                              )}
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
