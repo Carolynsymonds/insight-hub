@@ -775,6 +775,123 @@ Output ONLY the description paragraph.`
               organizationName: org.name
             };
 
+            // ============= CONTACT DISCOVERY =============
+            // Step 3: Search for company contacts via Apollo People Search
+            const discoveredContacts: any[] = [];
+            const targetTitles = ['ceo', 'owner', 'president', 'director', 'manager', 'founder', 'vp', 'chief'];
+            
+            try {
+              enrichmentSteps.push({
+                step: 3,
+                action: 'apollo_people_search',
+                status: 'pending',
+                timestamp: new Date().toISOString(),
+                details: {
+                  message: 'Searching for company contacts...',
+                  domain: normalizedDomain,
+                  titles_searched: targetTitles
+                }
+              });
+              console.log('Step 3: Searching for company contacts...');
+
+              const peopleSearchResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+                method: 'POST',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  'Content-Type': 'application/json',
+                  'accept': 'application/json',
+                  'x-api-key': apolloApiKey,
+                },
+                body: JSON.stringify({
+                  person_titles: targetTitles,
+                  q_organization_domains: normalizedDomain,
+                  page: 1,
+                  per_page: 10
+                })
+              });
+
+              if (peopleSearchResponse.ok) {
+                const peopleData = await peopleSearchResponse.json();
+                const people = peopleData.people || [];
+                console.log(`Found ${people.length} contacts at ${normalizedDomain}`);
+
+                // Step 4: For each person (limit to 5), get verified email via People Match
+                const contactsToEnrich = people.slice(0, 5);
+                
+                for (const person of contactsToEnrich) {
+                  try {
+                    console.log(`Enriching contact: ${person.name} (${person.id})`);
+                    const matchResponse = await fetch('https://api.apollo.io/api/v1/people/match', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'accept': 'application/json',
+                        'x-api-key': apolloApiKey,
+                      },
+                      body: JSON.stringify({
+                        id: person.id,
+                        reveal_personal_emails: false,
+                        reveal_phone_number: false
+                      })
+                    });
+
+                    if (matchResponse.ok) {
+                      const matchData = await matchResponse.json();
+                      const fullPerson = matchData.person;
+
+                      if (fullPerson) {
+                        discoveredContacts.push({
+                          id: fullPerson.id,
+                          name: fullPerson.name,
+                          first_name: fullPerson.first_name,
+                          last_name: fullPerson.last_name,
+                          title: fullPerson.title,
+                          email: fullPerson.email,
+                          email_status: fullPerson.email_status,
+                          linkedin_url: fullPerson.linkedin_url,
+                          source: 'apollo_people_search'
+                        });
+                        console.log(`Added contact: ${fullPerson.name} - ${fullPerson.email}`);
+                      }
+                    }
+                  } catch (matchError) {
+                    console.error(`Error matching person ${person.id}:`, matchError);
+                  }
+                }
+
+                // Update step 3 with results
+                enrichmentSteps[enrichmentSteps.length - 1].status = 'success';
+                enrichmentSteps[enrichmentSteps.length - 1].details = {
+                  ...enrichmentSteps[enrichmentSteps.length - 1].details,
+                  people_found: people.length,
+                  contacts_enriched: discoveredContacts.length,
+                  contacts: discoveredContacts.map(c => ({ name: c.name, title: c.title }))
+                };
+                console.log(`Successfully enriched ${discoveredContacts.length} contacts`);
+
+                if (discoveredContacts.length > 0) {
+                  updateData.company_contacts = discoveredContacts;
+                  fieldsPopulated.push('company_contacts');
+                }
+              } else {
+                console.log(`People search failed: ${peopleSearchResponse.status}`);
+                enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+                enrichmentSteps[enrichmentSteps.length - 1].details = {
+                  ...enrichmentSteps[enrichmentSteps.length - 1].details,
+                  error: `People search returned ${peopleSearchResponse.status}`
+                };
+              }
+            } catch (contactError: unknown) {
+              console.error('Error during contact discovery:', contactError);
+              if (enrichmentSteps.length > 0 && enrichmentSteps[enrichmentSteps.length - 1].action === 'apollo_people_search') {
+                enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+                enrichmentSteps[enrichmentSteps.length - 1].details = {
+                  ...enrichmentSteps[enrichmentSteps.length - 1].details,
+                  error: contactError instanceof Error ? contactError.message : 'Unknown error'
+                };
+              }
+            }
+
             // Store Apollo enrichment log for UI display
             updateData.scraped_data_log = {
               source: 'apollo',
