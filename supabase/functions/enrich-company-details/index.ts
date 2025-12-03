@@ -575,13 +575,14 @@ Write a comprehensive paragraph describing what products and services this compa
 Given scraped website data, generate:
 1. A concise company description (1-2 sentences summarizing what the company does)
 2. A list of products and services the company offers (as a comprehensive paragraph)
+3. The primary industry/sector this company operates in (e.g., "Roofing & Construction", "Healthcare Services", "Software & Technology", "Automotive Services", "Manufacturing", "Professional Services", "Retail", etc.)
 
 Output ONLY valid JSON in this exact format:
-{"description": "...", "products_services": "..."}`
+{"description": "...", "products_services": "...", "company_industry": "..."}`
               },
               {
                 role: 'user',
-                content: `Analyze this scraped website data and generate company description and products/services:
+                content: `Analyze this scraped website data and generate company description, products/services, and industry classification:
 
 Website Title: ${scrapedData.title || 'N/A'}
 Main Heading (H1): ${scrapedData.h1 || 'N/A'}
@@ -589,9 +590,11 @@ Meta Description: ${scrapedData.meta_description || 'N/A'}
 Meta Keywords: ${scrapedData.meta_keywords || 'N/A'}
 Services/Items found on page: ${scrapedData.services.slice(0, 20).join(', ') || 'N/A'}
 
-IMPORTANT: If Meta Keywords are available, prioritize them for the products_services field as they typically contain the most accurate list of company services curated by the website owner.
+IMPORTANT: 
+- If Meta Keywords are available, prioritize them for the products_services field as they typically contain the most accurate list of company services.
+- For company_industry, determine the primary sector/industry based on the overall content. Use standard industry categories.
 
-Generate a professional description and products/services summary.`
+Generate professional outputs for all three fields.`
               }
             ],
           }),
@@ -620,6 +623,10 @@ Generate a professional description and products/services summary.`
               if (parsed.products_services) {
                 updateData.products_services = parsed.products_services;
                 fieldsPopulated.push('products_services');
+              }
+              if (parsed.company_industry) {
+                updateData.company_industry = parsed.company_industry;
+                fieldsPopulated.push('company_industry');
               }
             } catch (parseError) {
               // If not JSON, use the whole response as description
