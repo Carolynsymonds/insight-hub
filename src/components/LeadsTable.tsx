@@ -1960,10 +1960,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       <p className="text-sm text-muted-foreground mb-3">
                                         {lead.apollo_not_found ? (
                                           <>
-                                            Enrich this lead by scraping the company website
-                                            <span className="block text-xs text-yellow-600 mt-1">
-                                              ⚠ Apollo: Company not found - will use website scraping
-                                            </span>
+                                            {lead.scraped_data_log ? (
+                                              <>
+                                                Company details enriched via website scraping
+                                                <span className="block text-xs text-green-600 mt-1">
+                                                  ✓ Scraped from website (Apollo: Company not found)
+                                                </span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                Enrich this lead by scraping the company website
+                                                <span className="block text-xs text-yellow-600 mt-1">
+                                                  ⚠ Apollo: Company not found - will use website scraping
+                                                </span>
+                                              </>
+                                            )}
                                           </>
                                         ) : lead.enrichment_source === 'apollo_api' ? (
                                           <>
