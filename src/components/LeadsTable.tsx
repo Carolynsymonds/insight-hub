@@ -1286,8 +1286,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         ) : null;
                                       })()}
 
-                                    {/* Enrich Company Details Button - only show when domain is found */}
-                                    {lead.domain && (
+                                    {/* Enrich Company Details Button - only show when domain is found and confidence >= 50% */}
+                                    {lead.domain && (lead.enrichment_confidence ?? 0) >= 50 && (
                                       <div className="pt-4 border-t space-y-2">
                                         {lead.enrichment_source === 'apollo_api' && (
                                           <p className="text-xs text-primary">
@@ -1317,6 +1317,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
                                           </p>
                                         )}
+                                      </div>
+                                    )}
+                                    {lead.domain && (lead.enrichment_confidence ?? 0) < 50 && (
+                                      <div className="pt-4 border-t">
+                                        <p className="text-xs text-muted-foreground text-center">
+                                          Company details enrichment requires ≥50% confidence
+                                        </p>
                                       </div>
                                     )}
 
@@ -1938,7 +1945,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         size="sm"
                                         variant="default"
                                         className="w-full"
-                                        disabled={enrichingCompanyDetails === lead.id}
+                                        disabled={enrichingCompanyDetails === lead.id || (lead.enrichment_confidence ?? 0) < 50}
                                         onClick={() => handleEnrichCompanyDetails(lead)}
                                       >
                                         {enrichingCompanyDetails === lead.id ? (
@@ -1953,6 +1960,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
+                                      {(lead.enrichment_confidence ?? 0) < 50 && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Requires ≥50% enrichment confidence
+                                        </p>
+                                      )}
 
                                       {/* Step progress indicator */}
                                       {enrichingCompanyDetails === lead.id && companyDetailsStep && (
