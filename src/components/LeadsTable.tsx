@@ -103,6 +103,7 @@ interface Lead {
   logo_url: string | null;
   products_services: string | null;
   source_url: string | null;
+  apollo_not_found: boolean | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -515,42 +516,45 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     }
 
     const isDirectApollo = lead.enrichment_source === 'apollo_api';
+    const skipApollo = lead.apollo_not_found === true;
     
     setEnrichingCompanyDetails(lead.id);
-    setCompanyDetailsStep({ 
-      step: 1, 
-      message: isDirectApollo 
-        ? 'Retrieving details from Apollo...' 
-        : 'Searching Apollo for domain...' 
-    });
+    
+    // Set initial step message based on path
+    if (skipApollo) {
+      setCompanyDetailsStep({ step: 1, message: 'Scraping website...' });
+    } else if (isDirectApollo) {
+      setCompanyDetailsStep({ step: 1, message: 'Retrieving details from Apollo...' });
+    } else {
+      setCompanyDetailsStep({ step: 1, message: 'Searching Apollo for domain...' });
+    }
 
     try {
-      // Simulate brief delay for step visibility
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (!isDirectApollo) {
-        setCompanyDetailsStep({ step: 1, message: 'Domain found in Apollo!' });
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setCompanyDetailsStep({ step: 2, message: 'Retrieving company details...' });
-      } else {
-        setCompanyDetailsStep({ step: 1, message: 'Retrieving company details...' });
-      }
-
       const { data, error } = await supabase.functions.invoke("enrich-company-details", {
         body: {
           leadId: lead.id,
           domain: lead.domain,
           enrichmentSource: lead.enrichment_source,
+          apolloNotFound: lead.apollo_not_found,
         },
       });
 
       if (error) throw error;
 
-      const fieldsCount = data.enrichedFields?.length || 0;
-      toast({
-        title: "Company Details Enriched!",
-        description: `${fieldsCount} fields populated from Apollo.`,
-      });
+      // Handle not found case
+      if (data.notFound) {
+        toast({
+          title: "Company Not Found",
+          description: "Could not find company details from Apollo or website scraping.",
+        });
+      } else {
+        const fieldsCount = data.enrichedFields?.length || 0;
+        const sourceLabel = data.source === 'scraper' ? 'website scraping' : 'Apollo';
+        toast({
+          title: "Company Details Enriched!",
+          description: `${fieldsCount} fields populated from ${sourceLabel}.`,
+        });
+      }
 
       onEnrichComplete();
     } catch (error: any) {
