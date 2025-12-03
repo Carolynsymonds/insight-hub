@@ -104,6 +104,17 @@ interface Lead {
   products_services: string | null;
   source_url: string | null;
   apollo_not_found: boolean | null;
+  scraped_data_log: {
+    title: string | null;
+    h1: string | null;
+    meta_description: string | null;
+    meta_keywords: string | null;
+    logo_url: string | null;
+    linkedin: string | null;
+    facebook: string | null;
+    about_pages: string[];
+    services: string[];
+  } | null;
 }
 interface LeadsTableProps {
   leads: Lead[];
@@ -2115,6 +2126,119 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         <span>• Tech Stack</span>
                                         <span>• LinkedIn URL</span>
                                       </div>
+
+                                      {/* Scraped Data Log Section */}
+                                      {lead.scraped_data_log && (
+                                        <Accordion type="single" collapsible className="mt-4">
+                                          <AccordionItem value="scraped-data" className="border rounded-lg bg-muted/30">
+                                            <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
+                                              <div className="flex items-center gap-2">
+                                                <span>📄 View Scraped Data</span>
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                  {lead.scraped_data_log.services?.length || 0} services found
+                                                </Badge>
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-3 pb-3">
+                                              <div className="space-y-2 text-xs">
+                                                <div className="grid gap-1.5">
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Title:</span>
+                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.title || ''}>
+                                                      {lead.scraped_data_log.title || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">H1:</span>
+                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.h1 || ''}>
+                                                      {lead.scraped_data_log.h1 || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Meta Description:</span>
+                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.meta_description || ''}>
+                                                      {lead.scraped_data_log.meta_description || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                    </span>
+                                                  </div>
+                                                  {lead.scraped_data_log.meta_keywords && (
+                                                    <div>
+                                                      <span className="text-muted-foreground block mb-1">Meta Keywords:</span>
+                                                      <span className="text-[10px] block bg-muted/50 p-1.5 rounded break-words">
+                                                        {lead.scraped_data_log.meta_keywords}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.logo_url && (
+                                                    <div className="flex justify-between items-center">
+                                                      <span className="text-muted-foreground">Logo URL:</span>
+                                                      <a 
+                                                        href={lead.scraped_data_log.logo_url.startsWith('http') ? lead.scraped_data_log.logo_url : `https://${lead.domain}${lead.scraped_data_log.logo_url}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline flex items-center gap-1"
+                                                      >
+                                                        View <ExternalLink className="h-2.5 w-2.5" />
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.linkedin && (
+                                                    <div className="flex justify-between items-center">
+                                                      <span className="text-muted-foreground">LinkedIn:</span>
+                                                      <a 
+                                                        href={lead.scraped_data_log.linkedin.startsWith('http') ? lead.scraped_data_log.linkedin : `https://${lead.scraped_data_log.linkedin}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline flex items-center gap-1"
+                                                      >
+                                                        View <ExternalLink className="h-2.5 w-2.5" />
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.facebook && (
+                                                    <div className="flex justify-between items-center">
+                                                      <span className="text-muted-foreground">Facebook:</span>
+                                                      <a 
+                                                        href={lead.scraped_data_log.facebook.startsWith('http') ? lead.scraped_data_log.facebook : `https://${lead.scraped_data_log.facebook}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline flex items-center gap-1"
+                                                      >
+                                                        View <ExternalLink className="h-2.5 w-2.5" />
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.about_pages && lead.scraped_data_log.about_pages.length > 0 && (
+                                                    <div>
+                                                      <span className="text-muted-foreground block mb-1">About Pages ({lead.scraped_data_log.about_pages.length}):</span>
+                                                      <div className="text-[10px] space-y-0.5">
+                                                        {lead.scraped_data_log.about_pages.slice(0, 5).map((page, idx) => (
+                                                          <a 
+                                                            key={idx}
+                                                            href={page.startsWith('http') ? page : `https://${lead.domain}${page}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-primary hover:underline block truncate"
+                                                          >
+                                                            {page}
+                                                          </a>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  {lead.scraped_data_log.services && lead.scraped_data_log.services.length > 0 && (
+                                                    <div>
+                                                      <span className="text-muted-foreground block mb-1">Services Found ({lead.scraped_data_log.services.length}):</span>
+                                                      <div className="text-[10px] bg-muted/50 p-1.5 rounded max-h-24 overflow-y-auto">
+                                                        {lead.scraped_data_log.services.join(' • ')}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </AccordionContent>
+                                          </AccordionItem>
+                                        </Accordion>
+                                      )}
                                     </div>
                                   </AccordionContent>
                                 </AccordionItem>

@@ -652,6 +652,9 @@ Generate a professional description and products/services summary.`
       fieldsPopulated
     };
 
+    // Save the scraped data for transparency/debugging
+    updateData.scraped_data_log = scrapedData;
+
     console.log("=== UPDATE DATA (Scraped) ===");
     console.log(JSON.stringify(updateData, null, 2));
 
