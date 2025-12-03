@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
@@ -1510,6 +1510,26 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 </AccordionTrigger>
                                 <AccordionContent>
                                   <div className="space-y-3 pt-2">
+                                    {/* Email Validated Banner - Show when email_domain_validated is true */}
+                                    {lead.email_domain_validated && (
+                                      <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                          <div className="flex-1">
+                                            <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                                              Domain Validated via Email Match
+                                            </p>
+                                            <p className="text-xs text-green-600 dark:text-green-400">
+                                              Scraped contact email matches lead's email address
+                                            </p>
+                                          </div>
+                                          <Badge className="bg-green-600 hover:bg-green-600 text-white border-green-600">
+                                            100% Confirmed
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    )}
+
                                     {/* Overall Match Score Display */}
                                     <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
                                       <div className="flex items-center justify-between mb-3">
@@ -1553,6 +1573,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         <div className="mb-3 pb-3 border-b">
                                           <p className="text-xs text-muted-foreground mb-1">Determined by:</p>
                                           <p className="text-sm font-medium">
+                                            {lead.match_score_source === "email_validated" && "✅ Email Validated via Website Scrape"}
                                             {lead.match_score_source === "email_domain" && "📧 Email Domain Verified"}
                                             {lead.match_score_source === "google_knowledge_graph" &&
                                               "🌐 Google Knowledge Graph"}
