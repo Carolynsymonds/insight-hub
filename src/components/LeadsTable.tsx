@@ -1336,8 +1336,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         ) : null;
                                       })()}
 
-                                    {/* Enrich Company Details Button - only show when domain is found and confidence >= 50% */}
-                                    {lead.domain && (lead.enrichment_confidence ?? 0) >= 50 && (
+                                    {/* Enrich Company Details Button - only show when domain is found and match_score >= 50% */}
+                                    {lead.domain && (lead.match_score ?? 0) >= 50 && (
                                       <div className="pt-4 border-t space-y-2">
                                         {lead.enrichment_source === 'apollo_api' && (
                                           <p className="text-xs text-primary">
@@ -1369,10 +1369,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         )}
                                       </div>
                                     )}
-                                    {lead.domain && (lead.enrichment_confidence ?? 0) < 50 && (
+                                    {lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
                                       <div className="pt-4 border-t">
                                         <p className="text-xs text-destructive/70 text-center">
-                                          Blocked: Domain confidence is {lead.enrichment_confidence ?? 0}% (requires ≥50%)
+                                          {lead.match_score === null 
+                                            ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
+                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
                                         </p>
                                       </div>
                                     )}
@@ -2017,7 +2019,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         size="sm"
                                         variant="default"
                                         className="w-full"
-                                        disabled={enrichingCompanyDetails === lead.id || (lead.enrichment_confidence ?? 0) < 50}
+                                        disabled={enrichingCompanyDetails === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50}
                                         onClick={() => handleEnrichCompanyDetails(lead)}
                                       >
                                         {enrichingCompanyDetails === lead.id ? (
@@ -2032,9 +2034,11 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
-                                      {(lead.enrichment_confidence ?? 0) < 50 && (
+                                      {(lead.match_score === null || (lead.match_score ?? 0) < 50) && (
                                         <p className="text-xs text-destructive/70">
-                                          Blocked: Domain confidence is {lead.enrichment_confidence ?? 0}% (requires ≥50%)
+                                          {lead.match_score === null 
+                                            ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
+                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
                                         </p>
                                       )}
 
@@ -2138,7 +2142,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         size="sm"
                                         variant="outline"
                                         className="w-full"
-                                        disabled={fetchingNews === lead.id || (lead.enrichment_confidence ?? 0) < 50}
+                                        disabled={fetchingNews === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50}
                                         onClick={() => handleGetCompanyNews(lead)}
                                       >
                                         {fetchingNews === lead.id ? (
