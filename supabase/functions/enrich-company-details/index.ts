@@ -673,21 +673,12 @@ Write a comprehensive paragraph describing what products and services this compa
 
                 if (aiResponse.ok) {
                   const aiData = await aiResponse.json();
-                  const generatedDescription = aiData.choices?.[0]?.message?.content?.trim();
+                  const generatedProductsServices = aiData.choices?.[0]?.message?.content?.trim();
                   
-                  if (generatedDescription) {
-                    console.log('AI generated description:', generatedDescription);
-                    updateData.products_services = generatedDescription;
+                  if (generatedProductsServices) {
+                    console.log('AI generated products/services:', generatedProductsServices);
+                    updateData.products_services = generatedProductsServices;
                     fieldsPopulated.push('products_services');
-                    
-                    // Use AI-generated description if Apollo's was generic
-                    if (!updateData.description || apolloDescriptionIsGeneric) {
-                      updateData.description = generatedDescription;
-                      if (!fieldsPopulated.includes('description')) {
-                        fieldsPopulated.push('description');
-                      }
-                      console.log('Using AI-generated description (Apollo was generic)');
-                    }
                   } else if (companyContext.keywords.length > 0) {
                     updateData.products_services = companyContext.keywords.join(', ');
                     fieldsPopulated.push('products_services');
@@ -697,10 +688,80 @@ Write a comprehensive paragraph describing what products and services this compa
                   fieldsPopulated.push('products_services');
                 }
               } catch (aiError) {
-                console.error('Error calling Lovable AI:', aiError);
+                console.error('Error calling Lovable AI for products/services:', aiError);
                 if (companyContext.keywords.length > 0) {
                   updateData.products_services = companyContext.keywords.join(', ');
                   fieldsPopulated.push('products_services');
+                }
+              }
+
+              // Generate comprehensive company description from all enriched fields
+              if (!updateData.description || apolloDescriptionIsGeneric) {
+                try {
+                  console.log('Generating comprehensive AI description from enriched fields...');
+                  const descriptionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      model: 'google/gemini-2.5-flash',
+                      messages: [
+                        {
+                          role: 'system',
+                          content: 'You are a professional business writer. Generate concise, factual company descriptions. Output ONLY the description paragraph with no additional text or formatting.'
+                        },
+                        {
+                          role: 'user',
+                          content: `Generate a professional company description (2-3 sentences) for:
+
+Company Name: ${org.name}
+Year Founded: ${org.founded_year || 'Unknown'}
+Number of Employees: ${org.estimated_num_employees || 'Unknown'}
+Annual Revenue: ${org.organization_revenue_printed || 'Unknown'}
+Industry: ${org.industry || 'N/A'}
+Industries: ${org.industries?.join(', ') || 'N/A'}
+Location: ${[org.city, org.state, org.country].filter(Boolean).join(', ') || 'N/A'}
+${updateData.products_services ? `Products/Services: ${updateData.products_services}` : ''}
+
+Write a professional paragraph that:
+1. Introduces the company with founding year if known
+2. Mentions company size (employees) and revenue scale if known
+3. States their industry and briefly summarizes what they do
+4. Uses factual, professional tone - no marketing language
+
+Output ONLY the description paragraph.`
+                        }
+                      ],
+                    }),
+                  });
+
+                  if (descriptionResponse.ok) {
+                    const descriptionData = await descriptionResponse.json();
+                    const generatedDescription = descriptionData.choices?.[0]?.message?.content?.trim();
+                    
+                    if (generatedDescription) {
+                      console.log('AI generated description:', generatedDescription);
+                      updateData.description = generatedDescription;
+                      if (!fieldsPopulated.includes('description')) {
+                        fieldsPopulated.push('description');
+                      }
+                    }
+                  }
+                } catch (descError) {
+                  console.error('Error generating AI description:', descError);
+                  // Fallback: construct basic description from available fields
+                  const fallbackParts = [org.name];
+                  if (org.founded_year) fallbackParts.push(`founded in ${org.founded_year}`);
+                  if (org.estimated_num_employees) fallbackParts.push(`with ${org.estimated_num_employees} employees`);
+                  if (org.organization_revenue_printed) fallbackParts.push(`(${org.organization_revenue_printed} revenue)`);
+                  if (org.industries?.length) fallbackParts.push(`operates in ${org.industries.join(', ')}`);
+                  
+                  updateData.description = fallbackParts.join(', ') + '.';
+                  if (!fieldsPopulated.includes('description')) {
+                    fieldsPopulated.push('description');
+                  }
                 }
               }
             }
