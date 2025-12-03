@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.enrich-lead]
 verify_jwt = false
 
+[functions.find-company-contacts]
+verify_jwt = false
+
 [functions.find-company-coordinates]
 verify_jwt = false
 
