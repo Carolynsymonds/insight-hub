@@ -2675,7 +2675,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         className="w-full"
                                         disabled={
                                           findingContacts === lead.id ||
-                                          lead.enrichment_source !== 'apollo_api' ||
                                           !lead.domain
                                         }
                                         onClick={() => handleFindContacts(lead)}
@@ -2694,12 +2693,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       </Button>
 
                                       {/* Show disabled state reason */}
-                                      {lead.enrichment_source !== 'apollo_api' && (
-                                        <p className="text-xs text-muted-foreground text-center">
-                                          ⚠️ Requires Apollo enrichment to search for contacts
-                                        </p>
-                                      )}
-                                      {lead.enrichment_source === 'apollo_api' && !lead.domain && (
+                                      {!lead.domain && (
                                         <p className="text-xs text-muted-foreground text-center">
                                           ⚠️ Domain required. Run enrichment first.
                                         </p>
