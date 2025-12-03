@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, company, state, domain } = await req.json();
+    const { leadId, company, domain } = await req.json();
 
-    console.log('Getting company news for:', { leadId, company, state, domain });
+    console.log('Getting company news for:', { leadId, company, domain });
 
     if (!leadId || !company) {
       throw new Error('Missing required parameters: leadId and company are required');
@@ -24,19 +24,13 @@ Deno.serve(async (req) => {
       throw new Error('SERPAPI_KEY not configured');
     }
 
-    // Build the search query
-    let searchQuery = `"${company}"`;
-    if (domain) {
-      searchQuery += ` OR "${domain}"`;
-    }
-    if (state) {
-      searchQuery += ` ${state}`;
-    }
+    // Search by domain only (or company name as fallback)
+    const searchQuery = domain || company;
 
     console.log('Search query:', searchQuery);
 
-    // Fetch news from SerpAPI
-    const serpApiUrl = `https://serpapi.com/search?engine=google_news&q=${encodeURIComponent(searchQuery)}&api_key=${serpApiKey}`;
+    // Fetch news from SerpAPI using Google News tab
+    const serpApiUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&tbm=nws&hl=en&gl=us&api_key=${serpApiKey}`;
     
     const response = await fetch(serpApiUrl);
     
@@ -47,28 +41,27 @@ Deno.serve(async (req) => {
     const data = await response.json();
     console.log('SerpAPI response:', JSON.stringify(data, null, 2));
 
-    // Format news results
-    let formattedNews = '';
-    
-    if (data.news_results && data.news_results.length > 0) {
-      const newsItems = data.news_results.slice(0, 10); // Limit to 10 news items
-      
-      formattedNews = newsItems.map((item: any, index: number) => {
-        const title = item.title || 'No title';
-        const source = item.source || 'Unknown source';
-        const date = item.date || 'No date';
-        const link = item.link || '';
-        
-        return `${index + 1}. ${title}\n   Source: ${source} | Date: ${date}\n   ${link}`;
-      }).join('\n\n');
+    // Store structured JSON with first 3 results
+    const newsData = {
+      search_query: searchQuery,
+      searched_at: new Date().toISOString(),
+      news_count: Math.min(data.news_results?.length || 0, 3),
+      items: (data.news_results || []).slice(0, 3).map((item: any) => ({
+        position: item.position,
+        link: item.link || '',
+        title: item.title || 'No title',
+        source: item.source || 'Unknown source',
+        date: item.date || 'No date',
+        published_at: item.published_at || null,
+        snippet: item.snippet || '',
+        favicon: item.favicon || null,
+        thumbnail: item.thumbnail || null
+      }))
+    };
 
-      console.log(`Found ${newsItems.length} news items`);
-    } else {
-      formattedNews = 'No news articles found for this company.';
-      console.log('No news results found');
-    }
+    console.log(`Storing ${newsData.news_count} news items`);
 
-    // Update the lead record with news data
+    // Update the lead record with news data as JSON string
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -76,7 +69,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from('leads')
       .update({ 
-        news: formattedNews,
+        news: JSON.stringify(newsData),
         updated_at: new Date().toISOString()
       })
       .eq('id', leadId);
@@ -90,7 +83,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        newsCount: data.news_results?.length || 0,
+        newsCount: newsData.news_count,
         message: 'Company news fetched successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
@@ -684,7 +685,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
         body: {
           leadId: lead.id,
           company: lead.company,
-          state: lead.state,
           domain: lead.domain,
         },
       });
@@ -925,12 +925,31 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     onClick={(e) => {
                       if (lead.news) {
                         e.stopPropagation();
-                        setModalContent({ title: "News", text: lead.news });
+                        try {
+                          const newsData = JSON.parse(lead.news);
+                          const newsText = newsData.items?.map((item: any) => 
+                            `${item.title}\n${item.source} • ${item.date}\n${item.snippet || ''}`
+                          ).join('\n\n') || 'No news found';
+                          setModalContent({ title: "News", text: newsText });
+                        } catch {
+                          setModalContent({ title: "News", text: lead.news });
+                        }
                         setShowTextModal(true);
                       }
                     }}
                   >
-                    <div className="truncate">{lead.news || "—"}</div>
+                    <div className="truncate">
+                      {lead.news ? (() => {
+                        try {
+                          const newsData = JSON.parse(lead.news);
+                          return newsData.news_count > 0 
+                            ? `${newsData.news_count} article${newsData.news_count > 1 ? 's' : ''}`
+                            : 'No news';
+                        } catch {
+                          return lead.news;
+                        }
+                      })() : "—"}
+                    </div>
                   </TableCell>
                   <TableCell
                     className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
@@ -2246,26 +2265,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         </div>
                                       )}
 
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="w-full"
-                                        disabled={fetchingNews === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50}
-                                        onClick={() => handleGetCompanyNews(lead)}
-                                      >
-                                        {fetchingNews === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Fetching News...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Search className="mr-2 h-4 w-4" />
-                                            Get Company News
-                                          </>
-                                        )}
-                                      </Button>
-
                                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                                         <span>• Company Size</span>
                                         <span>• Annual Revenue</span>
@@ -2760,6 +2759,122 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         </div>
                                       </div>
                                     )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Company News Accordion - After Find Contacts */}
+                              <AccordionItem value="company-news" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Newspaper className="h-4 w-4" />
+                                    <span>Company News</span>
+                                    {lead.news && (() => {
+                                      try {
+                                        const newsData = JSON.parse(lead.news);
+                                        if (newsData.news_count > 0) {
+                                          return (
+                                            <Badge variant="secondary" className="ml-2">
+                                              {newsData.news_count} articles
+                                            </Badge>
+                                          );
+                                        }
+                                      } catch { }
+                                      return null;
+                                    })()}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-4">
+                                    {/* Get Company News Button */}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full"
+                                      disabled={fetchingNews === lead.id || !lead.domain}
+                                      onClick={() => handleGetCompanyNews(lead)}
+                                    >
+                                      {fetchingNews === lead.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Fetching News...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Newspaper className="mr-2 h-4 w-4" />
+                                          Get Company News
+                                        </>
+                                      )}
+                                    </Button>
+                                    {!lead.domain && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Domain required. Run enrichment first.
+                                      </p>
+                                    )}
+
+                                    {/* Display News Results with Logs */}
+                                    {lead.news && (() => {
+                                      try {
+                                        const newsData = JSON.parse(lead.news);
+                                        return (
+                                          <div className="space-y-3 pt-2 border-t">
+                                            {/* Search Logs */}
+                                            <Collapsible>
+                                              <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+                                                <ChevronRight className="h-3 w-3 transition-transform duration-200 data-[state=open]:rotate-90" />
+                                                View Search Logs
+                                              </CollapsibleTrigger>
+                                              <CollapsibleContent className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                                                <p><strong>Query:</strong> {newsData.search_query}</p>
+                                                <p><strong>Searched:</strong> {new Date(newsData.searched_at).toLocaleString()}</p>
+                                                <p><strong>Results:</strong> {newsData.news_count} articles found</p>
+                                              </CollapsibleContent>
+                                            </Collapsible>
+
+                                            {/* News Items */}
+                                            {newsData.items?.length > 0 ? (
+                                              <div className="space-y-2">
+                                                <p className="text-xs text-muted-foreground">Latest News:</p>
+                                                {newsData.items.map((item: any, idx: number) => (
+                                                  <div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                                                    {/* Title with link */}
+                                                    <a 
+                                                      href={item.link} 
+                                                      target="_blank" 
+                                                      rel="noopener noreferrer"
+                                                      className="font-medium text-sm text-primary hover:underline block"
+                                                    >
+                                                      {item.title}
+                                                    </a>
+                                                    
+                                                    {/* Source and date */}
+                                                    <p className="text-xs text-muted-foreground">
+                                                      {item.source} • {item.date}
+                                                    </p>
+                                                    
+                                                    {/* Snippet as description */}
+                                                    {item.snippet && (
+                                                      <p className="text-xs text-foreground/80 leading-relaxed">
+                                                        {item.snippet}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-muted-foreground">No news articles found.</p>
+                                            )}
+                                          </div>
+                                        );
+                                      } catch {
+                                        // Fallback for old text format
+                                        return (
+                                          <div className="space-y-2 pt-2 border-t">
+                                            <pre className="text-xs whitespace-pre-wrap">{lead.news}</pre>
+                                          </div>
+                                        );
+                                      }
+                                    })()}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
