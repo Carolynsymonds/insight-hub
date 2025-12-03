@@ -151,9 +151,10 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           error: 'Organization not found in Apollo',
-          enrichmentSteps
+          enrichmentSteps,
+          notFound: true
         }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
