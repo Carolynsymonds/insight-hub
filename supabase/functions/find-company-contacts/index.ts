@@ -11,10 +11,11 @@ interface DiscoveredContact {
   first_name: string;
   last_name: string;
   title: string;
-  email: string;
-  email_status: string;
+  email: string | null;
+  email_status: string | null;
   linkedin_url: string;
   source: string;
+  found_without_role_filter?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -62,8 +63,8 @@ Deno.serve(async (req) => {
     const discoveredContacts: DiscoveredContact[] = [];
     const targetTitles = ['ceo', 'owner', 'president', 'director', 'manager', 'founder', 'vp', 'chief'];
 
-    // Step 1: Search for company contacts via Apollo People Search
-    console.log('Step 1: Searching for company contacts...');
+    // Step 1: Search for company contacts via Apollo People Search WITH role filters
+    console.log('Step 1: Searching for company contacts with role filters...');
 
     const peopleSearchResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
       method: 'POST',
@@ -87,54 +88,105 @@ Deno.serve(async (req) => {
     }
 
     const peopleData = await peopleSearchResponse.json();
-    const people = peopleData.people || [];
-    console.log(`Found ${people.length} contacts at ${normalizedDomain}`);
+    let people = peopleData.people || [];
+    let usedFallback = false;
 
-    // Step 2: For each person (limit to 5), get verified email via People Match
-    const contactsToEnrich = people.slice(0, 5);
+    console.log(`Found ${people.length} contacts with role filters at ${normalizedDomain}`);
 
-    for (const person of contactsToEnrich) {
-      try {
-        console.log(`Enriching contact: ${person.name} (${person.id})`);
-        const matchResponse = await fetch('https://api.apollo.io/api/v1/people/match', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-            'x-api-key': apolloApiKey,
-          },
-          body: JSON.stringify({
-            id: person.id,
-            reveal_personal_emails: false,
-            reveal_phone_number: false
-          })
-        });
+    // FALLBACK: If no contacts found with role filters, search without filters
+    if (people.length === 0) {
+      console.log('No contacts found with role filters. Attempting fallback search without filters...');
+      
+      const fallbackSearchResponse = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+        method: 'POST',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-api-key': apolloApiKey,
+        },
+        body: JSON.stringify({
+          q_organization_domains: normalizedDomain,
+          page: 1,
+          per_page: 10
+          // NO person_titles filter
+        })
+      });
 
-        if (matchResponse.ok) {
-          const matchData = await matchResponse.json();
-          const fullPerson = matchData.person;
-
-          if (fullPerson) {
-            discoveredContacts.push({
-              id: fullPerson.id,
-              name: fullPerson.name,
-              first_name: fullPerson.first_name,
-              last_name: fullPerson.last_name,
-              title: fullPerson.title,
-              email: fullPerson.email,
-              email_status: fullPerson.email_status,
-              linkedin_url: fullPerson.linkedin_url,
-              source: 'apollo_people_search'
-            });
-            console.log(`Added contact: ${fullPerson.name} - ${fullPerson.email}`);
-          }
-        }
-      } catch (matchError) {
-        console.error(`Error matching person ${person.id}:`, matchError);
+      if (fallbackSearchResponse.ok) {
+        const fallbackData = await fallbackSearchResponse.json();
+        people = fallbackData.people || [];
+        usedFallback = true;
+        console.log(`Fallback search found ${people.length} contacts (without role filters)`);
+      } else {
+        console.error(`Fallback search failed: ${fallbackSearchResponse.status}`);
       }
     }
 
-    console.log(`Successfully enriched ${discoveredContacts.length} contacts`);
+    // Step 2: Process contacts based on whether we used fallback or not
+    const contactsToEnrich = people.slice(0, 5);
+
+    for (const person of contactsToEnrich) {
+      if (usedFallback) {
+        // For fallback contacts (no role filter), just store name/title - NO EMAIL enrichment
+        discoveredContacts.push({
+          id: person.id,
+          name: person.name,
+          first_name: person.first_name,
+          last_name: person.last_name,
+          title: person.title,
+          email: null,  // Explicitly null - not retrieved
+          email_status: null,
+          linkedin_url: person.linkedin_url,
+          source: 'apollo_people_search',
+          found_without_role_filter: true
+        });
+        console.log(`Added fallback contact (name only): ${person.name} - ${person.title}`);
+      } else {
+        // Original logic - enrich with email via people/match
+        try {
+          console.log(`Enriching contact: ${person.name} (${person.id})`);
+          const matchResponse = await fetch('https://api.apollo.io/api/v1/people/match', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'accept': 'application/json',
+              'x-api-key': apolloApiKey,
+            },
+            body: JSON.stringify({
+              id: person.id,
+              reveal_personal_emails: false,
+              reveal_phone_number: false
+            })
+          });
+
+          if (matchResponse.ok) {
+            const matchData = await matchResponse.json();
+            const fullPerson = matchData.person;
+
+            if (fullPerson) {
+              discoveredContacts.push({
+                id: fullPerson.id,
+                name: fullPerson.name,
+                first_name: fullPerson.first_name,
+                last_name: fullPerson.last_name,
+                title: fullPerson.title,
+                email: fullPerson.email,
+                email_status: fullPerson.email_status,
+                linkedin_url: fullPerson.linkedin_url,
+                source: 'apollo_people_search',
+                found_without_role_filter: false
+              });
+              console.log(`Added contact: ${fullPerson.name} - ${fullPerson.email}`);
+            }
+          }
+        } catch (matchError) {
+          console.error(`Error matching person ${person.id}:`, matchError);
+        }
+      }
+    }
+
+    console.log(`Successfully processed ${discoveredContacts.length} contacts (fallback: ${usedFallback})`);
 
     // Update the lead with discovered contacts
     const { error: updateError } = await supabase
@@ -155,7 +207,13 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         contactsFound: discoveredContacts.length,
-        contacts: discoveredContacts.map(c => ({ name: c.name, title: c.title, email: c.email }))
+        usedFallback,
+        contacts: discoveredContacts.map(c => ({ 
+          name: c.name, 
+          title: c.title, 
+          email: c.email,
+          found_without_role_filter: c.found_without_role_filter 
+        }))
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
