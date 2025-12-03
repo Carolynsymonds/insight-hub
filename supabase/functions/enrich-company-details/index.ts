@@ -58,6 +58,17 @@ const PERSONAL_EMAIL_DOMAINS = [
   'live.com', 'msn.com', 'aol.com', 'icloud.com', 'me.com'
 ];
 
+// Check if Apollo description is a generic address placeholder
+function isGenericAddressDescription(description: string): boolean {
+  if (!description) return true;
+  const lower = description.toLowerCase();
+  // Pattern: "COMPANY is a company based out of ADDRESS"
+  return lower.includes('is a company based out of') ||
+         lower.includes('is a company located at') ||
+         lower.includes('is based out of') ||
+         (lower.includes('is a company') && (lower.includes('based') || lower.includes('located')));
+}
+
 function filterHighValueUrls(navLinks: string[], domain: string): string[] {
   return navLinks
     .filter(link => {
@@ -579,7 +590,9 @@ Deno.serve(async (req) => {
               updateData.company_industry = org.industries.join(', ');
               fieldsPopulated.push('company_industry');
             }
-            if (org.short_description) {
+            // Only use Apollo's short_description if it's not a generic address placeholder
+            const apolloDescriptionIsGeneric = isGenericAddressDescription(org.short_description);
+            if (org.short_description && !apolloDescriptionIsGeneric) {
               updateData.description = org.short_description;
               fieldsPopulated.push('description');
             }
@@ -666,6 +679,15 @@ Write a comprehensive paragraph describing what products and services this compa
                     console.log('AI generated description:', generatedDescription);
                     updateData.products_services = generatedDescription;
                     fieldsPopulated.push('products_services');
+                    
+                    // Use AI-generated description if Apollo's was generic
+                    if (!updateData.description || apolloDescriptionIsGeneric) {
+                      updateData.description = generatedDescription;
+                      if (!fieldsPopulated.includes('description')) {
+                        fieldsPopulated.push('description');
+                      }
+                      console.log('Using AI-generated description (Apollo was generic)');
+                    }
                   } else if (companyContext.keywords.length > 0) {
                     updateData.products_services = companyContext.keywords.join(', ');
                     fieldsPopulated.push('products_services');
