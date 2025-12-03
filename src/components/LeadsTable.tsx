@@ -193,6 +193,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
+  const [showContactsModal, setShowContactsModal] = useState(false);
+  const [contactsModalLead, setContactsModalLead] = useState<Lead | null>(null);
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -736,7 +738,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>Linkedin</TableHead>
               <TableHead>Facebook</TableHead>
               <TableHead>Founded</TableHead>
-              <TableHead>Contact Email</TableHead>
+              <TableHead>Contacts</TableHead>
               <TableHead>Logo</TableHead>
               <TableHead className="min-w-[200px]">Products/Services</TableHead>
               <TableHead>News</TableHead>
@@ -865,25 +867,29 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   </TableCell>
                   <TableCell>{lead.founded_date || "—"}</TableCell>
                   <TableCell>
-                    {lead.contact_email ? (
-                      <div className="flex items-center gap-1">
-                        <a
-                          href={`mailto:${lead.contact_email}`}
-                          className="text-primary hover:underline text-xs truncate max-w-[150px]"
-                          onClick={(e) => e.stopPropagation()}
-                          title={lead.contact_email}
+                    {(() => {
+                      const apolloContacts = lead.company_contacts?.filter(c => c.source === 'apollo_people_search') || [];
+                      const scraperContacts = lead.company_contacts?.filter(c => c.source !== 'apollo_people_search') || [];
+                      const totalContacts = apolloContacts.length + scraperContacts.length + (lead.contact_email ? 1 : 0);
+                      
+                      if (totalContacts === 0) return "—";
+                      
+                      return (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-1 text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContactsModalLead(lead);
+                            setShowContactsModal(true);
+                          }}
                         >
-                          {lead.contact_email}
-                        </a>
-                        {lead.contact_email_personal && (
-                          <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded" title="Personal email (Gmail, Yahoo, etc.)">
-                            Personal
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      "—"
-                    )}
+                          <Users className="h-3 w-3 mr-1" />
+                          {totalContacts} contact{totalContacts > 1 ? 's' : ''}
+                        </Button>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {lead.logo_url ? (
@@ -2862,6 +2868,113 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                 </div>
               )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Contacts Modal */}
+      <Dialog open={showContactsModal} onOpenChange={setShowContactsModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Contacts for {contactsModalLead?.company || contactsModalLead?.full_name}</DialogTitle>
+          </DialogHeader>
+          
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>LinkedIn</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Apollo Contacts */}
+              {contactsModalLead?.company_contacts
+                ?.filter(c => c.source === 'apollo_people_search')
+                .map((contact, idx) => (
+                  <TableRow key={`apollo-${idx}`}>
+                    <TableCell className="font-medium">{contact.name || `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || '—'}</TableCell>
+                    <TableCell>{contact.title || '—'}</TableCell>
+                    <TableCell>
+                      <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
+                        {contact.email}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Apollo</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {contact.email_status === 'verified' && (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {contact.linkedin_url ? (
+                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      ) : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              
+              {/* Scraped Contacts (from company_contacts with other sources) */}
+              {contactsModalLead?.company_contacts
+                ?.filter(c => c.source !== 'apollo_people_search')
+                .map((contact, idx) => (
+                  <TableRow key={`scraper-${idx}`}>
+                    <TableCell className="font-medium">{contact.name || '—'}</TableCell>
+                    <TableCell>{contact.title || '—'}</TableCell>
+                    <TableCell>
+                      <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
+                        {contact.email}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Google</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {contact.is_personal && (
+                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Personal</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>—</TableCell>
+                  </TableRow>
+                ))}
+              
+              {/* Primary scraped contact_email (if exists and not already in company_contacts) */}
+              {contactsModalLead?.contact_email && !contactsModalLead?.company_contacts?.some(c => c.email === contactsModalLead.contact_email) && (
+                <TableRow>
+                  <TableCell className="font-medium">—</TableCell>
+                  <TableCell>—</TableCell>
+                  <TableCell>
+                    <a href={`mailto:${contactsModalLead.contact_email}`} className="text-primary hover:underline text-sm">
+                      {contactsModalLead.contact_email}
+                    </a>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Google</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {contactsModalLead.contact_email_personal && (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Personal</Badge>
+                    )}
+                    {contactsModalLead.email_domain_validated && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">Validated</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>—</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          
+          {/* Empty state */}
+          {(!contactsModalLead?.company_contacts?.length && !contactsModalLead?.contact_email) && (
+            <p className="text-muted-foreground text-center py-4">No contacts found</p>
           )}
         </DialogContent>
       </Dialog>
