@@ -17,6 +17,7 @@ export type Database = {
       leads: {
         Row: {
           annual_revenue: string | null
+          apollo_not_found: boolean | null
           city: string | null
           company: string | null
           company_industry: string | null
@@ -70,6 +71,7 @@ export type Database = {
         }
         Insert: {
           annual_revenue?: string | null
+          apollo_not_found?: boolean | null
           city?: string | null
           company?: string | null
           company_industry?: string | null
@@ -123,6 +125,7 @@ export type Database = {
         }
         Update: {
           annual_revenue?: string | null
+          apollo_not_found?: boolean | null
           city?: string | null
           company?: string | null
           company_industry?: string | null
