@@ -593,8 +593,15 @@ Generate a professional description and products/services summary.`
           if (aiContent) {
             console.log('AI response:', aiContent);
             try {
+              // Strip markdown code fences if present
+              let jsonContent = aiContent;
+              if (jsonContent.startsWith('```')) {
+                jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+              }
+              console.log('Cleaned JSON:', jsonContent);
+              
               // Try to parse JSON response
-              const parsed = JSON.parse(aiContent);
+              const parsed = JSON.parse(jsonContent);
               if (parsed.description) {
                 updateData.description = parsed.description;
                 fieldsPopulated.push('description');
@@ -605,7 +612,7 @@ Generate a professional description and products/services summary.`
               }
             } catch (parseError) {
               // If not JSON, use the whole response as description
-              console.log('AI response not JSON, using as description');
+              console.log('AI response not JSON, using as description:', parseError);
               updateData.description = aiContent;
               fieldsPopulated.push('description');
             }
