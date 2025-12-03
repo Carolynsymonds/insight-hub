@@ -541,6 +541,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
       if (error) throw error;
 
+      // Log the enrichment steps for debugging
+      console.log('=== COMPANY DETAILS ENRICHMENT RESULT ===');
+      console.log('Source:', data.source);
+      console.log('Enriched Fields:', data.enrichedFields);
+      console.log('Enrichment Steps:', JSON.stringify(data.enrichmentSteps, null, 2));
+      if (data.scrapedData) {
+        console.log('Scraped Data:', JSON.stringify(data.scrapedData, null, 2));
+      }
+
       // Handle not found case
       if (data.notFound) {
         toast({
@@ -558,6 +567,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
 
       onEnrichComplete();
     } catch (error: any) {
+      console.error('Company Details Enrichment Error:', error);
       toast({
         title: "Enrichment Failed",
         description: error.message,
@@ -1937,11 +1947,22 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                   <AccordionContent>
                                     <div className="space-y-3 pt-2">
                                       <p className="text-sm text-muted-foreground mb-3">
-                                        Enrich this lead with detailed company information from Apollo
-                                        {lead.enrichment_source === 'apollo_api' && (
-                                          <span className="block text-xs text-primary mt-1">
-                                            ✓ Domain found via Apollo - direct retrieval available
-                                          </span>
+                                        {lead.apollo_not_found ? (
+                                          <>
+                                            Enrich this lead by scraping the company website
+                                            <span className="block text-xs text-yellow-600 mt-1">
+                                              ⚠ Apollo: Company not found - will use website scraping
+                                            </span>
+                                          </>
+                                        ) : lead.enrichment_source === 'apollo_api' ? (
+                                          <>
+                                            Enrich this lead with detailed company information from Apollo
+                                            <span className="block text-xs text-primary mt-1">
+                                              ✓ Domain found via Apollo - direct retrieval available
+                                            </span>
+                                          </>
+                                        ) : (
+                                          'Enrich this lead with detailed company information'
                                         )}
                                       </p>
 
@@ -1973,8 +1994,55 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {/* Step progress indicator */}
                                       {enrichingCompanyDetails === lead.id && companyDetailsStep && (
                                         <div className="bg-muted/50 rounded-md p-3 space-y-2">
-                                          <div className="flex items-center gap-2">
-                                            {lead.enrichment_source === 'apollo_api' ? (
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            {lead.apollo_not_found ? (
+                                              // ScraperAPI path (4 steps)
+                                              <>
+                                                <div className="flex items-center gap-1 text-xs">
+                                                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium bg-yellow-500 text-white">
+                                                    ✗
+                                                  </div>
+                                                  <span className="text-muted-foreground line-through">Apollo</span>
+                                                </div>
+                                                <div className="w-3 h-px bg-border" />
+                                                <div className="flex items-center gap-1 text-xs">
+                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    companyDetailsStep.step === 1 
+                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                      : 'bg-green-500 text-white'
+                                                  }`}>
+                                                    1
+                                                  </div>
+                                                  <span className="text-muted-foreground">Scrape</span>
+                                                </div>
+                                                <div className="w-3 h-px bg-border" />
+                                                <div className="flex items-center gap-1 text-xs">
+                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    companyDetailsStep.step === 2 
+                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                      : companyDetailsStep.step > 2 
+                                                        ? 'bg-green-500 text-white' 
+                                                        : 'bg-muted text-muted-foreground'
+                                                  }`}>
+                                                    2
+                                                  </div>
+                                                  <span className="text-muted-foreground">Parse</span>
+                                                </div>
+                                                <div className="w-3 h-px bg-border" />
+                                                <div className="flex items-center gap-1 text-xs">
+                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                    companyDetailsStep.step === 3 
+                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
+                                                      : companyDetailsStep.step > 3 
+                                                        ? 'bg-green-500 text-white' 
+                                                        : 'bg-muted text-muted-foreground'
+                                                  }`}>
+                                                    3
+                                                  </div>
+                                                  <span className="text-muted-foreground">AI</span>
+                                                </div>
+                                              </>
+                                            ) : lead.enrichment_source === 'apollo_api' ? (
                                               // Single step for direct Apollo
                                               <div className="flex items-center gap-2 text-xs">
                                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
@@ -1987,7 +2055,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 <span className="text-muted-foreground">Direct retrieval</span>
                                               </div>
                                             ) : (
-                                              // Two steps for non-Apollo sources
+                                              // Two steps for non-Apollo sources (may fallback to scraper)
                                               <>
                                                 <div className="flex items-center gap-2 text-xs">
                                                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
