@@ -197,6 +197,16 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [contactsModalLead, setContactsModalLead] = useState<Lead | null>(null);
+  const [showNewsModal, setShowNewsModal] = useState(false);
+  const [newsModalData, setNewsModalData] = useState<{
+    items: Array<{
+      title: string;
+      source: string;
+      date: string;
+      snippet: string;
+      link: string;
+    }>;
+  } | null>(null);
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -927,14 +937,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                         e.stopPropagation();
                         try {
                           const newsData = JSON.parse(lead.news);
-                          const newsText = newsData.items?.map((item: any) => 
-                            `${item.title}\n${item.source} • ${item.date}\n${item.snippet || ''}`
-                          ).join('\n\n') || 'No news found';
-                          setModalContent({ title: "News", text: newsText });
+                          setNewsModalData(newsData);
+                          setShowNewsModal(true);
                         } catch {
                           setModalContent({ title: "News", text: lead.news });
+                          setShowTextModal(true);
                         }
-                        setShowTextModal(true);
                       }
                     }}
                   >
@@ -2911,6 +2919,52 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           </DialogHeader>
           <div className="mt-4">
             <p className="text-sm whitespace-pre-wrap">{modalContent.text}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* News Modal - matches drawer format */}
+      <Dialog open={showNewsModal} onOpenChange={setShowNewsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>News</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            {newsModalData?.items?.length ? (
+              newsModalData.items.map((item: any, idx: number) => (
+                <div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                  <a 
+                    href={item.link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-medium text-sm text-primary hover:underline block"
+                  >
+                    {item.title}
+                  </a>
+                  <p className="text-xs text-muted-foreground">
+                    {item.source} • {item.date}
+                  </p>
+                  {item.snippet && (
+                    <p className="text-xs text-foreground/80 leading-relaxed">
+                      {item.snippet}
+                    </p>
+                  )}
+                  {item.link && (
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Read full article
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No news articles found.</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
