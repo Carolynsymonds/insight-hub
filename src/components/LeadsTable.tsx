@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Play, Globe } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -230,6 +230,28 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
+  const [showDomainSources, setShowDomainSources] = useState(true);
+
+  // Helper to extract enrichment result for a specific source
+  const getSourceEnrichmentResult = (logs: EnrichmentLog[] | null, sourceType: 'apollo' | 'google' | 'email') => {
+    if (!logs) return { domain: null, confidence: 0, wasRun: false };
+    
+    const sourceLogs = logs.filter(log => {
+      if (sourceType === 'apollo') return log.source === 'apollo_api' || log.source === 'apollo_api_error';
+      if (sourceType === 'google') return log.source === 'google_knowledge_graph' || log.source === 'google_local_results';
+      if (sourceType === 'email') return log.source.startsWith('email_');
+      return false;
+    });
+    
+    if (sourceLogs.length === 0) return { domain: null, confidence: 0, wasRun: false };
+    
+    const latestLog = sourceLogs[sourceLogs.length - 1];
+    return {
+      domain: latestLog.domain,
+      confidence: latestLog.confidence,
+      wasRun: true
+    };
+  };
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -899,12 +921,102 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
               <TableHead>MICS Sector</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
-              <TableHead>
-                <div className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4" />
-                  Company Domain
-                </div>
-              </TableHead>
+              {showDomainSources ? (
+                <>
+                  <TableHead className="min-w-[140px]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                        <span className="text-[8px] font-bold text-white">A</span>
+                      </div>
+                      <span className="text-xs">Apollo</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        title="Run Apollo enrichment"
+                      >
+                        <Play className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-[140px]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                        <span className="text-[8px] font-bold text-white">G</span>
+                      </div>
+                      <span className="text-xs">Google</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        title="Run Google enrichment"
+                      >
+                        <Play className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-[140px]">
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="h-4 w-4 text-green-600" />
+                      <span className="text-xs">Email</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        title="Run Email enrichment"
+                      >
+                        <Play className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableHead>
+                  <TableHead className="min-w-[160px]">
+                    <div className="flex items-center gap-1.5">
+                      <Link2 className="h-4 w-4" />
+                      <span className="text-xs">Company Domain</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDomainSources(false);
+                        }}
+                        title="Collapse domain sources"
+                      >
+                        <ChevronsRight className="h-3 w-3 rotate-180" />
+                      </Button>
+                    </div>
+                  </TableHead>
+                </>
+              ) : (
+                <TableHead className="min-w-[180px]">
+                  <div className="flex items-center gap-1.5">
+                    <Link2 className="h-4 w-4" />
+                    <span className="text-xs">Company Domain</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 ml-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDomainSources(true);
+                      }}
+                      title="Expand domain sources"
+                    >
+                      <ChevronsRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </TableHead>
+              )}
               <TableHead className="w-[40px] p-1">
                 <Button
                   variant="ghost"
@@ -938,7 +1050,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEnrichedColumns ? 18 : 8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showEnrichedColumns ? (showDomainSources ? 21 : 18) : (showDomainSources ? 11 : 8)} className="text-center text-muted-foreground py-8">
                   {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
                 </TableCell>
               </TableRow>
@@ -955,57 +1067,205 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   <TableCell>{lead.mics_sector || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
                   <TableCell>{lead.dma || "—"}</TableCell>
-                  <TableCell>
-                    {lead.domain ? (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`https://${lead.domain}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {lead.domain}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                        {lead.match_score !== null && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-white text-black border-border"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.match_score}%
-                          </Badge>
-                        )}
-                      </div>
-                    ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
-                      (() => {
-                        const checkedSources = new Set<string>();
-                        lead.enrichment_logs.forEach((log) => {
-                          if (log.source.startsWith("email_")) {
-                            checkedSources.add("Email");
-                          } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
-                            checkedSources.add("Google");
-                          } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
-                            checkedSources.add("Apollo");
+                  {showDomainSources ? (
+                    <>
+                      {/* Apollo Cell */}
+                      <TableCell>
+                        {(() => {
+                          const result = getSourceEnrichmentResult(lead.enrichment_logs, 'apollo');
+                          if (!result.wasRun) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">Run condition not met</span>
+                              </div>
+                            );
                           }
-                        });
-                        const sourceList = Array.from(checkedSources).join(", ");
-                        return (
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${result.confidence > 50 ? 'bg-green-500' : result.confidence > 0 ? 'bg-yellow-500' : 'bg-muted'}`}
+                                    style={{ width: `${result.confidence}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">{result.confidence}%</span>
+                              </div>
+                              {result.domain ? (
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                  <span className="text-xs truncate max-w-[100px]">{result.domain}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No Result Found</span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      {/* Google Cell */}
+                      <TableCell>
+                        {(() => {
+                          const result = getSourceEnrichmentResult(lead.enrichment_logs, 'google');
+                          if (!result.wasRun) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">Run condition not met</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${result.confidence > 50 ? 'bg-green-500' : result.confidence > 0 ? 'bg-yellow-500' : 'bg-muted'}`}
+                                    style={{ width: `${result.confidence}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">{result.confidence}%</span>
+                              </div>
+                              {result.domain ? (
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                  <span className="text-xs truncate max-w-[100px]">{result.domain}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No Result Found</span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      {/* Email Cell */}
+                      <TableCell>
+                        {(() => {
+                          const result = getSourceEnrichmentResult(lead.enrichment_logs, 'email');
+                          if (!result.wasRun) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">Run condition not met</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${result.confidence > 50 ? 'bg-green-500' : result.confidence > 0 ? 'bg-yellow-500' : 'bg-muted'}`}
+                                    style={{ width: `${result.confidence}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">{result.confidence}%</span>
+                              </div>
+                              {result.domain ? (
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                  <span className="text-xs truncate max-w-[100px]">{result.domain}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No Result Found</span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      {/* Company Domain Cell (expanded) */}
+                      <TableCell>
+                        {lead.domain ? (
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full ${(lead.match_score || 0) >= 50 ? 'bg-green-500' : (lead.match_score || 0) > 0 ? 'bg-yellow-500' : 'bg-muted'}`}
+                                  style={{ width: `${lead.match_score || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">{lead.match_score || 0}%</span>
+                            </div>
+                            <a
+                              href={`https://${lead.domain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1 text-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {lead.domain}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
                           <div className="flex flex-col gap-1">
-                            <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
+                            <span className="text-muted-foreground text-xs">Not found</span>
                             {lead.diagnosis_category && (
-                              <Badge variant="outline" className="text-xs w-fit">
+                              <Badge variant="outline" className="text-[10px] w-fit">
                                 {lead.diagnosis_category}
                               </Badge>
                             )}
                           </div>
-                        );
-                      })()
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                    </>
+                  ) : (
+                    /* Collapsed single domain column */
+                    <TableCell>
+                      {lead.domain ? (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`https://${lead.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {lead.domain}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                          {lead.match_score !== null && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-white text-black border-border"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {lead.match_score}%
+                            </Badge>
+                          )}
+                        </div>
+                      ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                        (() => {
+                          const checkedSources = new Set<string>();
+                          lead.enrichment_logs.forEach((log) => {
+                            if (log.source.startsWith("email_")) {
+                              checkedSources.add("Email");
+                            } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
+                              checkedSources.add("Google");
+                            } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
+                              checkedSources.add("Apollo");
+                            }
+                          });
+                          const sourceList = Array.from(checkedSources).join(", ");
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
+                              {lead.diagnosis_category && (
+                                <Badge variant="outline" className="text-xs w-fit">
+                                  {lead.diagnosis_category}
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="w-[40px] p-1"></TableCell>
                   {showEnrichedColumns && (
                     <>
