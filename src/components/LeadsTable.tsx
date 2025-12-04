@@ -191,8 +191,11 @@ interface Lead {
 interface LeadsTableProps {
   leads: Lead[];
   onEnrichComplete: () => void;
+  hideFilterBar?: boolean;
+  domainFilter?: 'all' | 'valid' | 'invalid';
+  onDomainFilterChange?: (value: 'all' | 'valid' | 'invalid') => void;
 }
-const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
+const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilter: externalDomainFilter, onDomainFilterChange }: LeadsTableProps) => {
   const { toast } = useToast();
   const [enrichingSource, setEnrichingSource] = useState<{ leadId: string; source: string } | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -227,9 +230,13 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       link: string;
     }>;
   } | null>(null);
-  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [internalDomainFilter, setInternalDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
+
+  // Use external filter if provided, otherwise use internal state
+  const domainFilter = externalDomainFilter ?? internalDomainFilter;
+  const setDomainFilter = onDomainFilterChange ?? setInternalDomainFilter;
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -870,24 +877,26 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   return (
     <>
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by:</span>
-          <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Domain Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Domains</SelectItem>
-              <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
-              <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
-            </SelectContent>
-          </Select>
+      {!hideFilterBar && (
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filter by:</span>
+            <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Domain Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Domains</SelectItem>
+                <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
+                <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Showing {filteredLeads.length} of {leads.length} leads
+          </span>
         </div>
-        <span className="text-sm text-muted-foreground">
-          Showing {filteredLeads.length} of {leads.length} leads
-        </span>
-      </div>
+      )}
 
       <StickyScrollTable className="rounded-lg border overflow-x-auto">
         <Table>

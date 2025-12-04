@@ -6,6 +6,7 @@ import LeadsTable from "@/components/LeadsTable";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield } from "lucide-react";
 const CATEGORIES = [{
   name: "Marketing",
@@ -51,6 +52,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   useEffect(() => {
     checkAuth();
   }, []);
@@ -116,7 +118,13 @@ const Index = () => {
   const handleBackToCategories = () => {
     setSelectedCategory(null);
   };
-  const filteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
+  const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
+  const filteredLeads = categoryFilteredLeads.filter((lead) => {
+    if (domainFilter === 'all') return true;
+    if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
+    if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
+    return true;
+  });
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -127,12 +135,31 @@ const Index = () => {
   }
   return <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
       {activeView === "home" ? selectedCategory ? <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              
-              <h2 className="text-2xl font-semibold">{selectedCategory}</h2>
-              <span className="text-muted-foreground">({filteredLeads.length} leads)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-semibold">{selectedCategory}</h2>
+                <span className="text-muted-foreground">({filteredLeads.length} leads)</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Filter by:</span>
+                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Domain Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Domains</SelectItem>
+                      <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
+                      <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
+                </span>
+              </div>
             </div>
-            <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} />
+            <LeadsTable leads={categoryFilteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} />
           </div> : <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-2">Select a Category</h2>
