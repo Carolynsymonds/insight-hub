@@ -86,103 +86,77 @@ Deno.serve(async (req) => {
     let facebookUrl: string | null = null;
     let facebookConfidence: number = 0;
 
-    // Step A1: Full name + city + state + "Facebook"
-    if (!facebookUrl && city && state) {
-      const query = `"${company}" "${city}" "${state}" Facebook`;
-      const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "A1", query, confidence: 95, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
-        facebookConfidence = 95;
-        console.log(`Step A1: Found Facebook URL: ${url}`);
-      }
-    }
-
-    // Step A2: Full name + city + state + site:facebook.com
+    // Step A: Full name + city + state + site:facebook.com (95%)
     if (!facebookUrl && city && state) {
       const query = `"${company}" "${city}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
-      searchSteps.push({ step: "A2", query, confidence: 90, resultFound: !!url, facebookUrl: url || undefined });
+      searchSteps.push({ step: "A", query, confidence: 95, resultFound: !!url, facebookUrl: url || undefined });
       if (url) {
         facebookUrl = url;
-        facebookConfidence = 90;
-        console.log(`Step A2: Found Facebook URL: ${url}`);
+        facebookConfidence = 95;
+        console.log(`Step A: Found Facebook URL: ${url}`);
       }
     }
 
-    // Step B: Full name + city (no state)
+    // Step B: Full name + city (no state) + site:facebook.com (90%)
     if (!facebookUrl && city) {
-      const query = `"${company}" "${city}" Facebook`;
+      const query = `"${company}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
-      searchSteps.push({ step: "B", query, confidence: 75, resultFound: !!url, facebookUrl: url || undefined });
+      searchSteps.push({ step: "B", query, confidence: 90, resultFound: !!url, facebookUrl: url || undefined });
       if (url) {
         facebookUrl = url;
-        facebookConfidence = 75;
+        facebookConfidence = 90;
         console.log(`Step B: Found Facebook URL: ${url}`);
       }
     }
 
-    // Step C1: Name without periods
+    // Step C1: Name without periods + site:facebook.com (75%)
     if (!facebookUrl && city && companyNoPeriods !== company) {
-      const query = `"${companyNoPeriods}" "${city}" Facebook`;
+      const query = `"${companyNoPeriods}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
-      searchSteps.push({ step: "C1", query, confidence: 60, resultFound: !!url, facebookUrl: url || undefined });
+      searchSteps.push({ step: "C1", query, confidence: 75, resultFound: !!url, facebookUrl: url || undefined });
       if (url) {
         facebookUrl = url;
-        facebookConfidence = 60;
+        facebookConfidence = 75;
         console.log(`Step C1: Found Facebook URL: ${url}`);
       }
     }
 
-    // Step C2: Name with spaces removed
+    // Step C2: Name with spaces removed + site:facebook.com (70%)
     if (!facebookUrl && city && companyNoSpaces !== company.replace(/\s+/g, "")) {
-      const query = `"${companyNoSpaces}" "${city}" Facebook`;
+      const query = `"${companyNoSpaces}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
-      searchSteps.push({ step: "C2", query, confidence: 55, resultFound: !!url, facebookUrl: url || undefined });
+      searchSteps.push({ step: "C2", query, confidence: 70, resultFound: !!url, facebookUrl: url || undefined });
       if (url) {
         facebookUrl = url;
-        facebookConfidence = 55;
+        facebookConfidence = 70;
         console.log(`Step C2: Found Facebook URL: ${url}`);
       }
     }
 
-    // Step D1: Add industry keyword (if mics_sector available)
-    if (!facebookUrl && micsSector && state) {
-      const query = `"${company}" "${micsSector}" "${state}" Facebook`;
-      const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "D1", query, confidence: 50, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
-        facebookConfidence = 50;
-        console.log(`Step D1: Found Facebook URL: ${url}`);
-      }
-    }
-
-    // Step D2: Industry keyword + site:facebook.com
+    // Step D: Industry keyword + site:facebook.com (60%)
     if (!facebookUrl && micsSector && state) {
       const query = `"${company}" "${micsSector}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
-      searchSteps.push({ step: "D2", query, confidence: 45, resultFound: !!url, facebookUrl: url || undefined });
+      searchSteps.push({ step: "D", query, confidence: 60, resultFound: !!url, facebookUrl: url || undefined });
       if (url) {
         facebookUrl = url;
-        facebookConfidence = 45;
-        console.log(`Step D2: Found Facebook URL: ${url}`);
+        facebookConfidence = 60;
+        console.log(`Step D: Found Facebook URL: ${url}`);
       }
     }
 
-    // Step E1: Phone number search
+    // Step E1: Phone number (formatted) + site:facebook.com (85%)
     if (!facebookUrl && phoneClean && phoneClean.length >= 10) {
       const formattedPhone = phoneClean.length === 10 
         ? `${phoneClean.slice(0,3)}-${phoneClean.slice(3,6)}-${phoneClean.slice(6)}`
         : phoneClean;
-      const query = `"${formattedPhone}" Facebook`;
+      const query = `"${formattedPhone}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
       searchSteps.push({ step: "E1", query, confidence: 85, resultFound: !!url, facebookUrl: url || undefined });
@@ -193,9 +167,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step E2: Phone with +1 prefix
+    // Step E2: Phone with +1 prefix + site:facebook.com (80%)
     if (!facebookUrl && phoneClean && phoneClean.length === 10) {
-      const query = `"+1${phoneClean}" Facebook`;
+      const query = `"+1${phoneClean}" site:facebook.com`;
       const data = await executeSearch(query);
       const url = findFacebookUrl(data);
       searchSteps.push({ step: "E2", query, confidence: 80, resultFound: !!url, facebookUrl: url || undefined });
