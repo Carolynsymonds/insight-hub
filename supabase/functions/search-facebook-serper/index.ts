@@ -5,12 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface OrganicResult {
+  position: number;
+  title: string;
+  link: string;
+  displayed_link?: string;
+  favicon?: string;
+  snippet?: string;
+  snippet_highlighted_words?: string[];
+  source?: string;
+}
+
 interface SearchStep {
   step: string;
   query: string;
   confidence: number;
   resultFound: boolean;
   facebookUrl?: string;
+  organicResults?: OrganicResult[];
+  totalResults?: number;
 }
 
 Deno.serve(async (req) => {
@@ -36,12 +49,36 @@ Deno.serve(async (req) => {
     console.log(`MICS Sector: ${micsSector || "N/A"}`);
 
     // Helper to find Facebook URL in search results
-    const findFacebookUrl = (data: any): string | null => {
-      // Check organic results
+    const findFacebookUrl = (data: any): { url: string | null; organicResults: OrganicResult[]; totalResults: number } => {
+      const organicResults: OrganicResult[] = [];
+      let foundUrl: string | null = null;
+      const totalResults = data.search_information?.total_results || 0;
+
+      // Log and extract organic results
       if (data.organic_results && Array.isArray(data.organic_results)) {
+        console.log(`Organic results count: ${data.organic_results.length}`);
+        
         for (const result of data.organic_results) {
+          const organicResult: OrganicResult = {
+            position: result.position,
+            title: result.title,
+            link: result.link,
+            displayed_link: result.displayed_link,
+            favicon: result.favicon,
+            snippet: result.snippet,
+            snippet_highlighted_words: result.snippet_highlighted_words,
+            source: result.source,
+          };
+          organicResults.push(organicResult);
+          
+          // Log each result
+          console.log(`Result ${result.position}: ${result.title}`);
+          console.log(`  Link: ${result.link}`);
+          console.log(`  Snippet: ${result.snippet?.substring(0, 100)}...`);
+
+          // Check if this is a valid Facebook URL
           const link = result.link || "";
-          if (link.includes("facebook.com")) {
+          if (!foundUrl && link.includes("facebook.com")) {
             // Filter out non-company pages
             if (!link.includes("/marketplace/") && 
                 !link.includes("/groups/") && 
@@ -49,22 +86,24 @@ Deno.serve(async (req) => {
                 !link.includes("/watch/") &&
                 !link.includes("/gaming/") &&
                 !link.includes("/stories/")) {
-              return link;
+              foundUrl = link;
             }
           }
         }
       }
 
-      // Check knowledge graph profiles
-      if (data.knowledge_graph?.profiles) {
+      // Check knowledge graph profiles as fallback
+      if (!foundUrl && data.knowledge_graph?.profiles) {
         for (const profile of data.knowledge_graph.profiles) {
           if (profile.link?.includes("facebook.com")) {
-            return profile.link;
+            foundUrl = profile.link;
+            console.log(`Found in knowledge_graph.profiles: ${profile.link}`);
+            break;
           }
         }
       }
 
-      return null;
+      return { url: foundUrl, organicResults, totalResults };
     };
 
     // Execute a search query
@@ -91,12 +130,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && city && state) {
       const query = `"${company}" "${city}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "A", query, confidence: 95, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "A", query, confidence: 95, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 95;
-        console.log(`Step A: Found Facebook URL: ${url}`);
+        console.log(`Step A: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -104,12 +149,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && city) {
       const query = `"${company}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "B", query, confidence: 90, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "B", query, confidence: 90, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 90;
-        console.log(`Step B: Found Facebook URL: ${url}`);
+        console.log(`Step B: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -117,12 +168,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && city && companyNoPeriods !== company) {
       const query = `"${companyNoPeriods}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "C1", query, confidence: 75, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "C1", query, confidence: 75, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 75;
-        console.log(`Step C1: Found Facebook URL: ${url}`);
+        console.log(`Step C1: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -130,12 +187,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && city && companyNoSpaces !== company.replace(/\s+/g, "")) {
       const query = `"${companyNoSpaces}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "C2", query, confidence: 70, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "C2", query, confidence: 70, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 70;
-        console.log(`Step C2: Found Facebook URL: ${url}`);
+        console.log(`Step C2: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -143,12 +206,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && micsSector && state) {
       const query = `"${company}" "${micsSector}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "D", query, confidence: 60, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "D", query, confidence: 60, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 60;
-        console.log(`Step D: Found Facebook URL: ${url}`);
+        console.log(`Step D: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -159,12 +228,18 @@ Deno.serve(async (req) => {
         : phoneClean;
       const query = `"${formattedPhone}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "E1", query, confidence: 85, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "E1", query, confidence: 85, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 85;
-        console.log(`Step E1: Found Facebook URL: ${url}`);
+        console.log(`Step E1: Found Facebook URL: ${result.url}`);
       }
     }
 
@@ -172,12 +247,18 @@ Deno.serve(async (req) => {
     if (!facebookUrl && phoneClean && phoneClean.length === 10) {
       const query = `"+1${phoneClean}" site:facebook.com`;
       const data = await executeSearch(query);
-      const url = findFacebookUrl(data);
-      searchSteps.push({ step: "E2", query, confidence: 80, resultFound: !!url, facebookUrl: url || undefined });
-      if (url) {
-        facebookUrl = url;
+      const result = findFacebookUrl(data);
+      searchSteps.push({ 
+        step: "E2", query, confidence: 80, 
+        resultFound: !!result.url, 
+        facebookUrl: result.url || undefined,
+        organicResults: result.organicResults,
+        totalResults: result.totalResults
+      });
+      if (result.url) {
+        facebookUrl = result.url;
         facebookConfidence = 80;
-        console.log(`Step E2: Found Facebook URL: ${url}`);
+        console.log(`Step E2: Found Facebook URL: ${result.url}`);
       }
     }
 
