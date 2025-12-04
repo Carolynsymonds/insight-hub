@@ -4,17 +4,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LeadUploadProps {
   onUploadComplete: () => void;
+  defaultCategory?: string;
 }
 
-const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
+const CATEGORIES = [
+  "Marketing",
+  "Ecommerce",
+  "Website",
+  "Sales",
+  "Taking Payments",
+  "Operations",
+  "Finance",
+  "Utilities",
+  "Offices",
+  "Vehicles",
+  "Security",
+] as const;
+
+const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [csvCategory, setCsvCategory] = useState(defaultCategory || "");
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -27,10 +44,21 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
     mics_sector: "",
     mics_subsector: "",
     mics_segment: "",
+    category: defaultCategory || "",
   });
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.category) {
+      toast({
+        title: "Error",
+        description: "Please select a category",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -62,6 +90,7 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
         mics_sector: "",
         mics_subsector: "",
         mics_segment: "",
+        category: defaultCategory || "",
       });
 
       onUploadComplete();
@@ -80,6 +109,16 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!csvCategory) {
+      toast({
+        title: "Error",
+        description: "Please select a category before uploading",
+        variant: "destructive",
+      });
+      e.target.value = "";
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -93,7 +132,7 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
 
       const leads = lines.slice(1).map(line => {
         const values = line.split(",").map(v => v.trim());
-        const lead: any = { user_id: user.id };
+        const lead: any = { user_id: user.id, category: csvCategory };
 
         headers.forEach((header, index) => {
           const value = values[index];
@@ -157,6 +196,25 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
           <TabsContent value="manual" className="space-y-4">
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category *</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full Name *</Label>
                   <Input
@@ -266,24 +324,45 @@ const LeadUpload = ({ onUploadComplete }: LeadUploadProps) => {
           </TabsContent>
 
           <TabsContent value="csv" className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <Label htmlFor="csv-upload" className="cursor-pointer">
-                <span className="text-sm text-muted-foreground">
-                  Click to upload CSV file
-                </span>
-                <Input
-                  id="csv-upload"
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Category *</Label>
+                <Select
+                  value={csvCategory}
+                  onValueChange={setCsvCategory}
                   disabled={loading}
-                />
-              </Label>
-              <p className="text-xs text-muted-foreground mt-2">
-                CSV should include: full_name, phone, email, company, city, state, dma, zipcode, MICS Sector (Harmonised), MICS Subsector (Harmonised), MICS Segment (Harmonised)
-              </p>
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category for all leads" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <Label htmlFor="csv-upload" className="cursor-pointer">
+                  <span className="text-sm text-muted-foreground">
+                    Click to upload CSV file
+                  </span>
+                  <Input
+                    id="csv-upload"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={loading}
+                  />
+                </Label>
+                <p className="text-xs text-muted-foreground mt-2">
+                  CSV should include: full_name, phone, email, company, city, state, dma, zipcode, MICS Sector (Harmonised), MICS Subsector (Harmonised), MICS Segment (Harmonised)
+                </p>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
