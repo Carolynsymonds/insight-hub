@@ -47,6 +47,7 @@ export type Database = {
           facebook: string | null
           facebook_confidence: number | null
           facebook_source_url: string | null
+          facebook_validated: boolean | null
           founded_date: string | null
           full_name: string
           id: string
@@ -55,10 +56,12 @@ export type Database = {
           instagram: string | null
           instagram_confidence: number | null
           instagram_source_url: string | null
+          instagram_validated: boolean | null
           latitude: number | null
           linkedin: string | null
           linkedin_confidence: number | null
           linkedin_source_url: string | null
+          linkedin_validated: boolean | null
           logo_url: string | null
           longitude: number | null
           match_score: number | null
@@ -71,6 +74,7 @@ export type Database = {
           products_services: string | null
           scraped_data_log: Json | null
           size: string | null
+          social_validation_log: Json | null
           source_url: string | null
           state: string | null
           tech_stack: string | null
@@ -112,6 +116,7 @@ export type Database = {
           facebook?: string | null
           facebook_confidence?: number | null
           facebook_source_url?: string | null
+          facebook_validated?: boolean | null
           founded_date?: string | null
           full_name: string
           id?: string
@@ -120,10 +125,12 @@ export type Database = {
           instagram?: string | null
           instagram_confidence?: number | null
           instagram_source_url?: string | null
+          instagram_validated?: boolean | null
           latitude?: number | null
           linkedin?: string | null
           linkedin_confidence?: number | null
           linkedin_source_url?: string | null
+          linkedin_validated?: boolean | null
           logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
@@ -136,6 +143,7 @@ export type Database = {
           products_services?: string | null
           scraped_data_log?: Json | null
           size?: string | null
+          social_validation_log?: Json | null
           source_url?: string | null
           state?: string | null
           tech_stack?: string | null
@@ -177,6 +185,7 @@ export type Database = {
           facebook?: string | null
           facebook_confidence?: number | null
           facebook_source_url?: string | null
+          facebook_validated?: boolean | null
           founded_date?: string | null
           full_name?: string
           id?: string
@@ -185,10 +194,12 @@ export type Database = {
           instagram?: string | null
           instagram_confidence?: number | null
           instagram_source_url?: string | null
+          instagram_validated?: boolean | null
           latitude?: number | null
           linkedin?: string | null
           linkedin_confidence?: number | null
           linkedin_source_url?: string | null
+          linkedin_validated?: boolean | null
           logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
@@ -201,6 +212,7 @@ export type Database = {
           products_services?: string | null
           scraped_data_log?: Json | null
           size?: string | null
+          social_validation_log?: Json | null
           source_url?: string | null
           state?: string | null
           tech_stack?: string | null
