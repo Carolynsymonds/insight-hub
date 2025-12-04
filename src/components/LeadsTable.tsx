@@ -93,6 +93,8 @@ interface Lead {
   tech_stack: string | null;
   company_industry: string | null;
   linkedin: string | null;
+  linkedin_confidence: number | null;
+  linkedin_source_url: string | null;
   news: string | null;
   diagnosis_category: string | null;
   diagnosis_explanation: string | null;
@@ -193,6 +195,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [companyDetailsStep, setCompanyDetailsStep] = useState<{ step: number; message: string } | null>(null);
   const [fetchingNews, setFetchingNews] = useState<string | null>(null);
   const [enrichingFacebook, setEnrichingFacebook] = useState<string | null>(null);
+  const [enrichingLinkedin, setEnrichingLinkedin] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
@@ -592,6 +595,39 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingFacebook(null);
+    }
+  };
+
+  const handleSearchLinkedinSerper = async (lead: Lead) => {
+    setEnrichingLinkedin(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("search-linkedin-serper", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          micsSector: lead.mics_sector,
+        },
+      });
+      if (error) throw error;
+
+      toast({
+        title: data.linkedin ? "LinkedIn Found!" : "No LinkedIn Found",
+        description: data.linkedin
+          ? `Found with ${data.confidence}% confidence (${data.stepsExecuted} steps)`
+          : `No LinkedIn page found after ${data.stepsExecuted} search steps`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "LinkedIn Search Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingLinkedin(null);
     }
   };
 
@@ -1594,160 +1630,321 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                   Socials Search
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                  <div className="space-y-3 pt-2">
-                                    {/* Existing Facebook result display */}
-                                    {lead.facebook && (
-                                      <div className="p-3 border rounded-lg bg-muted/30">
-                                        <div className="flex items-center justify-between">
-                                          <div style={{ userSelect: "text" }}>
-                                            <p className="text-xs text-muted-foreground mb-1 select-text">Facebook</p>
-                                            <a
-                                              href={lead.facebook}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              {lead.facebook}
-                                              <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                            </a>
-                                          </div>
-                                          {lead.facebook_confidence && (
-                                            <div className="flex items-center gap-1">
-                                              <Badge variant="outline" className="text-xs">
-                                                {lead.facebook_confidence}%
-                                              </Badge>
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-xs">
-                                                      {lead.facebook_confidence >= 90
-                                                        ? "High confidence: Found with full location data"
-                                                        : lead.facebook_confidence >= 70
-                                                          ? "Good confidence: Found with partial location"
-                                                          : lead.facebook_confidence >= 50
-                                                            ? "Medium confidence: Found with industry/phone data"
-                                                            : "Lower confidence: Found with variation search"}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
+                                  <div className="space-y-4 pt-2">
+                                    {/* Facebook Section */}
+                                    <div className="space-y-3">
+                                      <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                                      
+                                      {/* Existing Facebook result display */}
+                                      {lead.facebook && (
+                                        <div className="p-3 border rounded-lg bg-muted/30">
+                                          <div className="flex items-center justify-between">
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.facebook}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.facebook}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
                                             </div>
-                                          )}
+                                            {lead.facebook_confidence && (
+                                              <div className="flex items-center gap-1">
+                                                <Badge variant="outline" className="text-xs">
+                                                  {lead.facebook_confidence}%
+                                                </Badge>
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                      <p className="text-xs">
+                                                        {lead.facebook_confidence >= 90
+                                                          ? "High confidence: Found with full location data"
+                                                          : lead.facebook_confidence >= 70
+                                                            ? "Good confidence: Found with partial location"
+                                                            : lead.facebook_confidence >= 50
+                                                              ? "Medium confidence: Found with industry/phone data"
+                                                              : "Lower confidence: Found with variation search"}
+                                                      </p>
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    )}
+                                      )}
 
-                                    {/* View Search Logs */}
-                                    {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "facebook_search_serper") && (
-                                      <Collapsible>
-                                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
-                                          <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
-                                          View Search Logs
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
-                                            {(() => {
-                                              const fbLog = [...lead.enrichment_logs].reverse().find(log => log.action === "facebook_search_serper") as any;
-                                              if (!fbLog) return null;
-                                              return (
-                                                <>
-                                                  <p className="text-muted-foreground">
-                                                    <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
-                                                  </p>
-                                                  {fbLog.searchSteps && (
-                                                    <div className="space-y-1.5 mt-2">
-                                                      {fbLog.searchSteps.map((step: any, idx: number) => (
-                                                        <div key={idx} className="p-2 bg-background rounded border">
-                                                          <div className="flex items-center gap-2 mb-1">
-                                                            <Badge 
-                                                              variant={step.resultFound ? "default" : "secondary"}
-                                                              className="text-xs h-5"
-                                                            >
-                                                              Step {step.step}
-                                                            </Badge>
-                                                            <span className="text-muted-foreground">
-                                                              {step.confidence}% confidence
-                                                            </span>
-                                                            {step.resultFound && (
-                                                              <span className="text-green-600 font-medium">✓ Found</span>
-                                                            )}
-                                                          </div>
-                                                          <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                            {step.query}
-                                                          </p>
-                                                          {/* Organic Results */}
-                                                          {step.organicResults && step.organicResults.length > 0 && (
-                                                            <div className="mt-2 space-y-1.5">
-                                                              <p className="text-muted-foreground text-xs font-medium">
-                                                                Results ({step.organicResults.length}):
-                                                              </p>
-                                                              {step.organicResults.slice(0, 5).map((result: any, rIdx: number) => (
-                                                                <div key={rIdx} className="p-1.5 bg-muted/30 rounded text-xs">
-                                                                  <div className="flex items-start gap-1.5">
-                                                                    {result.favicon && (
-                                                                      <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
-                                                                    )}
-                                                                    <div className="flex-1 min-w-0">
-                                                                      <p className="font-medium truncate" title={result.title}>
-                                                                        {result.position}. {result.title}
-                                                                      </p>
-                                                                      <a 
-                                                                        href={result.link} 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-primary hover:underline break-all text-xs"
-                                                                      >
-                                                                        {result.displayed_link || result.link}
-                                                                      </a>
-                                                                      {result.snippet && (
-                                                                        <p className="text-muted-foreground mt-0.5 line-clamp-2">
-                                                                          {result.snippet}
-                                                                        </p>
+                                      {/* Facebook Search Logs */}
+                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "facebook_search_serper") && (
+                                        <Collapsible>
+                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                            View Search Logs
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                              {(() => {
+                                                const fbLog = [...lead.enrichment_logs].reverse().find(log => log.action === "facebook_search_serper") as any;
+                                                if (!fbLog) return null;
+                                                return (
+                                                  <>
+                                                    <p className="text-muted-foreground">
+                                                      <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
+                                                    </p>
+                                                    {fbLog.searchSteps && (
+                                                      <div className="space-y-1.5 mt-2">
+                                                        {fbLog.searchSteps.map((step: any, idx: number) => (
+                                                          <div key={idx} className="p-2 bg-background rounded border">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                              <Badge 
+                                                                variant={step.resultFound ? "default" : "secondary"}
+                                                                className="text-xs h-5"
+                                                              >
+                                                                Step {step.step}
+                                                              </Badge>
+                                                              <span className="text-muted-foreground">
+                                                                {step.confidence}% confidence
+                                                              </span>
+                                                              {step.resultFound && (
+                                                                <span className="text-green-600 font-medium">✓ Found</span>
+                                                              )}
+                                                            </div>
+                                                            <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                              {step.query}
+                                                            </p>
+                                                            {/* Organic Results */}
+                                                            {step.organicResults && step.organicResults.length > 0 && (
+                                                              <div className="mt-2 space-y-1.5">
+                                                                <p className="text-muted-foreground text-xs font-medium">
+                                                                  Results ({step.organicResults.length}):
+                                                                </p>
+                                                                {step.organicResults.slice(0, 5).map((result: any, rIdx: number) => (
+                                                                  <div key={rIdx} className="p-1.5 bg-muted/30 rounded text-xs">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                      {result.favicon && (
+                                                                        <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
                                                                       )}
+                                                                      <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium truncate" title={result.title}>
+                                                                          {result.position}. {result.title}
+                                                                        </p>
+                                                                        <a 
+                                                                          href={result.link} 
+                                                                          target="_blank" 
+                                                                          rel="noopener noreferrer"
+                                                                          className="text-primary hover:underline break-all text-xs"
+                                                                        >
+                                                                          {result.displayed_link || result.link}
+                                                                        </a>
+                                                                        {result.snippet && (
+                                                                          <p className="text-muted-foreground mt-0.5 line-clamp-2">
+                                                                            {result.snippet}
+                                                                          </p>
+                                                                        )}
+                                                                      </div>
                                                                     </div>
                                                                   </div>
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          )}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  )}
-                                                </>
-                                              );
-                                            })()}
-                                          </div>
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    )}
-
-                                    {/* Search Facebook Button */}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleSearchFacebookSerper(lead)}
-                                      disabled={enrichingFacebook === lead.id || !lead.company}
-                                      className="w-full"
-                                      variant="outline"
-                                    >
-                                      {enrichingFacebook === lead.id ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Searching Facebook...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Search className="mr-2 h-4 w-4" />
-                                          Search Facebook
-                                        </>
+                                                                ))}
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                );
+                                              })()}
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
                                       )}
-                                    </Button>
-                                    <p className="text-xs text-muted-foreground text-center">
-                                      Multi-step search: name variations, location, industry, phone
+
+                                      {/* Search Facebook Button */}
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSearchFacebookSerper(lead)}
+                                        disabled={enrichingFacebook === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingFacebook === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Searching Facebook...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Search className="mr-2 h-4 w-4" />
+                                            Search Facebook
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+
+                                    {/* LinkedIn Section */}
+                                    <div className="space-y-3 pt-3 border-t">
+                                      <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                                      
+                                      {/* LinkedIn result display */}
+                                      {lead.linkedin && (
+                                        <div className="p-3 border rounded-lg bg-muted/30">
+                                          <div className="flex items-center justify-between">
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.linkedin}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.linkedin}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
+                                            </div>
+                                            {lead.linkedin_confidence && (
+                                              <div className="flex items-center gap-1">
+                                                <Badge variant="outline" className="text-xs">
+                                                  {lead.linkedin_confidence}%
+                                                </Badge>
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                      <p className="text-xs">
+                                                        {lead.linkedin_confidence >= 90
+                                                          ? "High confidence: Found with full location data"
+                                                          : lead.linkedin_confidence >= 70
+                                                            ? "Good confidence: Found with partial location"
+                                                            : lead.linkedin_confidence >= 50
+                                                              ? "Medium confidence: Found with name only"
+                                                              : "Lower confidence: Found with variation search"}
+                                                      </p>
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* LinkedIn Search Logs */}
+                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "linkedin_search_serper") && (
+                                        <Collapsible>
+                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                            View Search Logs
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                              {(() => {
+                                                const liLog = [...lead.enrichment_logs].reverse().find(log => log.action === "linkedin_search_serper") as any;
+                                                if (!liLog) return null;
+                                                return (
+                                                  <>
+                                                    <p className="text-muted-foreground">
+                                                      <span className="font-medium">Searched:</span> {new Date(liLog.timestamp).toLocaleString()}
+                                                    </p>
+                                                    {liLog.searchSteps && (
+                                                      <div className="space-y-1.5 mt-2">
+                                                        {liLog.searchSteps.map((step: any, idx: number) => (
+                                                          <div key={idx} className="p-2 bg-background rounded border">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                              <Badge 
+                                                                variant={step.resultFound ? "default" : "secondary"}
+                                                                className="text-xs h-5"
+                                                              >
+                                                                Step {step.step}
+                                                              </Badge>
+                                                              <span className="text-muted-foreground">
+                                                                {step.confidence}% confidence
+                                                              </span>
+                                                              {step.resultFound && (
+                                                                <span className="text-green-600 font-medium">✓ Found</span>
+                                                              )}
+                                                            </div>
+                                                            <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                              {step.query}
+                                                            </p>
+                                                            {/* Organic Results */}
+                                                            {step.organicResults && step.organicResults.length > 0 && (
+                                                              <div className="mt-2 space-y-1.5">
+                                                                <p className="text-muted-foreground text-xs font-medium">
+                                                                  Results ({step.organicResults.length}):
+                                                                </p>
+                                                                {step.organicResults.slice(0, 5).map((result: any, rIdx: number) => (
+                                                                  <div key={rIdx} className="p-1.5 bg-muted/30 rounded text-xs">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                      {result.favicon && (
+                                                                        <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
+                                                                      )}
+                                                                      <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium truncate" title={result.title}>
+                                                                          {result.position}. {result.title}
+                                                                        </p>
+                                                                        <a 
+                                                                          href={result.link} 
+                                                                          target="_blank" 
+                                                                          rel="noopener noreferrer"
+                                                                          className="text-primary hover:underline break-all text-xs"
+                                                                        >
+                                                                          {result.displayed_link || result.link}
+                                                                        </a>
+                                                                        {result.snippet && (
+                                                                          <p className="text-muted-foreground mt-0.5 line-clamp-2">
+                                                                            {result.snippet}
+                                                                          </p>
+                                                                        )}
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                );
+                                              })()}
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      )}
+
+                                      {/* Search LinkedIn Button */}
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSearchLinkedinSerper(lead)}
+                                        disabled={enrichingLinkedin === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingLinkedin === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Searching LinkedIn...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Search className="mr-2 h-4 w-4" />
+                                            Search LinkedIn
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground text-center pt-2">
+                                      Multi-step search: name variations, location, industry
                                     </p>
                                   </div>
                                 </AccordionContent>

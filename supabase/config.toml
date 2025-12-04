@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.search-facebook-serper]
 verify_jwt = false
+
+[functions.search-linkedin-serper]
+verify_jwt = false

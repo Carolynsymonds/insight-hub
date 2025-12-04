@@ -54,6 +54,8 @@ export type Database = {
           industry_relevance_score: number | null
           latitude: number | null
           linkedin: string | null
+          linkedin_confidence: number | null
+          linkedin_source_url: string | null
           logo_url: string | null
           longitude: number | null
           match_score: number | null
@@ -114,6 +116,8 @@ export type Database = {
           industry_relevance_score?: number | null
           latitude?: number | null
           linkedin?: string | null
+          linkedin_confidence?: number | null
+          linkedin_source_url?: string | null
           logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
@@ -174,6 +178,8 @@ export type Database = {
           industry_relevance_score?: number | null
           latitude?: number | null
           linkedin?: string | null
+          linkedin_confidence?: number | null
+          linkedin_source_url?: string | null
           logo_url?: string | null
           longitude?: number | null
           match_score?: number | null
