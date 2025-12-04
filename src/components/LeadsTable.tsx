@@ -2688,38 +2688,6 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                                     </p>
                                                   )}
                                                 </div>
-
-                                                {/* Vehicle Details Section */}
-                                                {(lead.vehicles_count || lead.confirm_vehicles_50_plus || lead.truck_types || lead.features) && (
-                                                  <Collapsible className="pt-3 border-t">
-                                                    <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full">
-                                                      <ChevronRight className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-90" />
-                                                      Vehicle Details
-                                                    </CollapsibleTrigger>
-                                                    <CollapsibleContent className="pt-2 pl-6 space-y-2">
-                                                      {lead.vehicles_count && (
-                                                        <p className="text-sm text-foreground">
-                                                          <span className="font-medium">Fleet Size:</span> {lead.vehicles_count}
-                                                        </p>
-                                                      )}
-                                                      {lead.confirm_vehicles_50_plus && (
-                                                        <p className="text-sm text-foreground">
-                                                          <span className="font-medium">Confirmed 50+:</span> {lead.confirm_vehicles_50_plus}
-                                                        </p>
-                                                      )}
-                                                      {lead.truck_types && (
-                                                        <p className="text-sm text-foreground">
-                                                          <span className="font-medium">Vehicle Types:</span> {lead.truck_types}
-                                                        </p>
-                                                      )}
-                                                      {lead.features && (
-                                                        <p className="text-sm text-foreground">
-                                                          <span className="font-medium">Features:</span> {lead.features}
-                                                        </p>
-                                                      )}
-                                                    </CollapsibleContent>
-                                                  </Collapsible>
-                                                )}
                                               </div>
                                             ) : (
                                               <p className="text-sm text-muted-foreground">
@@ -3700,6 +3668,44 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                   <p className="text-sm">{selectedLead.mics_segment || "—"}</p>
                 </div>
               </div>
+              
+              {/* Vehicle Details - Collapsible Section */}
+              {(selectedLead.vehicles_count || selectedLead.confirm_vehicles_50_plus || selectedLead.truck_types || selectedLead.features) && (
+                <Collapsible className="border-t pt-4">
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    <ChevronRight className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-90" />
+                    Vehicle Details
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedLead.vehicles_count && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Fleet Size</p>
+                          <p className="text-sm">{selectedLead.vehicles_count}</p>
+                        </div>
+                      )}
+                      {selectedLead.confirm_vehicles_50_plus && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Confirmed 50+</p>
+                          <p className="text-sm">{selectedLead.confirm_vehicles_50_plus}</p>
+                        </div>
+                      )}
+                      {selectedLead.truck_types && (
+                        <div className="col-span-2">
+                          <p className="text-sm font-medium text-muted-foreground">Vehicle Types</p>
+                          <p className="text-sm">{selectedLead.truck_types}</p>
+                        </div>
+                      )}
+                      {selectedLead.features && (
+                        <div className="col-span-2">
+                          <p className="text-sm font-medium text-muted-foreground">Features</p>
+                          <p className="text-sm">{selectedLead.features}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
               {selectedLead.domain && (
                 <div className="border-t pt-4">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Enrichment Data</p>
