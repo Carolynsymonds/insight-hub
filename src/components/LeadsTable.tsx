@@ -771,13 +771,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   Company Domain
                 </div>
               </TableHead>
+              <TableHead>Linkedin</TableHead>
+              <TableHead>Facebook</TableHead>
               <TableHead>Size</TableHead>
               <TableHead className="min-w-[250px]">Description</TableHead>
               <TableHead>Annual Revenue</TableHead>
-              
               <TableHead>Company Industry</TableHead>
-              <TableHead>Linkedin</TableHead>
-              <TableHead>Facebook</TableHead>
               <TableHead>Founded</TableHead>
               <TableHead>Contacts</TableHead>
               <TableHead>Logo</TableHead>
@@ -859,21 +858,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
-                  <TableCell>{lead.size || "—"}</TableCell>
-                  <TableCell
-                    className="max-w-[250px] cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      if (lead.description) {
-                        e.stopPropagation();
-                        setModalContent({ title: "Description", text: lead.description });
-                        setShowTextModal(true);
-                      }
-                    }}
-                  >
-                    <div className="truncate">{lead.description || "—"}</div>
-                  </TableCell>
-                  <TableCell>{lead.annual_revenue || "—"}</TableCell>
-                  <TableCell>{lead.company_industry || "—"}</TableCell>
                   <TableCell>
                     {lead.linkedin ? (
                       <a
@@ -906,6 +890,21 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
+                  <TableCell>{lead.size || "—"}</TableCell>
+                  <TableCell
+                    className="max-w-[250px] cursor-pointer hover:text-primary"
+                    onClick={(e) => {
+                      if (lead.description) {
+                        e.stopPropagation();
+                        setModalContent({ title: "Description", text: lead.description });
+                        setShowTextModal(true);
+                      }
+                    }}
+                  >
+                    <div className="truncate">{lead.description || "—"}</div>
+                  </TableCell>
+                  <TableCell>{lead.annual_revenue || "—"}</TableCell>
+                  <TableCell>{lead.company_industry || "—"}</TableCell>
                   <TableCell>{lead.founded_date || "—"}</TableCell>
                   <TableCell>
                     {(() => {
