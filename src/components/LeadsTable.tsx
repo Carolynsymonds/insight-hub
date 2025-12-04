@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -140,9 +140,19 @@ interface Lead {
     email?: string | null;
     email_status?: string | null;
     linkedin_url?: string;
+    facebook_url?: string;
+    twitter_url?: string;
+    github_url?: string;
     source: string;
     is_personal?: boolean;
     found_without_role_filter?: boolean;
+    social_search_logs?: Array<{
+      platform: string;
+      query: string;
+      found: boolean;
+      source: 'apollo' | 'google_search';
+      url?: string;
+    }>;
   }> | null;
   scraped_data_log: {
     // Common
@@ -832,6 +842,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
           full_name: lead.full_name,
           email: lead.email,
           domain: lead.domain,
+          company: lead.company,
         },
       });
       if (error) throw error;
@@ -3579,20 +3590,104 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                                   </div>
                                                 )}
 
-                                                {/* LinkedIn */}
-                                                {matchedContact.linkedin_url && (
-                                                  <div className="flex justify-between items-start">
-                                                    <span className="text-xs text-muted-foreground">LinkedIn</span>
-                                                    <a
-                                                      href={matchedContact.linkedin_url}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-sm text-primary hover:underline flex items-center gap-1"
-                                                    >
-                                                      <Linkedin className="h-3 w-3" />
-                                                      View Profile
-                                                      <ExternalLink className="h-3 w-3" />
-                                                    </a>
+                                                {/* Social Profiles */}
+                                                {(matchedContact.linkedin_url || matchedContact.facebook_url || matchedContact.twitter_url || matchedContact.github_url) && (
+                                                  <div className="flex flex-col gap-2">
+                                                    <span className="text-xs text-muted-foreground">Social Profiles</span>
+                                                    <div className="space-y-1.5">
+                                                      {matchedContact.linkedin_url && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                          <a
+                                                            href={matchedContact.linkedin_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                          >
+                                                            <Linkedin className="h-3 w-3" />
+                                                            {matchedContact.linkedin_url.replace('https://', '').replace('linkedin.com/', '')}
+                                                            <ExternalLink className="h-2.5 w-2.5" />
+                                                          </a>
+                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'linkedin') && (
+                                                            <Badge variant="outline" className={
+                                                              matchedContact.social_search_logs.find(l => l.platform === 'linkedin')?.source === 'apollo'
+                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
+                                                            }>
+                                                              {matchedContact.social_search_logs.find(l => l.platform === 'linkedin')?.source === 'apollo' ? 'Apollo' : 'Google'}
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                      {matchedContact.facebook_url && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                          <a
+                                                            href={matchedContact.facebook_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                          >
+                                                            <Facebook className="h-3 w-3" />
+                                                            {matchedContact.facebook_url.replace('https://', '').replace('facebook.com/', '')}
+                                                            <ExternalLink className="h-2.5 w-2.5" />
+                                                          </a>
+                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'facebook') && (
+                                                            <Badge variant="outline" className={
+                                                              matchedContact.social_search_logs.find(l => l.platform === 'facebook')?.source === 'apollo'
+                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
+                                                            }>
+                                                              {matchedContact.social_search_logs.find(l => l.platform === 'facebook')?.source === 'apollo' ? 'Apollo' : 'Google'}
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                      {matchedContact.twitter_url && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                          <a
+                                                            href={matchedContact.twitter_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                          >
+                                                            <Twitter className="h-3 w-3" />
+                                                            {matchedContact.twitter_url.replace('https://', '').replace('twitter.com/', '')}
+                                                            <ExternalLink className="h-2.5 w-2.5" />
+                                                          </a>
+                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'twitter') && (
+                                                            <Badge variant="outline" className={
+                                                              matchedContact.social_search_logs.find(l => l.platform === 'twitter')?.source === 'apollo'
+                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
+                                                            }>
+                                                              {matchedContact.social_search_logs.find(l => l.platform === 'twitter')?.source === 'apollo' ? 'Apollo' : 'Google'}
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                      {matchedContact.github_url && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                          <a
+                                                            href={matchedContact.github_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                          >
+                                                            <Github className="h-3 w-3" />
+                                                            {matchedContact.github_url.replace('https://', '').replace('github.com/', '')}
+                                                            <ExternalLink className="h-2.5 w-2.5" />
+                                                          </a>
+                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'github') && (
+                                                            <Badge variant="outline" className={
+                                                              matchedContact.social_search_logs.find(l => l.platform === 'github')?.source === 'apollo'
+                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
+                                                            }>
+                                                              {matchedContact.social_search_logs.find(l => l.platform === 'github')?.source === 'apollo' ? 'Apollo' : 'Google'}
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                    </div>
                                                   </div>
                                                 )}
 
