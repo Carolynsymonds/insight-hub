@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield } from "lucide-react";
 const CATEGORIES = [{
   name: "Marketing",
   icon: TrendingUp
@@ -137,10 +137,6 @@ const Index = () => {
       {activeView === "home" ? selectedCategory ? <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToCategories}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
                 <h2 className="text-2xl font-semibold">{selectedCategory}</h2>
                 <span className="text-muted-foreground">({filteredLeads.length} leads)</span>
               </div>
