@@ -223,6 +223,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
+  const [enrichingContact, setEnrichingContact] = useState<string | null>(null);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [contactsModalLead, setContactsModalLead] = useState<Lead | null>(null);
   const [showNewsModal, setShowNewsModal] = useState(false);
@@ -819,6 +820,43 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       });
     } finally {
       setFindingContacts(null);
+    }
+  };
+
+  const handleEnrichContact = async (lead: Lead) => {
+    setEnrichingContact(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-contact", {
+        body: {
+          leadId: lead.id,
+          full_name: lead.full_name,
+          email: lead.email,
+          domain: lead.domain,
+        },
+      });
+      if (error) throw error;
+
+      if (data.success && data.enrichedContact) {
+        toast({
+          title: "Contact Enriched!",
+          description: `Found additional details for ${lead.full_name}`,
+        });
+      } else {
+        toast({
+          title: "Contact Not Found",
+          description: "No matching contact found in Apollo",
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Contact Enrichment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingContact(null);
     }
   };
 
@@ -3606,11 +3644,6 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                               <p className="text-xs text-muted-foreground">
                                                 This lead ({lead.full_name}) was not found in the company contacts list.
                                               </p>
-                                              {!lead.company_contacts?.length && (
-                                                <p className="text-xs text-muted-foreground">
-                                                  Run "Find Company Contacts" first to discover contacts at this company.
-                                                </p>
-                                              )}
                                             </div>
                                           </div>
 
@@ -3627,6 +3660,35 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                               <span className="text-muted-foreground">Domain:</span>
                                               <span>{lead.domain || '—'}</span>
                                             </div>
+                                          </div>
+
+                                          {/* Step 2: Search Apollo for Contact */}
+                                          <div className="border-t pt-3">
+                                            <p className="text-xs font-medium mb-2">Step 2: Search Apollo</p>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full"
+                                              disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
+                                              onClick={() => handleEnrichContact(lead)}
+                                            >
+                                              {enrichingContact === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Searching Apollo...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Search className="mr-2 h-4 w-4" />
+                                                  Search Apollo for Contact
+                                                </>
+                                              )}
+                                            </Button>
+                                            {(!lead.email || !lead.full_name) && (
+                                              <p className="text-xs text-muted-foreground mt-1">
+                                                Name and email required to search Apollo.
+                                              </p>
+                                            )}
                                           </div>
                                         </div>
                                       );
