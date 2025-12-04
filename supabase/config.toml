@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.enrich-company-details]
 verify_jwt = false
 
+[functions.enrich-contact]
+verify_jwt = false
+
 [functions.enrich-facebook]
 verify_jwt = false
 
