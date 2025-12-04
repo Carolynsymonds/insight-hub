@@ -1692,34 +1692,46 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                               {(() => {
                                                 const fbLog = [...lead.enrichment_logs].reverse().find(log => log.action === "facebook_search_serper") as any;
                                                 if (!fbLog) return null;
+                                                
+                                                // Support both old format (searchSteps[0].organicResults) and new format (top3Results)
+                                                const query = fbLog.query || fbLog.searchSteps?.[0]?.query || '';
+                                                const organicResults = fbLog.top3Results || fbLog.searchSteps?.[0]?.organicResults || [];
+                                                
                                                 return (
                                                   <>
                                                     <p className="text-muted-foreground">
                                                       <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
                                                     </p>
-                                                    {fbLog.query && (
+                                                    {query && (
                                                       <div className="mt-2">
                                                         <p className="text-muted-foreground font-medium mb-1">Query:</p>
                                                         <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                          {fbLog.query}
+                                                          {query}
                                                         </p>
                                                       </div>
                                                     )}
-                                                    {fbLog.top3Results && fbLog.top3Results.length > 0 && (
+                                                    {organicResults.length > 0 && (
                                                       <div className="mt-2 space-y-1.5">
                                                         <p className="text-muted-foreground font-medium">
-                                                          Top {fbLog.top3Results.length} Results:
+                                                          Top {organicResults.length} Results:
                                                         </p>
-                                                        {fbLog.top3Results.map((result: any, rIdx: number) => (
+                                                        {organicResults.map((result: any, rIdx: number) => (
                                                           <div key={rIdx} className="p-2 bg-background rounded border text-xs">
                                                             <div className="flex items-start gap-1.5">
                                                               {result.favicon && (
                                                                 <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
                                                               )}
                                                               <div className="flex-1 min-w-0">
-                                                                <p className="font-medium" title={result.title}>
-                                                                  {result.position}. {result.title}
-                                                                </p>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                  <p className="font-medium" title={result.title}>
+                                                                    {result.position}. {result.title}
+                                                                  </p>
+                                                                  {result.source && (
+                                                                    <Badge variant="outline" className="text-xs h-5">
+                                                                      {result.source}
+                                                                    </Badge>
+                                                                  )}
+                                                                </div>
                                                                 <a 
                                                                   href={result.link} 
                                                                   target="_blank" 
@@ -1732,6 +1744,16 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                                   <p className="text-muted-foreground mt-0.5">
                                                                     {result.snippet}
                                                                   </p>
+                                                                )}
+                                                                {result.snippet_highlighted_words?.length > 0 && (
+                                                                  <div className="mt-1 flex flex-wrap gap-1">
+                                                                    <span className="text-muted-foreground">Matched:</span>
+                                                                    {result.snippet_highlighted_words.map((word: string, wIdx: number) => (
+                                                                      <Badge key={wIdx} variant="secondary" className="text-xs h-5 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                                        {word}
+                                                                      </Badge>
+                                                                    ))}
+                                                                  </div>
                                                                 )}
                                                                 {result.rich_snippet?.top?.extensions && (
                                                                   <div className="mt-1 flex flex-wrap gap-1">
