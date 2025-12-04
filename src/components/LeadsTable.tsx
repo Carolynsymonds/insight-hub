@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -229,6 +229,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   } | null>(null);
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
+  const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -904,16 +905,31 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   Company Domain
                 </div>
               </TableHead>
-              <TableHead>Socials</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead className="min-w-[250px]">Description</TableHead>
-              <TableHead>Annual Revenue</TableHead>
-              <TableHead>Company Industry</TableHead>
-              <TableHead>Founded</TableHead>
-              <TableHead>Contacts</TableHead>
-              <TableHead>Logo</TableHead>
-              <TableHead className="min-w-[200px]">Products/Services</TableHead>
-              <TableHead>News</TableHead>
+              <TableHead className="w-[40px] p-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
+                  title={showEnrichedColumns ? "Hide enriched details" : "Show enriched details"}
+                >
+                  <ChevronsRight className={`h-4 w-4 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+                </Button>
+              </TableHead>
+              {showEnrichedColumns && (
+                <>
+                  <TableHead>Socials</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead className="min-w-[250px]">Description</TableHead>
+                  <TableHead>Annual Revenue</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Founded</TableHead>
+                  <TableHead>Contacts</TableHead>
+                  <TableHead>Logo</TableHead>
+                  <TableHead className="min-w-[200px]">Products/Services</TableHead>
+                  <TableHead>News</TableHead>
+                </>
+              )}
               <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">
                 Actions
               </TableHead>
@@ -922,7 +938,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showEnrichedColumns ? 18 : 8} className="text-center text-muted-foreground py-8">
                   {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
                 </TableCell>
               </TableRow>
@@ -990,6 +1006,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
+                  <TableCell className="w-[40px] p-1"></TableCell>
+                  {showEnrichedColumns && (
+                    <>
                   <TableCell>
                     <div className="flex flex-col gap-1 text-xs">
                       {/* LinkedIn */}
@@ -1178,6 +1197,8 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       })() : "—"}
                     </div>
                   </TableCell>
+                    </>
+                  )}
                   <TableCell
                     className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
                     onClick={(e) => e.stopPropagation()}
