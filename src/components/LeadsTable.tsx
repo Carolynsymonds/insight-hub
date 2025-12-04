@@ -117,6 +117,10 @@ interface Lead {
   facebook_validated: boolean | null;
   linkedin_validated: boolean | null;
   instagram_validated: boolean | null;
+  vehicles_count: string | null;
+  confirm_vehicles_50_plus: string | null;
+  truck_types: string | null;
+  features: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -2684,6 +2688,38 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                                     </p>
                                                   )}
                                                 </div>
+
+                                                {/* Vehicle Details Section */}
+                                                {(lead.vehicles_count || lead.confirm_vehicles_50_plus || lead.truck_types || lead.features) && (
+                                                  <Collapsible className="pt-3 border-t">
+                                                    <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full">
+                                                      <ChevronRight className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-90" />
+                                                      Vehicle Details
+                                                    </CollapsibleTrigger>
+                                                    <CollapsibleContent className="pt-2 pl-6 space-y-2">
+                                                      {lead.vehicles_count && (
+                                                        <p className="text-sm text-foreground">
+                                                          <span className="font-medium">Fleet Size:</span> {lead.vehicles_count}
+                                                        </p>
+                                                      )}
+                                                      {lead.confirm_vehicles_50_plus && (
+                                                        <p className="text-sm text-foreground">
+                                                          <span className="font-medium">Confirmed 50+:</span> {lead.confirm_vehicles_50_plus}
+                                                        </p>
+                                                      )}
+                                                      {lead.truck_types && (
+                                                        <p className="text-sm text-foreground">
+                                                          <span className="font-medium">Vehicle Types:</span> {lead.truck_types}
+                                                        </p>
+                                                      )}
+                                                      {lead.features && (
+                                                        <p className="text-sm text-foreground">
+                                                          <span className="font-medium">Features:</span> {lead.features}
+                                                        </p>
+                                                      )}
+                                                    </CollapsibleContent>
+                                                  </Collapsible>
+                                                )}
                                               </div>
                                             ) : (
                                               <p className="text-sm text-muted-foreground">
