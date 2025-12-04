@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -991,94 +991,88 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-0.5 text-xs">
+                    <div className="flex flex-col gap-1 text-xs">
                       {/* LinkedIn */}
-                      <div>
+                      <div className="flex items-center gap-1.5">
+                        <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.linkedin ? (
                           lead.linkedin_validated === false ? (
-                            <span className="text-muted-foreground">LinkedIn not found</span>
+                            <span className="text-muted-foreground">not found</span>
                           ) : (
                             <a
                               href={lead.linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
+                              className="text-primary hover:underline truncate max-w-[150px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
                                 try {
-                                  const url = new URL(lead.linkedin);
-                                  const path = url.pathname.replace(/\/$/, '');
-                                  return url.hostname.replace('www.', '') + path;
+                                  return new URL(lead.linkedin).pathname.replace(/\/$/, '') || '/';
                                 } catch {
                                   return lead.linkedin;
                                 }
                               })()}
-                              <ExternalLink className="h-3 w-3" />
                             </a>
                           )
                         ) : (
-                          <span className="text-muted-foreground/50">LinkedIn —</span>
+                          <span className="text-muted-foreground/50">—</span>
                         )}
                       </div>
                       
                       {/* Instagram */}
-                      <div>
+                      <div className="flex items-center gap-1.5">
+                        <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.instagram ? (
                           lead.instagram_validated === false ? (
-                            <span className="text-muted-foreground">Instagram not found</span>
+                            <span className="text-muted-foreground">not found</span>
                           ) : (
                             <a
                               href={lead.instagram}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
+                              className="text-primary hover:underline truncate max-w-[150px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
                                 try {
-                                  const url = new URL(lead.instagram);
-                                  const path = url.pathname.replace(/\/$/, '');
-                                  return url.hostname.replace('www.', '') + path;
+                                  return new URL(lead.instagram).pathname.replace(/\/$/, '') || '/';
                                 } catch {
                                   return lead.instagram;
                                 }
                               })()}
-                              <ExternalLink className="h-3 w-3" />
                             </a>
                           )
                         ) : (
-                          <span className="text-muted-foreground/50">Instagram —</span>
+                          <span className="text-muted-foreground/50">—</span>
                         )}
                       </div>
                       
                       {/* Facebook */}
-                      <div>
+                      <div className="flex items-center gap-1.5">
+                        <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.facebook ? (
                           lead.facebook_validated === false ? (
-                            <span className="text-muted-foreground">Facebook not found</span>
+                            <span className="text-muted-foreground">not found</span>
                           ) : (
                             <a
                               href={lead.facebook}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
+                              className="text-primary hover:underline truncate max-w-[150px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
                                 try {
-                                  const url = new URL(lead.facebook);
-                                  const path = url.pathname.replace(/\/$/, '');
-                                  return url.hostname.replace('www.', '') + path;
+                                  return new URL(lead.facebook).pathname.replace(/\/$/, '') || '/';
                                 } catch {
                                   return lead.facebook;
                                 }
                               })()}
-                              <ExternalLink className="h-3 w-3" />
                             </a>
                           )
                         ) : (
-                          <span className="text-muted-foreground/50">Facebook —</span>
+                          <span className="text-muted-foreground/50">—</span>
                         )}
                       </div>
                     </div>
