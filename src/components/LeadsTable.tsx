@@ -561,15 +561,17 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     }
   };
 
-  const handleEnrichFacebook = async (lead: Lead) => {
+  const handleSearchFacebookSerper = async (lead: Lead) => {
     setEnrichingFacebook(lead.id);
     try {
-      const { data, error } = await supabase.functions.invoke("enrich-facebook", {
+      const { data, error } = await supabase.functions.invoke("search-facebook-serper", {
         body: {
           leadId: lead.id,
           company: lead.company,
           city: lead.city,
           state: lead.state,
+          phone: lead.phone,
+          micsSector: lead.mics_sector,
         },
       });
       if (error) throw error;
@@ -577,14 +579,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       toast({
         title: data.facebook ? "Facebook Found!" : "No Facebook Found",
         description: data.facebook
-          ? `Found: ${data.facebook}`
-          : "No Facebook page found for this company",
+          ? `Found with ${data.confidence}% confidence (${data.stepsExecuted} steps)`
+          : `No Facebook page found after ${data.stepsExecuted} search steps`,
       });
 
       onEnrichComplete();
     } catch (error: any) {
       toast({
-        title: "Facebook Enrichment Failed",
+        title: "Facebook Search Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -1581,26 +1583,137 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleEnrichFacebook(lead)}
-                                        disabled={enrichingFacebook === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingFacebook === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Finding Facebook...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Enrich with Google (FB)
-                                          </>
-                                        )}
-                                      </Button>
                                     </div>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Socials Search Section */}
+                              <AccordionItem value="socials-search" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                  Socials Search
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-3 pt-2">
+                                    {/* Existing Facebook result display */}
+                                    {lead.facebook && (
+                                      <div className="p-3 border rounded-lg bg-muted/30">
+                                        <div className="flex items-center justify-between">
+                                          <div style={{ userSelect: "text" }}>
+                                            <p className="text-xs text-muted-foreground mb-1 select-text">Facebook</p>
+                                            <a
+                                              href={lead.facebook}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              {lead.facebook}
+                                              <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                            </a>
+                                          </div>
+                                          {lead.facebook_confidence && (
+                                            <div className="flex items-center gap-1">
+                                              <Badge variant="outline" className="text-xs">
+                                                {lead.facebook_confidence}%
+                                              </Badge>
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-xs">
+                                                      {lead.facebook_confidence >= 90
+                                                        ? "High confidence: Found with full location data"
+                                                        : lead.facebook_confidence >= 70
+                                                          ? "Good confidence: Found with partial location"
+                                                          : lead.facebook_confidence >= 50
+                                                            ? "Medium confidence: Found with industry/phone data"
+                                                            : "Lower confidence: Found with variation search"}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* View Search Logs */}
+                                    {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "facebook_search_serper") && (
+                                      <Collapsible>
+                                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                          <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                          View Search Logs
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                            {(() => {
+                                              const fbLog = [...lead.enrichment_logs].reverse().find(log => log.action === "facebook_search_serper") as any;
+                                              if (!fbLog) return null;
+                                              return (
+                                                <>
+                                                  <p className="text-muted-foreground">
+                                                    <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
+                                                  </p>
+                                                  {fbLog.searchSteps && (
+                                                    <div className="space-y-1.5 mt-2">
+                                                      {fbLog.searchSteps.map((step: any, idx: number) => (
+                                                        <div key={idx} className="p-2 bg-background rounded border">
+                                                          <div className="flex items-center gap-2 mb-1">
+                                                            <Badge 
+                                                              variant={step.resultFound ? "default" : "secondary"}
+                                                              className="text-xs h-5"
+                                                            >
+                                                              Step {step.step}
+                                                            </Badge>
+                                                            <span className="text-muted-foreground">
+                                                              {step.confidence}% confidence
+                                                            </span>
+                                                            {step.resultFound && (
+                                                              <span className="text-green-600 font-medium">✓ Found</span>
+                                                            )}
+                                                          </div>
+                                                          <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                            {step.query}
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </>
+                                              );
+                                            })()}
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    )}
+
+                                    {/* Search Facebook Button */}
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSearchFacebookSerper(lead)}
+                                      disabled={enrichingFacebook === lead.id || !lead.company}
+                                      className="w-full"
+                                      variant="outline"
+                                    >
+                                      {enrichingFacebook === lead.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Searching Facebook...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Search className="mr-2 h-4 w-4" />
+                                          Search Facebook
+                                        </>
+                                      )}
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                      Multi-step search: name variations, location, industry, phone
+                                    </p>
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>

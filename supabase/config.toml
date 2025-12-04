@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.score-industry-relevance]
 verify_jwt = false
+
+[functions.search-facebook-serper]
+verify_jwt = false
