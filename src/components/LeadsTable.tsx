@@ -903,18 +903,20 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                 <div className="flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
                   Company Domain
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 ml-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEnrichedColumns(!showEnrichedColumns);
+                    }}
+                    title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
+                  >
+                    <ChevronsRight className={`h-4 w-4 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+                    <span className="text-xs ml-1">{showEnrichedColumns ? 'Collapse' : 'Expand'}</span>
+                  </Button>
                 </div>
-              </TableHead>
-              <TableHead className="w-[40px] p-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
-                  title={showEnrichedColumns ? "Hide enriched details" : "Show enriched details"}
-                >
-                  <ChevronsRight className={`h-4 w-4 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
-                </Button>
               </TableHead>
               {showEnrichedColumns && (
                 <>
@@ -938,7 +940,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEnrichedColumns ? 18 : 8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={showEnrichedColumns ? 17 : 7} className="text-center text-muted-foreground py-8">
                   {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
                 </TableCell>
               </TableRow>
@@ -1006,7 +1008,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       "—"
                     )}
                   </TableCell>
-                  <TableCell className="w-[40px] p-1"></TableCell>
                   {showEnrichedColumns && (
                     <>
                   <TableCell>
