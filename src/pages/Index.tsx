@@ -5,13 +5,31 @@ import LeadUpload from "@/components/LeadUpload";
 import LeadsTable from "@/components/LeadsTable";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield } from "lucide-react";
+
+const CATEGORIES = [
+  { name: "Marketing", icon: TrendingUp },
+  { name: "Ecommerce", icon: ShoppingCart },
+  { name: "Website", icon: Globe },
+  { name: "Sales", icon: Briefcase },
+  { name: "Taking Payments", icon: CreditCard },
+  { name: "Operations", icon: Settings },
+  { name: "Finance", icon: DollarSign },
+  { name: "Utilities", icon: Zap },
+  { name: "Offices", icon: Building2 },
+  { name: "Vehicles", icon: Car },
+  { name: "Security", icon: Shield },
+] as const;
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("home");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     checkAuth();
@@ -46,6 +64,16 @@ const Index = () => {
       if (error) throw error;
 
       setLeads(data || []);
+      
+      // Calculate category counts
+      const counts: Record<string, number> = {};
+      CATEGORIES.forEach(cat => counts[cat.name] = 0);
+      (data || []).forEach((lead: any) => {
+        if (lead.category && counts[lead.category] !== undefined) {
+          counts[lead.category]++;
+        }
+      });
+      setCategoryCounts(counts);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -62,6 +90,18 @@ const Index = () => {
     setActiveView("home");
   };
 
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null);
+  };
+
+  const filteredLeads = selectedCategory 
+    ? leads.filter(lead => lead.category === selectedCategory)
+    : leads;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -76,7 +116,44 @@ const Index = () => {
   return (
     <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
       {activeView === "home" ? (
-        <LeadsTable leads={leads} onEnrichComplete={fetchLeads} />
+        selectedCategory ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={handleBackToCategories} className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Categories
+              </Button>
+              <h2 className="text-2xl font-semibold">{selectedCategory}</h2>
+              <span className="text-muted-foreground">({filteredLeads.length} leads)</span>
+            </div>
+            <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Select a Category</h2>
+              <p className="text-muted-foreground">Choose a category to view and manage leads</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {CATEGORIES.map((category) => {
+                const Icon = category.icon;
+                const count = categoryCounts[category.name] || 0;
+                return (
+                  <Button
+                    key={category.name}
+                    variant="outline"
+                    className="h-auto py-6 flex flex-col gap-3 hover:bg-accent hover:border-primary transition-all"
+                    onClick={() => handleCategorySelect(category.name)}
+                  >
+                    <Icon className="h-8 w-8 text-primary" />
+                    <span className="font-medium">{category.name}</span>
+                    <span className="text-sm text-muted-foreground">{count} leads</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )
       ) : (
         <LeadUpload onUploadComplete={handleUploadComplete} />
       )}
