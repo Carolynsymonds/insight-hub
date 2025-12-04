@@ -1007,7 +1007,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                             >
                               {(() => {
                                 try {
-                                  return new URL(lead.linkedin).hostname.replace('www.', '');
+                                  const url = new URL(lead.linkedin);
+                                  const path = url.pathname.replace(/\/$/, '');
+                                  return url.hostname.replace('www.', '') + path;
                                 } catch {
                                   return lead.linkedin;
                                 }
@@ -1035,7 +1037,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                             >
                               {(() => {
                                 try {
-                                  return new URL(lead.instagram).hostname.replace('www.', '');
+                                  const url = new URL(lead.instagram);
+                                  const path = url.pathname.replace(/\/$/, '');
+                                  return url.hostname.replace('www.', '') + path;
                                 } catch {
                                   return lead.instagram;
                                 }
@@ -1063,7 +1067,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                             >
                               {(() => {
                                 try {
-                                  return new URL(lead.facebook).hostname.replace('www.', '');
+                                  const url = new URL(lead.facebook);
+                                  const path = url.pathname.replace(/\/$/, '');
+                                  return url.hostname.replace('www.', '') + path;
                                 } catch {
                                   return lead.facebook;
                                 }
