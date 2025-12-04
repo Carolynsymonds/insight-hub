@@ -1711,62 +1711,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                       </div>
                                                     )}
                                                     {organicResults.length > 0 && (
-                                                      <div className="mt-2 space-y-1.5">
+                                                      <div className="mt-2 space-y-2">
                                                         <p className="text-muted-foreground font-medium">
-                                                          Top {organicResults.length} Results:
+                                                          organic_results ({organicResults.length}):
                                                         </p>
                                                         {organicResults.map((result: any, rIdx: number) => (
-                                                          <div key={rIdx} className="p-2 bg-background rounded border text-xs">
-                                                            <div className="flex items-start gap-1.5">
-                                                              {result.favicon && (
-                                                                <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
-                                                              )}
-                                                              <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                  <p className="font-medium" title={result.title}>
-                                                                    {result.position}. {result.title}
-                                                                  </p>
-                                                                  {result.source && (
-                                                                    <Badge variant="outline" className="text-xs h-5">
-                                                                      {result.source}
-                                                                    </Badge>
-                                                                  )}
-                                                                </div>
-                                                                <a 
-                                                                  href={result.link} 
-                                                                  target="_blank" 
-                                                                  rel="noopener noreferrer"
-                                                                  className="text-primary hover:underline break-all text-xs"
-                                                                >
-                                                                  {result.displayed_link || result.link}
-                                                                </a>
-                                                                {result.snippet && (
-                                                                  <p className="text-muted-foreground mt-0.5">
-                                                                    {result.snippet}
-                                                                  </p>
-                                                                )}
-                                                                {result.snippet_highlighted_words?.length > 0 && (
-                                                                  <div className="mt-1 flex flex-wrap gap-1">
-                                                                    <span className="text-muted-foreground">Matched:</span>
-                                                                    {result.snippet_highlighted_words.map((word: string, wIdx: number) => (
-                                                                      <Badge key={wIdx} variant="secondary" className="text-xs h-5 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                                                        {word}
-                                                                      </Badge>
-                                                                    ))}
-                                                                  </div>
-                                                                )}
-                                                                {result.rich_snippet?.top?.extensions && (
-                                                                  <div className="mt-1 flex flex-wrap gap-1">
-                                                                    {result.rich_snippet.top.extensions.map((ext: string, eIdx: number) => (
-                                                                      <Badge key={eIdx} variant="secondary" className="text-xs h-5">
-                                                                        {ext}
-                                                                      </Badge>
-                                                                    ))}
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            </div>
-                                                          </div>
+                                                          <pre key={rIdx} className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
+                                                            {JSON.stringify(result, null, 2)}
+                                                          </pre>
                                                         ))}
                                                       </div>
                                                     )}
