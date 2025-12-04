@@ -111,6 +111,9 @@ interface Lead {
   contact_email: string | null;
   contact_email_personal: boolean | null;
   email_domain_validated: boolean | null;
+  instagram: string | null;
+  instagram_confidence: number | null;
+  instagram_source_url: string | null;
   company_contacts: Array<{
     id?: string;
     name?: string;
@@ -196,6 +199,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   const [fetchingNews, setFetchingNews] = useState<string | null>(null);
   const [enrichingFacebook, setEnrichingFacebook] = useState<string | null>(null);
   const [enrichingLinkedin, setEnrichingLinkedin] = useState<string | null>(null);
+  const [enrichingInstagram, setEnrichingInstagram] = useState<string | null>(null);
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
@@ -628,6 +632,38 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingLinkedin(null);
+    }
+  };
+
+  const handleSearchInstagramSerper = async (lead: Lead) => {
+    setEnrichingInstagram(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("search-instagram-serper", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+        },
+      });
+      if (error) throw error;
+
+      toast({
+        title: data.instagram ? "Instagram Found!" : "No Instagram Found",
+        description: data.instagram
+          ? `Found: ${data.instagram} (${data.confidence}% confidence)`
+          : "No Instagram profile found",
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Instagram Search Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingInstagram(null);
     }
   };
 
@@ -1873,8 +1909,122 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       </Button>
                                     </div>
 
+                                    {/* Instagram Section */}
+                                    <div className="space-y-3 pt-3 border-t">
+                                      <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                                      
+                                      {/* Instagram result display */}
+                                      {lead.instagram && (
+                                        <div className="p-3 border rounded-lg bg-muted/30">
+                                          <div className="flex items-center justify-between">
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.instagram}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.instagram}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
+                                            </div>
+                                            {lead.instagram_confidence && (
+                                              <div className="flex items-center gap-1">
+                                                <Badge variant="outline" className="text-xs">
+                                                  {lead.instagram_confidence}%
+                                                </Badge>
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                      <p className="text-xs">
+                                                        85% confidence: Found via site:instagram.com search
+                                                      </p>
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Instagram Search Logs */}
+                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "instagram_search_serper") && (
+                                        <Collapsible>
+                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                            View Search Logs
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                              {(() => {
+                                                const igLog = [...lead.enrichment_logs].reverse().find(log => log.action === "instagram_search_serper") as any;
+                                                if (!igLog) return null;
+                                                
+                                                const query = igLog.query || '';
+                                                const organicResults = igLog.top3Results || [];
+                                                
+                                                return (
+                                                  <>
+                                                    <p className="text-muted-foreground">
+                                                      <span className="font-medium">Searched:</span> {new Date(igLog.timestamp).toLocaleString()}
+                                                    </p>
+                                                    {query && (
+                                                      <div className="mt-2">
+                                                        <p className="text-muted-foreground font-medium mb-1">Query:</p>
+                                                        <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                          {query}
+                                                        </p>
+                                                      </div>
+                                                    )}
+                                                    {organicResults.length > 0 && (
+                                                      <div className="mt-2 space-y-2">
+                                                        <p className="text-muted-foreground font-medium">
+                                                          organic_results ({organicResults.length}):
+                                                        </p>
+                                                        {organicResults.map((result: any, rIdx: number) => (
+                                                          <pre key={rIdx} className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
+                                                            {JSON.stringify(result, null, 2)}
+                                                          </pre>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                );
+                                              })()}
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      )}
+
+                                      {/* Search Instagram Button */}
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSearchInstagramSerper(lead)}
+                                        disabled={enrichingInstagram === lead.id || !lead.company}
+                                        className="w-full"
+                                        variant="outline"
+                                      >
+                                        {enrichingInstagram === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Searching Instagram...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Search className="mr-2 h-4 w-4" />
+                                            Search Instagram
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+
                                     <p className="text-xs text-muted-foreground text-center pt-2">
-                                      Multi-step search: name variations, location, industry
+                                      Social search: Facebook, LinkedIn, Instagram
                                     </p>
                                   </div>
                                 </AccordionContent>
