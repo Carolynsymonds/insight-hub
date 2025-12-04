@@ -23,6 +23,7 @@ export type Database = {
           company: string | null
           company_contacts: Json | null
           company_industry: string | null
+          confirm_vehicles_50_plus: string | null
           contact_email: string | null
           contact_email_personal: boolean | null
           created_at: string | null
@@ -49,6 +50,7 @@ export type Database = {
           facebook_confidence: number | null
           facebook_source_url: string | null
           facebook_validated: boolean | null
+          features: string | null
           founded_date: string | null
           full_name: string
           id: string
@@ -79,10 +81,12 @@ export type Database = {
           source_url: string | null
           state: string | null
           tech_stack: string | null
+          truck_types: string | null
           updated_at: string | null
           user_id: string
           vehicle_tracking_interest_explanation: string | null
           vehicle_tracking_interest_score: number | null
+          vehicles_count: string | null
           zipcode: string | null
         }
         Insert: {
@@ -93,6 +97,7 @@ export type Database = {
           company?: string | null
           company_contacts?: Json | null
           company_industry?: string | null
+          confirm_vehicles_50_plus?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
           created_at?: string | null
@@ -119,6 +124,7 @@ export type Database = {
           facebook_confidence?: number | null
           facebook_source_url?: string | null
           facebook_validated?: boolean | null
+          features?: string | null
           founded_date?: string | null
           full_name: string
           id?: string
@@ -149,10 +155,12 @@ export type Database = {
           source_url?: string | null
           state?: string | null
           tech_stack?: string | null
+          truck_types?: string | null
           updated_at?: string | null
           user_id: string
           vehicle_tracking_interest_explanation?: string | null
           vehicle_tracking_interest_score?: number | null
+          vehicles_count?: string | null
           zipcode?: string | null
         }
         Update: {
@@ -163,6 +171,7 @@ export type Database = {
           company?: string | null
           company_contacts?: Json | null
           company_industry?: string | null
+          confirm_vehicles_50_plus?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
           created_at?: string | null
@@ -189,6 +198,7 @@ export type Database = {
           facebook_confidence?: number | null
           facebook_source_url?: string | null
           facebook_validated?: boolean | null
+          features?: string | null
           founded_date?: string | null
           full_name?: string
           id?: string
@@ -219,10 +229,12 @@ export type Database = {
           source_url?: string | null
           state?: string | null
           tech_stack?: string | null
+          truck_types?: string | null
           updated_at?: string | null
           user_id?: string
           vehicle_tracking_interest_explanation?: string | null
           vehicle_tracking_interest_score?: number | null
+          vehicles_count?: string | null
           zipcode?: string | null
         }
         Relationships: []

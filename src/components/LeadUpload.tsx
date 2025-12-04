@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,10 +29,27 @@ const CATEGORIES = [
   "Security",
 ] as const;
 
+const VEHICLES_COUNT_OPTIONS = ["5-20", "21-50", "More than 50"] as const;
+const CONFIRM_VEHICLES_OPTIONS = ["50-99", "100+"] as const;
+const TRUCK_TYPE_OPTIONS = [
+  "Cars / Automobiles",
+  "Vans / Trucks",
+  "Heavy duty trucks / Semis",
+  "Construction Machinery",
+] as const;
+const FEATURES_OPTIONS = [
+  "Real-time GPS Tracking",
+  "Fuel efficiency monitoring",
+  "Route optimization",
+  "Electronic logging device (ELD)",
+] as const;
+
 const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [csvCategory, setCsvCategory] = useState(defaultCategory || "");
+  const [selectedTruckTypes, setSelectedTruckTypes] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -45,7 +63,21 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
     mics_subsector: "",
     mics_segment: "",
     category: defaultCategory || "",
+    vehicles_count: "",
+    confirm_vehicles_50_plus: "",
   });
+
+  const handleTruckTypeChange = (truckType: string, checked: boolean) => {
+    setSelectedTruckTypes(prev =>
+      checked ? [...prev, truckType] : prev.filter(t => t !== truckType)
+    );
+  };
+
+  const handleFeatureChange = (feature: string, checked: boolean) => {
+    setSelectedFeatures(prev =>
+      checked ? [...prev, feature] : prev.filter(f => f !== feature)
+    );
+  };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +100,8 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
 
       const { error } = await supabase.from("leads").insert({
         ...formData,
+        truck_types: selectedTruckTypes.length > 0 ? selectedTruckTypes.join(",") : null,
+        features: selectedFeatures.length > 0 ? selectedFeatures.join(",") : null,
         user_id: user.id,
       });
 
@@ -91,7 +125,11 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         mics_subsector: "",
         mics_segment: "",
         category: defaultCategory || "",
+        vehicles_count: "",
+        confirm_vehicles_50_plus: "",
       });
+      setSelectedTruckTypes([]);
+      setSelectedFeatures([]);
 
       onUploadComplete();
     } catch (error: any) {
@@ -147,6 +185,10 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
           else if (header === "mics sector (harmonised)" || header === "mics_sector") lead.mics_sector = value;
           else if (header === "mics subsector (harmonised)" || header === "mics_subsector") lead.mics_subsector = value;
           else if (header === "mics segment (harmonised)" || header === "mics_segment") lead.mics_segment = value;
+          else if (header === "vehicles_count" || header === "vehicles count") lead.vehicles_count = value;
+          else if (header === "confirm_vehicles_50_plus" || header === "confirm vehicles +50" || header === "confirm_vehicles_+50") lead.confirm_vehicles_50_plus = value;
+          else if (header === "truck_types" || header === "truck") lead.truck_types = value;
+          else if (header === "features") lead.features = value;
         });
 
         return lead;
@@ -317,6 +359,91 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                   />
                 </div>
               </div>
+
+              {/* Vehicle-specific fields */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-medium mb-4">Vehicle Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Vehicles Count</Label>
+                    <Select
+                      value={formData.vehicles_count}
+                      onValueChange={(value) => setFormData({ ...formData, vehicles_count: value })}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select count" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLES_COUNT_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Vehicles +50</Label>
+                    <Select
+                      value={formData.confirm_vehicles_50_plus}
+                      onValueChange={(value) => setFormData({ ...formData, confirm_vehicles_50_plus: value })}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONFIRM_VEHICLES_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                  <div className="space-y-3">
+                    <Label>Truck Types</Label>
+                    <div className="space-y-2">
+                      {TRUCK_TYPE_OPTIONS.map((type) => (
+                        <div key={type} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`truck-${type}`}
+                            checked={selectedTruckTypes.includes(type)}
+                            onCheckedChange={(checked) => handleTruckTypeChange(type, checked as boolean)}
+                            disabled={loading}
+                          />
+                          <Label htmlFor={`truck-${type}`} className="text-sm font-normal cursor-pointer">
+                            {type}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Label>Features</Label>
+                    <div className="space-y-2">
+                      {FEATURES_OPTIONS.map((feature) => (
+                        <div key={feature} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`feature-${feature}`}
+                            checked={selectedFeatures.includes(feature)}
+                            onCheckedChange={(checked) => handleFeatureChange(feature, checked as boolean)}
+                            disabled={loading}
+                          />
+                          <Label htmlFor={`feature-${feature}`} className="text-sm font-normal cursor-pointer">
+                            {feature}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <Button type="submit" disabled={loading} className="w-full">
                 Add Lead
               </Button>
@@ -360,7 +487,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                   />
                 </Label>
                 <p className="text-xs text-muted-foreground mt-2">
-                  CSV should include: full_name, phone, email, company, city, state, dma, zipcode, MICS Sector (Harmonised), MICS Subsector (Harmonised), MICS Segment (Harmonised)
+                  CSV columns: full_name, phone, email, company, city, state, dma, zipcode, mics_sector, mics_subsector, mics_segment, vehicles_count, confirm_vehicles_+50, truck, features
                 </p>
               </div>
             </div>
