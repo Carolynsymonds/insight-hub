@@ -1679,6 +1679,41 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                           <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
                                                             {step.query}
                                                           </p>
+                                                          {/* Organic Results */}
+                                                          {step.organicResults && step.organicResults.length > 0 && (
+                                                            <div className="mt-2 space-y-1.5">
+                                                              <p className="text-muted-foreground text-xs font-medium">
+                                                                Results ({step.organicResults.length}):
+                                                              </p>
+                                                              {step.organicResults.slice(0, 5).map((result: any, rIdx: number) => (
+                                                                <div key={rIdx} className="p-1.5 bg-muted/30 rounded text-xs">
+                                                                  <div className="flex items-start gap-1.5">
+                                                                    {result.favicon && (
+                                                                      <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
+                                                                    )}
+                                                                    <div className="flex-1 min-w-0">
+                                                                      <p className="font-medium truncate" title={result.title}>
+                                                                        {result.position}. {result.title}
+                                                                      </p>
+                                                                      <a 
+                                                                        href={result.link} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-primary hover:underline break-all text-xs"
+                                                                      >
+                                                                        {result.displayed_link || result.link}
+                                                                      </a>
+                                                                      {result.snippet && (
+                                                                        <p className="text-muted-foreground mt-0.5 line-clamp-2">
+                                                                          {result.snippet}
+                                                                        </p>
+                                                                      )}
+                                                                    </div>
+                                                                  </div>
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          )}
                                                         </div>
                                                       ))}
                                                     </div>
