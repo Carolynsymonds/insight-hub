@@ -904,8 +904,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                   Company Domain
                 </div>
               </TableHead>
-              <TableHead>Linkedin</TableHead>
-              <TableHead>Facebook</TableHead>
+              <TableHead>Socials</TableHead>
               <TableHead>Size</TableHead>
               <TableHead className="min-w-[250px]">Description</TableHead>
               <TableHead>Annual Revenue</TableHead>
@@ -923,7 +922,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
                   {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
                 </TableCell>
               </TableRow>
@@ -992,36 +991,91 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {lead.linkedin ? (
-                      <a
-                        href={lead.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {lead.facebook ? (
-                      <a
-                        href={lead.facebook}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
+                    <div className="flex flex-col gap-0.5 text-xs">
+                      {/* LinkedIn */}
+                      <div>
+                        {lead.linkedin ? (
+                          lead.linkedin_validated === false ? (
+                            <span className="text-muted-foreground">LinkedIn not found</span>
+                          ) : (
+                            <a
+                              href={lead.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(() => {
+                                try {
+                                  return new URL(lead.linkedin).hostname.replace('www.', '');
+                                } catch {
+                                  return lead.linkedin;
+                                }
+                              })()}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground/50">LinkedIn —</span>
+                        )}
+                      </div>
+                      
+                      {/* Instagram */}
+                      <div>
+                        {lead.instagram ? (
+                          lead.instagram_validated === false ? (
+                            <span className="text-muted-foreground">Instagram not found</span>
+                          ) : (
+                            <a
+                              href={lead.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(() => {
+                                try {
+                                  return new URL(lead.instagram).hostname.replace('www.', '');
+                                } catch {
+                                  return lead.instagram;
+                                }
+                              })()}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground/50">Instagram —</span>
+                        )}
+                      </div>
+                      
+                      {/* Facebook */}
+                      <div>
+                        {lead.facebook ? (
+                          lead.facebook_validated === false ? (
+                            <span className="text-muted-foreground">Facebook not found</span>
+                          ) : (
+                            <a
+                              href={lead.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(() => {
+                                try {
+                                  return new URL(lead.facebook).hostname.replace('www.', '');
+                                } catch {
+                                  return lead.facebook;
+                                }
+                              })()}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground/50">Facebook —</span>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>{lead.size || "—"}</TableCell>
                   <TableCell
