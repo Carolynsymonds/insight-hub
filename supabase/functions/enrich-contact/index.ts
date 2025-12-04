@@ -15,6 +15,18 @@ interface SocialSearchLog {
   url?: string;
 }
 
+interface StepResult {
+  status: 'pending' | 'running' | 'completed' | 'skipped' | 'not_found';
+  message?: string;
+  data?: Record<string, any>;
+}
+
+interface EnrichmentSteps {
+  check_existing: StepResult;
+  apollo_search: StepResult;
+  google_socials: StepResult;
+}
+
 interface EnrichedContact {
   name: string;
   first_name?: string;
@@ -158,6 +170,83 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
+    // Initialize steps tracking
+    const steps: EnrichmentSteps = {
+      check_existing: { status: 'pending' },
+      apollo_search: { status: 'pending' },
+      google_socials: { status: 'pending' }
+    };
+
+    // ===== STEP 1: Check existing contacts =====
+    console.log('[enrich-contact] Step 1: Checking existing contacts');
+    steps.check_existing = { status: 'running', message: 'Checking if contact already exists...' };
+
+    const { data: leadData, error: fetchError } = await supabase
+      .from('leads')
+      .select('company_contacts')
+      .eq('id', leadId)
+      .single();
+
+    if (fetchError) {
+      console.error('[enrich-contact] Error fetching lead:', fetchError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch lead', details: fetchError }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const existingContacts = (leadData?.company_contacts as any[]) || [];
+    
+    // Check if contact already exists by email or name
+    const existingContact = existingContacts.find(c => 
+      (email && c.email && c.email.toLowerCase() === email.toLowerCase()) ||
+      (full_name && c.name && c.name.toLowerCase() === full_name.toLowerCase())
+    );
+
+    if (existingContact) {
+      steps.check_existing = { 
+        status: 'completed', 
+        message: 'Contact already exists in company contacts',
+        data: {
+          name: existingContact.name,
+          email: existingContact.email,
+          source: existingContact.source,
+          has_linkedin: !!existingContact.linkedin_url,
+          has_facebook: !!existingContact.facebook_url,
+          has_twitter: !!existingContact.twitter_url,
+          has_github: !!existingContact.github_url
+        }
+      };
+      steps.apollo_search = { status: 'skipped', message: 'Skipped - contact already exists' };
+      steps.google_socials = { status: 'skipped', message: 'Skipped - contact already exists' };
+
+      console.log('[enrich-contact] Contact already exists, returning existing data');
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          enrichedContact: existingContact,
+          steps,
+          message: 'Contact already exists in company contacts'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    steps.check_existing = { 
+      status: 'not_found', 
+      message: 'Contact not found in existing contacts',
+      data: { 
+        lead_name: full_name, 
+        lead_email: email,
+        existing_contacts_count: existingContacts.length 
+      }
+    };
+
+    // ===== STEP 2: Search Apollo =====
+    console.log('[enrich-contact] Step 2: Searching Apollo People Match API');
+    steps.apollo_search = { status: 'running', message: 'Searching Apollo People Match API...' };
+
     // Build Apollo People Match URL with query parameters
     const params = new URLSearchParams({
       name: full_name,
@@ -189,8 +278,20 @@ serve(async (req) => {
 
     if (!apolloResponse.ok) {
       console.error('[enrich-contact] Apollo API error:', apolloData);
+      steps.apollo_search = { 
+        status: 'not_found', 
+        message: 'Apollo API error',
+        data: { error: apolloData }
+      };
+      steps.google_socials = { status: 'skipped', message: 'Skipped - Apollo search failed' };
+
       return new Response(
-        JSON.stringify({ error: 'Apollo API error', details: apolloData }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Apollo API error', 
+          details: apolloData,
+          steps 
+        }),
         { status: apolloResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -199,11 +300,19 @@ serve(async (req) => {
     
     if (!person) {
       console.log('[enrich-contact] No person found in Apollo');
+      steps.apollo_search = { 
+        status: 'not_found', 
+        message: 'No contact found in Apollo',
+        data: { search_params: { name: full_name, email, domain } }
+      };
+      steps.google_socials = { status: 'skipped', message: 'Skipped - no Apollo person to enrich' };
+
       return new Response(
         JSON.stringify({ 
           success: false, 
           message: 'No contact found in Apollo',
-          enrichedContact: null 
+          enrichedContact: null,
+          steps 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -235,6 +344,13 @@ serve(async (req) => {
     };
 
     // Log Apollo results for socials
+    const apolloSocials = {
+      linkedin: !!person.linkedin_url,
+      facebook: !!person.facebook_url,
+      twitter: !!person.twitter_url,
+      github: !!person.github_url
+    };
+
     if (person.linkedin_url) {
       socialSearchLogs.push({ platform: 'linkedin', query: 'Apollo API', found: true, source: 'apollo', url: person.linkedin_url });
     }
@@ -248,7 +364,20 @@ serve(async (req) => {
       socialSearchLogs.push({ platform: 'github', query: 'Apollo API', found: true, source: 'apollo', url: person.github_url });
     }
 
-    // Step 3: If any socials are missing, search Google via Serper
+    steps.apollo_search = { 
+      status: 'completed', 
+      message: 'Person found in Apollo',
+      data: {
+        name: person.name,
+        title: person.title,
+        email: person.email,
+        email_status: person.email_status,
+        organization: person.organization?.name,
+        socials_found: apolloSocials
+      }
+    };
+
+    // ===== STEP 3: Google search for missing socials =====
     const missingSocials = {
       linkedin: !enrichedContact.linkedin_url,
       facebook: !enrichedContact.facebook_url,
@@ -260,14 +389,23 @@ serve(async (req) => {
 
     if (hasMissingSocials && serpApiKey) {
       console.log('[enrich-contact] Step 3: Searching Google for missing socials');
+      steps.google_socials = { status: 'running', message: 'Searching Google for missing social profiles...' };
       
       const personName = enrichedContact.name || full_name;
       const companyName = enrichedContact.organization_name || company || '';
+
+      const googleResults: Record<string, { searched: boolean; found: boolean; url?: string; query?: string }> = {
+        linkedin: { searched: false, found: false },
+        facebook: { searched: false, found: false },
+        twitter: { searched: false, found: false },
+        github: { searched: false, found: false }
+      };
 
       if (companyName) {
         // Search for missing LinkedIn
         if (missingSocials.linkedin) {
           const result = await searchPersonSocial(serpApiKey, personName, companyName, 'linkedin');
+          googleResults.linkedin = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
           socialSearchLogs.push({ 
             platform: 'linkedin', 
             query: result.query, 
@@ -283,6 +421,7 @@ serve(async (req) => {
         // Search for missing Facebook
         if (missingSocials.facebook) {
           const result = await searchPersonSocial(serpApiKey, personName, companyName, 'facebook');
+          googleResults.facebook = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
           socialSearchLogs.push({ 
             platform: 'facebook', 
             query: result.query, 
@@ -298,6 +437,7 @@ serve(async (req) => {
         // Search for missing Twitter
         if (missingSocials.twitter) {
           const result = await searchPersonSocial(serpApiKey, personName, companyName, 'twitter');
+          googleResults.twitter = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
           socialSearchLogs.push({ 
             platform: 'twitter', 
             query: result.query, 
@@ -313,6 +453,7 @@ serve(async (req) => {
         // Search for missing GitHub
         if (missingSocials.github) {
           const result = await searchPersonSocial(serpApiKey, personName, companyName, 'github');
+          googleResults.github = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
           socialSearchLogs.push({ 
             platform: 'github', 
             query: result.query, 
@@ -324,11 +465,39 @@ serve(async (req) => {
             enrichedContact.github_url = result.url;
           }
         }
+
+        const foundAny = Object.values(googleResults).some(r => r.found);
+        steps.google_socials = { 
+          status: foundAny ? 'completed' : 'not_found', 
+          message: foundAny ? 'Found additional social profiles via Google' : 'No additional social profiles found',
+          data: {
+            search_name: personName,
+            search_company: companyName,
+            results: googleResults
+          }
+        };
       } else {
         console.log('[enrich-contact] No company name available for Google social search');
+        steps.google_socials = { 
+          status: 'skipped', 
+          message: 'No company name available for Google search',
+          data: { reason: 'missing_company_name' }
+        };
       }
     } else if (hasMissingSocials && !serpApiKey) {
       console.log('[enrich-contact] SERPAPI_KEY not configured, skipping Step 3 social search');
+      steps.google_socials = { 
+        status: 'skipped', 
+        message: 'Google search skipped - API key not configured',
+        data: { reason: 'api_key_not_configured' }
+      };
+    } else {
+      // All socials already found in Apollo
+      steps.google_socials = { 
+        status: 'skipped', 
+        message: 'All social profiles already found in Apollo',
+        data: { reason: 'all_socials_found_in_apollo' }
+      };
     }
 
     // Add social search logs to contact
@@ -336,23 +505,7 @@ serve(async (req) => {
 
     console.log('[enrich-contact] Final enriched contact:', enrichedContact);
 
-    // Get current company_contacts
-    const { data: leadData, error: fetchError } = await supabase
-      .from('leads')
-      .select('company_contacts')
-      .eq('id', leadId)
-      .single();
-
-    if (fetchError) {
-      console.error('[enrich-contact] Error fetching lead:', fetchError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch lead', details: fetchError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Add enriched contact to company_contacts array
-    const existingContacts = (leadData?.company_contacts as any[]) || [];
     const updatedContacts = [...existingContacts, enrichedContact];
 
     // Update lead with enriched contact
@@ -364,7 +517,7 @@ serve(async (req) => {
     if (updateError) {
       console.error('[enrich-contact] Error updating lead:', updateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update lead', details: updateError }),
+        JSON.stringify({ error: 'Failed to update lead', details: updateError, steps }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -375,6 +528,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         enrichedContact,
+        steps,
         message: 'Contact enriched successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

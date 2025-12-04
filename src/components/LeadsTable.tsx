@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
+import { EnrichContactStepper } from "./EnrichContactStepper";
 interface EnrichmentLog {
   timestamp: string;
   action: string;
@@ -251,6 +252,11 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
   const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
+  const [enrichContactSteps, setEnrichContactSteps] = useState<{
+    check_existing: { status: string; message?: string; data?: Record<string, any> };
+    apollo_search: { status: string; message?: string; data?: Record<string, any> };
+    google_socials: { status: string; message?: string; data?: Record<string, any> };
+  } | null>(null);
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -835,6 +841,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
 
   const handleEnrichContact = async (lead: Lead) => {
     setEnrichingContact(lead.id);
+    setEnrichContactSteps(null); // Reset steps
+    
     try {
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
         body: {
@@ -847,6 +855,11 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       });
       if (error) throw error;
 
+      // Store steps for display
+      if (data.steps) {
+        setEnrichContactSteps(data.steps);
+      }
+
       if (data.success && data.enrichedContact) {
         toast({
           title: "Contact Enriched!",
@@ -855,7 +868,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       } else {
         toast({
           title: "Contact Not Found",
-          description: "No matching contact found in Apollo",
+          description: data.message || "No matching contact found in Apollo",
         });
       }
 
@@ -866,6 +879,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         description: error.message,
         variant: "destructive",
       });
+      setEnrichContactSteps(null);
     } finally {
       setEnrichingContact(null);
     }
@@ -3758,19 +3772,9 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                       // Contact not found in company_contacts
                                       return (
                                         <div className="space-y-3">
-                                          <div className="p-4 border rounded-lg bg-muted/30">
-                                            <div className="text-center space-y-2">
-                                              <Users className="h-8 w-8 mx-auto text-muted-foreground/50" />
-                                              <p className="text-sm font-medium">Contact Not Found</p>
-                                              <p className="text-xs text-muted-foreground">
-                                                This lead ({lead.full_name}) was not found in the company contacts list.
-                                              </p>
-                                            </div>
-                                          </div>
-
                                           {/* Show lead's current data */}
                                           <div className="border rounded-lg p-3 space-y-2">
-                                            <p className="text-xs font-medium text-muted-foreground">Lead Data:</p>
+                                            <p className="text-xs font-medium text-muted-foreground">Lead Data</p>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                               <span className="text-muted-foreground">Name:</span>
                                               <span>{lead.full_name}</span>
@@ -3783,34 +3787,39 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                             </div>
                                           </div>
 
-                                          {/* Step 2: Search Apollo for Contact */}
-                                          <div className="border-t pt-3">
-                                            <p className="text-xs font-medium mb-2">Step 2: Search Apollo</p>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="w-full"
-                                              disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
-                                              onClick={() => handleEnrichContact(lead)}
-                                            >
-                                              {enrichingContact === lead.id ? (
-                                                <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  Searching Apollo...
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Search className="mr-2 h-4 w-4" />
-                                                  Search Apollo for Contact
-                                                </>
-                                              )}
-                                            </Button>
-                                            {(!lead.email || !lead.full_name) && (
-                                              <p className="text-xs text-muted-foreground mt-1">
-                                                Name and email required to search Apollo.
-                                              </p>
+                                          {/* Search Button */}
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                            disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
+                                            onClick={() => handleEnrichContact(lead)}
+                                          >
+                                            {enrichingContact === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Searching...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Search className="mr-2 h-4 w-4" />
+                                                Enrich Contact
+                                              </>
                                             )}
-                                          </div>
+                                          </Button>
+                                          {(!lead.email || !lead.full_name) && (
+                                            <p className="text-xs text-muted-foreground">
+                                              Name and email required to search Apollo.
+                                            </p>
+                                          )}
+
+                                          {/* Visual Stepper - Show when enriching or when we have steps */}
+                                          {(enrichingContact === lead.id || enrichContactSteps) && (
+                                            <EnrichContactStepper 
+                                              steps={enrichContactSteps} 
+                                              isLoading={enrichingContact === lead.id} 
+                                            />
+                                          )}
                                         </div>
                                       );
                                     })()}
