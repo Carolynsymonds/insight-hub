@@ -3724,6 +3724,32 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                                   </div>
                                                 )}
                                               </div>
+
+                                              {/* Re-search button */}
+                                              <div className="pt-3 border-t border-green-200">
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="w-full"
+                                                  disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
+                                                  onClick={() => handleEnrichContact(lead)}
+                                                >
+                                                  {enrichingContact === lead.id ? (
+                                                    <>
+                                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                      Searching...
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Search className="mr-2 h-4 w-4" />
+                                                      Re-search in Apollo
+                                                    </>
+                                                  )}
+                                                </Button>
+                                                <p className="text-xs text-muted-foreground mt-1 text-center">
+                                                  Search for additional social profiles
+                                                </p>
+                                              </div>
                                             </div>
                                           </div>
                                         );
