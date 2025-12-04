@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
     const executeSearch = async (query: string): Promise<any> => {
       console.log(`Executing search: ${query}`);
       const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=${serpApiKey}`;
+      console.log(`API Request URL: https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=10&api_key=***`);
       const response = await fetch(url);
       return response.json();
     };
