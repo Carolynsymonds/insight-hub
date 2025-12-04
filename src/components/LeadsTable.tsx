@@ -996,14 +996,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       <div className="flex items-center gap-1.5">
                         <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.linkedin ? (
-                          lead.linkedin_validated === false ? (
-                            <span className="text-muted-foreground">not found</span>
-                          ) : (
+                          <>
                             <a
                               href={lead.linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[150px]"
+                              className="text-primary hover:underline truncate max-w-[120px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
@@ -1014,9 +1012,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 }
                               })()}
                             </a>
-                          )
+                            {lead.linkedin_validated === false && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
+                            )}
+                          </>
                         ) : (
-                          <span className="text-muted-foreground/50">—</span>
+                          <span className="text-muted-foreground">not found</span>
                         )}
                       </div>
                       
@@ -1024,14 +1025,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       <div className="flex items-center gap-1.5">
                         <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.instagram ? (
-                          lead.instagram_validated === false ? (
-                            <span className="text-muted-foreground">not found</span>
-                          ) : (
+                          <>
                             <a
                               href={lead.instagram}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[150px]"
+                              className="text-primary hover:underline truncate max-w-[120px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
@@ -1042,9 +1041,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 }
                               })()}
                             </a>
-                          )
+                            {lead.instagram_validated === false && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
+                            )}
+                          </>
                         ) : (
-                          <span className="text-muted-foreground/50">—</span>
+                          <span className="text-muted-foreground">not found</span>
                         )}
                       </div>
                       
@@ -1052,14 +1054,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                       <div className="flex items-center gap-1.5">
                         <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                         {lead.facebook ? (
-                          lead.facebook_validated === false ? (
-                            <span className="text-muted-foreground">not found</span>
-                          ) : (
+                          <>
                             <a
                               href={lead.facebook}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[150px]"
+                              className="text-primary hover:underline truncate max-w-[120px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {(() => {
@@ -1070,9 +1070,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                 }
                               })()}
                             </a>
-                          )
+                            {lead.facebook_validated === false && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
+                            )}
+                          </>
                         ) : (
-                          <span className="text-muted-foreground/50">—</span>
+                          <span className="text-muted-foreground">not found</span>
                         )}
                       </div>
                     </div>
