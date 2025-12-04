@@ -22,20 +22,11 @@ interface OrganicResult {
   source?: string;
 }
 
-// Extract clean Instagram profile URL from any Instagram URL
-const extractInstagramProfile = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    const normalizedHost = "instagram.com";
-    const pathParts = urlObj.pathname.split("/").filter(Boolean);
-    // Skip paths like /p/, /reel/, /stories/, /explore/, etc.
-    if (pathParts.length > 0 && !["p", "reel", "reels", "stories", "explore", "tv", "direct"].includes(pathParts[0])) {
-      return `https://${normalizedHost}/${pathParts[0]}`;
-    }
-    return url;
-  } catch {
-    return url;
-  }
+// Extract username from source field like "Instagram · yorkexcavating"
+const extractUsernameFromSource = (source: string): string | null => {
+  if (!source) return null;
+  const match = source.match(/^Instagram\s*·\s*(.+)$/i);
+  return match ? match[1].trim() : null;
 };
 
 Deno.serve(async (req) => {
@@ -100,19 +91,12 @@ Deno.serve(async (req) => {
         
         console.log(`Result ${result.position}: ${JSON.stringify(organicResult, null, 2)}`);
 
-        // Find first valid Instagram profile URL
-        const link = result.link || "";
-        if (!instagramUrl && link.includes("instagram.com")) {
-          // Skip posts, reels, stories, explore pages
-          if (!link.includes("/p/") && 
-              !link.includes("/reel/") && 
-              !link.includes("/reels/") &&
-              !link.includes("/stories/") &&
-              !link.includes("/explore/") &&
-              !link.includes("/tv/") &&
-              !link.includes("/direct/")) {
-            instagramSourceUrl = link;
-            instagramUrl = extractInstagramProfile(link);
+        // Find first Instagram username from source field
+        if (!instagramUrl && result.source) {
+          const username = extractUsernameFromSource(result.source);
+          if (username) {
+            instagramSourceUrl = result.link; // Keep original link for audit
+            instagramUrl = `https://www.instagram.com/${username}`;
           }
         }
       }
