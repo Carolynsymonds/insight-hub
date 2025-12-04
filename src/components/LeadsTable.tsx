@@ -114,6 +114,18 @@ interface Lead {
   instagram: string | null;
   instagram_confidence: number | null;
   instagram_source_url: string | null;
+  facebook_validated: boolean | null;
+  linkedin_validated: boolean | null;
+  instagram_validated: boolean | null;
+  social_validation_log: {
+    timestamp: string;
+    lead_info: Record<string, string | null>;
+    results: {
+      facebook: { valid: boolean; reason: string };
+      linkedin: { valid: boolean; reason: string };
+      instagram: { valid: boolean; reason: string };
+    };
+  } | null;
   company_contacts: Array<{
     id?: string;
     name?: string;
@@ -216,6 +228,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
     }>;
   } | null>(null);
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [scoringSocials, setScoringSocials] = useState<string | null>(null);
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -664,6 +677,52 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       });
     } finally {
       setEnrichingInstagram(null);
+    }
+  };
+
+  const handleScoreSocialRelevance = async (lead: Lead) => {
+    setScoringSocials(lead.id);
+    try {
+      // Extract organic results from enrichment logs
+      const fbLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "facebook_search_serper") as any;
+      const liLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "linkedin_search_serper") as any;
+      const igLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "instagram_search_serper") as any;
+
+      const facebookResults = fbLog?.top3Results || fbLog?.searchSteps?.[0]?.organicResults || [];
+      const linkedinResults = liLog?.top3Results || liLog?.searchSteps?.[0]?.organicResults || [];
+      const instagramResults = igLog?.top3Results || [];
+
+      const { data, error } = await supabase.functions.invoke("score-social-relevance", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          mics_subsector: lead.mics_subsector,
+          mics_segment: lead.mics_segment,
+          facebookResults,
+          linkedinResults,
+          instagramResults,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Social Profiles Scored!",
+        description: `Facebook: ${data.facebook_validated === null ? 'N/A' : data.facebook_validated ? 'Valid' : 'Invalid'}, LinkedIn: ${data.linkedin_validated === null ? 'N/A' : data.linkedin_validated ? 'Valid' : 'Invalid'}, Instagram: ${data.instagram_validated === null ? 'N/A' : data.instagram_validated ? 'Valid' : 'Invalid'}`,
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Social Scoring Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setScoringSocials(null);
     }
   };
 
@@ -1689,6 +1748,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             </div>
                                             {lead.facebook_confidence && (
                                               <div className="flex items-center gap-1">
+                                                {lead.facebook_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge 
+                                                          variant={lead.facebook_validated ? "default" : "destructive"} 
+                                                          className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.facebook?.reason || "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
                                                 <Badge variant="outline" className="text-xs">
                                                   {lead.facebook_confidence}%
                                                 </Badge>
@@ -1810,6 +1888,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             </div>
                                             {lead.linkedin_confidence && (
                                               <div className="flex items-center gap-1">
+                                                {lead.linkedin_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge 
+                                                          variant={lead.linkedin_validated ? "default" : "destructive"} 
+                                                          className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.linkedin?.reason || "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
                                                 <Badge variant="outline" className="text-xs">
                                                   {lead.linkedin_confidence}%
                                                 </Badge>
@@ -1931,6 +2028,25 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                             </div>
                                             {lead.instagram_confidence && (
                                               <div className="flex items-center gap-1">
+                                                {lead.instagram_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge 
+                                                          variant={lead.instagram_validated ? "default" : "destructive"} 
+                                                          className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.instagram?.reason || "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
                                                 <Badge variant="outline" className="text-xs">
                                                   {lead.instagram_confidence}%
                                                 </Badge>
@@ -2021,6 +2137,34 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                           </>
                                         )}
                                       </Button>
+                                    </div>
+
+                                    {/* Calculate Score Button */}
+                                    <div className="pt-4 border-t">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleScoreSocialRelevance(lead)}
+                                        disabled={scoringSocials === lead.id || (!lead.facebook && !lead.linkedin && !lead.instagram)}
+                                        className="w-full"
+                                        variant="default"
+                                      >
+                                        {scoringSocials === lead.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Scoring Socials...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Calculate Score
+                                          </>
+                                        )}
+                                      </Button>
+                                      {!lead.facebook && !lead.linkedin && !lead.instagram && (
+                                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                                          Search for at least one social profile first
+                                        </p>
+                                      )}
                                     </div>
 
                                     <p className="text-xs text-muted-foreground text-center pt-2">

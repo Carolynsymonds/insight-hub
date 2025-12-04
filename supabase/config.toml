@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.search-linkedin-serper]
 verify_jwt = false
+
+[functions.search-instagram-serper]
+verify_jwt = false
+
+[functions.score-social-relevance]
+verify_jwt = false
