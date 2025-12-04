@@ -1746,7 +1746,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
                                               </a>
                                             </div>
-                                            {lead.facebook_confidence && (
+                                            {(lead.facebook_confidence || lead.facebook_validated !== null) && (
                                               <div className="flex items-center gap-1">
                                                 {lead.facebook_validated !== null && (
                                                   <TooltipProvider>
@@ -1767,27 +1767,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </Tooltip>
                                                   </TooltipProvider>
                                                 )}
-                                                <Badge variant="outline" className="text-xs">
-                                                  {lead.facebook_confidence}%
-                                                </Badge>
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                      <p className="text-xs">
-                                                        {lead.facebook_confidence >= 90
-                                                          ? "High confidence: Found with full location data"
-                                                          : lead.facebook_confidence >= 70
-                                                            ? "Good confidence: Found with partial location"
-                                                            : lead.facebook_confidence >= 50
-                                                              ? "Medium confidence: Found with industry/phone data"
-                                                              : "Lower confidence: Found with variation search"}
-                                                      </p>
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
                                               </div>
                                             )}
                                           </div>
@@ -1886,7 +1865,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
                                               </a>
                                             </div>
-                                            {lead.linkedin_confidence && (
+                                            {(lead.linkedin_confidence || lead.linkedin_validated !== null) && (
                                               <div className="flex items-center gap-1">
                                                 {lead.linkedin_validated !== null && (
                                                   <TooltipProvider>
@@ -1907,27 +1886,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </Tooltip>
                                                   </TooltipProvider>
                                                 )}
-                                                <Badge variant="outline" className="text-xs">
-                                                  {lead.linkedin_confidence}%
-                                                </Badge>
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                      <p className="text-xs">
-                                                        {lead.linkedin_confidence >= 90
-                                                          ? "High confidence: Found with full location data"
-                                                          : lead.linkedin_confidence >= 70
-                                                            ? "Good confidence: Found with partial location"
-                                                            : lead.linkedin_confidence >= 50
-                                                              ? "Medium confidence: Found with name only"
-                                                              : "Lower confidence: Found with variation search"}
-                                                      </p>
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
                                               </div>
                                             )}
                                           </div>
@@ -2026,7 +1984,7 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                 <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
                                               </a>
                                             </div>
-                                            {lead.instagram_confidence && (
+                                            {(lead.instagram_confidence || lead.instagram_validated !== null) && (
                                               <div className="flex items-center gap-1">
                                                 {lead.instagram_validated !== null && (
                                                   <TooltipProvider>
@@ -2047,21 +2005,6 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     </Tooltip>
                                                   </TooltipProvider>
                                                 )}
-                                                <Badge variant="outline" className="text-xs">
-                                                  {lead.instagram_confidence}%
-                                                </Badge>
-                                                <TooltipProvider>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                      <p className="text-xs">
-                                                        85% confidence: Found via site:instagram.com search
-                                                      </p>
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
                                               </div>
                                             )}
                                           </div>
