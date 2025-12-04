@@ -3615,7 +3615,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       </Dialog>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Lead Details</DialogTitle>
             <DialogDescription>Complete information for this lead</DialogDescription>
