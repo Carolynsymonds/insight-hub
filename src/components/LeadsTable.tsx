@@ -1818,22 +1818,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.facebook && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            {lead.facebook_validated === false ? (
-                                              <span className="text-sm text-muted-foreground">Not found</span>
-                                            ) : (
-                                              <div style={{ userSelect: "text" }}>
-                                                <a
-                                                  href={lead.facebook}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                >
-                                                  {lead.facebook}
-                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                                </a>
-                                              </div>
-                                            )}
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.facebook}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.facebook}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
+                                            </div>
                                             {lead.facebook_validated !== null && (
                                               <TooltipProvider>
                                                 <Tooltip>
@@ -1937,22 +1933,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.linkedin && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            {lead.linkedin_validated === false ? (
-                                              <span className="text-sm text-muted-foreground">Not found</span>
-                                            ) : (
-                                              <div style={{ userSelect: "text" }}>
-                                                <a
-                                                  href={lead.linkedin}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                >
-                                                  {lead.linkedin}
-                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                                </a>
-                                              </div>
-                                            )}
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.linkedin}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.linkedin}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
+                                            </div>
                                             {lead.linkedin_validated !== null && (
                                               <TooltipProvider>
                                                 <Tooltip>
@@ -2056,22 +2048,18 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.instagram && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            {lead.instagram_validated === false ? (
-                                              <span className="text-sm text-muted-foreground">Not found</span>
-                                            ) : (
-                                              <div style={{ userSelect: "text" }}>
-                                                <a
-                                                  href={lead.instagram}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                >
-                                                  {lead.instagram}
-                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                                </a>
-                                              </div>
-                                            )}
+                                            <div style={{ userSelect: "text" }}>
+                                              <a
+                                                href={lead.instagram}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {lead.instagram}
+                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                              </a>
+                                            </div>
                                             {lead.instagram_validated !== null && (
                                               <TooltipProvider>
                                                 <Tooltip>
