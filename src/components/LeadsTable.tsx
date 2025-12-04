@@ -1248,7 +1248,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       <>
                                         {/* Group logs by source */}
                                         {(() => {
-                                          const logsBySource = lead.enrichment_logs.reduce(
+                                          // Filter out social search sources - they belong in Socials Search section
+                                          const socialSources = ["serpapi_facebook_search", "serpapi_linkedin_search", "serpapi_instagram_search"];
+                                          
+                                          const logsBySource = lead.enrichment_logs
+                                            .filter(log => !socialSources.includes(log.source))
+                                            .reduce(
                                             (acc, log) => {
                                               // Normalize all email sources to a single "email" key
                                               let groupKey = log.source;
