@@ -3672,8 +3672,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               {/* Vehicle Details - Collapsible Section */}
               {(selectedLead.vehicles_count || selectedLead.confirm_vehicles_50_plus || selectedLead.truck_types || selectedLead.features) && (
                 <Collapsible className="border-t pt-4">
-                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    <ChevronRight className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-90" />
+                  <CollapsibleTrigger className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                     Vehicle Details
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-3">
