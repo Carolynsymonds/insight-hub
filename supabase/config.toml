@@ -38,3 +38,12 @@ verify_jwt = false
 
 [functions.score-social-relevance]
 verify_jwt = false
+
+[functions.calculate-distance]
+verify_jwt = false
+
+[functions.score-domain-relevance]
+verify_jwt = false
+
+[functions.generate-vehicle-interest]
+verify_jwt = false

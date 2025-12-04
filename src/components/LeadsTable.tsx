@@ -121,6 +121,7 @@ interface Lead {
   confirm_vehicles_50_plus: string | null;
   truck_types: string | null;
   features: string | null;
+  vehicle_tracking_interest_explanation: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -237,6 +238,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
   const [internalDomainFilter, setInternalDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
+  const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
+  const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -738,6 +741,57 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
     }
   };
 
+  const handleGenerateVehicleInterest = async (lead: Lead) => {
+    if (!lead.description) {
+      toast({
+        title: "Cannot Generate",
+        description: "Company description is required. Run Enrich Company Details first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingVehicleInterest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-vehicle-interest", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          description: lead.description,
+          vehicles_count: lead.vehicles_count,
+          confirm_vehicles_50_plus: lead.confirm_vehicles_50_plus,
+          truck_types: lead.truck_types,
+          features: lead.features,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Interest Analysis Generated!",
+        description: "Vehicle tracking interest explanation has been created.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          vehicle_tracking_interest_explanation: data.explanation,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingVehicleInterest(false);
+    }
+  };
+
   const handleFindContacts = async (lead: Lead) => {
     setFindingContacts(lead.id);
     try {
@@ -1117,10 +1171,9 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                   <TableCell
                     className="max-w-[250px] cursor-pointer hover:text-primary"
                     onClick={(e) => {
-                      if (lead.description) {
+                      if (lead.description || lead.vehicle_tracking_interest_explanation) {
                         e.stopPropagation();
-                        setModalContent({ title: "Description", text: lead.description });
-                        setShowTextModal(true);
+                        setDescriptionModalLead(lead);
                       }
                     }}
                   >
@@ -3564,6 +3617,79 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
           </DialogHeader>
           <div className="mt-4">
             <p className="text-sm whitespace-pre-wrap">{modalContent.text}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Description Modal with Vehicle Tracking Interest */}
+      <Dialog open={!!descriptionModalLead} onOpenChange={(open) => !open && setDescriptionModalLead(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Description</DialogTitle>
+            <DialogDescription>
+              {descriptionModalLead?.company || descriptionModalLead?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Company Description */}
+            {descriptionModalLead?.description && (
+              <div>
+                <p className="text-sm whitespace-pre-wrap">{descriptionModalLead.description}</p>
+              </div>
+            )}
+
+            {/* Vehicle Tracking Interest Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🚗</span>
+                <h4 className="font-semibold text-sm">Vehicle Tracking Interest</h4>
+              </div>
+              
+              {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {descriptionModalLead.vehicle_tracking_interest_explanation}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {/* Check if we have vehicle data to generate from */}
+                  {descriptionModalLead?.vehicles_count || descriptionModalLead?.truck_types || descriptionModalLead?.features ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Generate an AI analysis explaining why this lead is interested in vehicle tracking based on their fleet data.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateVehicleInterest(descriptionModalLead)}
+                        disabled={generatingVehicleInterest || !descriptionModalLead?.description}
+                        className="w-full"
+                      >
+                        {generatingVehicleInterest ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Interest Analysis
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.description && (
+                        <p className="text-xs text-destructive">
+                          Company description required. Run "Enrich Company Details" first.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No vehicle data available. Add vehicle information during lead import to enable this feature.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
