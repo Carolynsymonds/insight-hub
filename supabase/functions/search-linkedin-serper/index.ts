@@ -7,26 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface OrganicResult {
-  position: number;
-  title: string;
-  link: string;
-  displayed_link?: string;
-  favicon?: string;
-  snippet?: string;
-}
-
-interface SearchStep {
-  step: string;
-  query: string;
-  confidence: number;
-  resultFound: boolean;
-  linkedinUrl?: string;
-  linkedinSourceUrl?: string;
-  organicResults?: OrganicResult[];
-  totalResults?: number;
-}
-
 // Extract clean LinkedIn company profile URL
 function extractLinkedInProfile(url: string): string {
   try {
@@ -62,7 +42,7 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, city, state, micsSector } = await req.json();
+    const { leadId, company, city, state } = await req.json();
 
     if (!leadId || !company) {
       return new Response(
@@ -76,221 +56,58 @@ serve(async (req) => {
       throw new Error("SERPAPI_KEY not configured");
     }
 
-    const searchSteps: SearchStep[] = [];
+    console.log(`=== Starting LinkedIn Search for: ${company} ===`);
+    console.log(`Location: ${city}, ${state}`);
+
+    // Single search query: "Company" "City" "State" site:linkedin.com/company
+    const query = `"${company}" "${city || ""}" "${state || ""}" site:linkedin.com/company`.replace(/\s+/g, " ").trim();
+    console.log(`Search query: ${query}`);
+
+    const encodedQuery = encodeURIComponent(query);
+    const url = `https://serpapi.com/search.json?q=${encodedQuery}&num=10&api_key=${serpApiKey}`;
+    console.log(`API Request URL: ${url.replace(serpApiKey, "***")}`);
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const organicResults = data.organic_results || [];
+    console.log(`Total organic results: ${organicResults.length}`);
+
+    // Get top 3 results with full JSON
+    const top3Results = organicResults.slice(0, 3).map((r: any) => ({
+      position: r.position,
+      title: r.title,
+      link: r.link,
+      redirect_link: r.redirect_link,
+      displayed_link: r.displayed_link,
+      favicon: r.favicon,
+      snippet: r.snippet,
+      snippet_highlighted_words: r.snippet_highlighted_words,
+      rich_snippet: r.rich_snippet,
+      source: r.source,
+    }));
+
+    // Log each result
+    top3Results.forEach((result: any, idx: number) => {
+      console.log(`Result ${idx + 1}: ${JSON.stringify(result, null, 2)}`);
+    });
+
+    // Find first LinkedIn company URL
     let foundLinkedin: string | null = null;
     let foundLinkedinSourceUrl: string | null = null;
-    let foundConfidence: number = 0;
+    const foundConfidence = 95;
 
-    // Helper to find LinkedIn URL in results
-    const findLinkedInUrl = (results: OrganicResult[]): { url: string; sourceUrl: string } | null => {
-      for (const result of results) {
-        if (result.link && result.link.includes("linkedin.com") && isCompanyPage(result.link)) {
-          return { url: extractLinkedInProfile(result.link), sourceUrl: result.link };
-        }
-      }
-      return null;
-    };
-
-    // Execute search
-    const executeSearch = async (query: string): Promise<{ organicResults: OrganicResult[]; totalResults: number }> => {
-      const encodedQuery = encodeURIComponent(query);
-      const url = `https://serpapi.com/search.json?q=${encodedQuery}&num=10&api_key=${serpApiKey}`;
-      console.log(`API Request URL: ${url.replace(serpApiKey, "***")}`);
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      const organicResults: OrganicResult[] = (data.organic_results || []).map((r: any) => ({
-        position: r.position,
-        title: r.title,
-        link: r.link,
-        displayed_link: r.displayed_link,
-        favicon: r.favicon,
-        snippet: r.snippet,
-      }));
-
-      console.log(`Organic results count: ${organicResults.length}`);
-      organicResults.forEach((r, i) => {
-        console.log(`Result ${i + 1}: ${r.title}`);
-        console.log(`  Link: ${r.link}`);
-        console.log(`  Snippet: ${r.snippet?.substring(0, 100)}...`);
-      });
-
-      return { organicResults, totalResults: data.search_information?.total_results || 0 };
-    };
-
-    // Step A: Full search with company + city + state
-    if (!foundLinkedin && city && state) {
-      const query = `"${company}" "${city}" "${state}" site:linkedin.com/company`;
-      console.log(`Executing search: ${query}`);
-      const { organicResults, totalResults } = await executeSearch(query);
-      const found = findLinkedInUrl(organicResults);
-      
-      const step: SearchStep = {
-        step: "A",
-        query,
-        confidence: 95,
-        resultFound: !!found,
-        organicResults,
-        totalResults,
-      };
-
-      if (found) {
-        foundLinkedin = found.url;
-        foundLinkedinSourceUrl = found.sourceUrl;
-        foundConfidence = 95;
-        step.linkedinUrl = found.url;
-        step.linkedinSourceUrl = found.sourceUrl;
-        console.log(`Step A: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-      }
-      searchSteps.push(step);
-    }
-
-    // Step B: Company + city only
-    if (!foundLinkedin && city) {
-      const query = `"${company}" "${city}" site:linkedin.com/company`;
-      console.log(`Executing search: ${query}`);
-      const { organicResults, totalResults } = await executeSearch(query);
-      const found = findLinkedInUrl(organicResults);
-
-      const step: SearchStep = {
-        step: "B",
-        query,
-        confidence: 90,
-        resultFound: !!found,
-        organicResults,
-        totalResults,
-      };
-
-      if (found) {
-        foundLinkedin = found.url;
-        foundLinkedinSourceUrl = found.sourceUrl;
-        foundConfidence = 90;
-        step.linkedinUrl = found.url;
-        step.linkedinSourceUrl = found.sourceUrl;
-        console.log(`Step B: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-      }
-      searchSteps.push(step);
-    }
-
-    // Step C1: Company name without periods + city
-    if (!foundLinkedin && city) {
-      const cleanCompany = company.replace(/\./g, "");
-      if (cleanCompany !== company) {
-        const query = `"${cleanCompany}" "${city}" site:linkedin.com/company`;
-        console.log(`Executing search: ${query}`);
-        const { organicResults, totalResults } = await executeSearch(query);
-        const found = findLinkedInUrl(organicResults);
-
-        const step: SearchStep = {
-          step: "C1",
-          query,
-          confidence: 75,
-          resultFound: !!found,
-          organicResults,
-          totalResults,
-        };
-
-        if (found) {
-          foundLinkedin = found.url;
-          foundLinkedinSourceUrl = found.sourceUrl;
-          foundConfidence = 75;
-          step.linkedinUrl = found.url;
-          step.linkedinSourceUrl = found.sourceUrl;
-          console.log(`Step C1: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-        }
-        searchSteps.push(step);
+    for (const result of organicResults) {
+      if (result.link && result.link.includes("linkedin.com") && isCompanyPage(result.link)) {
+        foundLinkedinSourceUrl = result.link;
+        foundLinkedin = extractLinkedInProfile(result.link);
+        console.log(`LinkedIn Source URL: ${foundLinkedinSourceUrl}`);
+        console.log(`LinkedIn URL (parsed): ${foundLinkedin}`);
+        break;
       }
     }
 
-    // Step C2: Company name without spaces + city
-    if (!foundLinkedin && city) {
-      const compactCompany = company.replace(/\s+/g, "");
-      const query = `"${compactCompany}" "${city}" site:linkedin.com/company`;
-      console.log(`Executing search: ${query}`);
-      const { organicResults, totalResults } = await executeSearch(query);
-      const found = findLinkedInUrl(organicResults);
-
-      const step: SearchStep = {
-        step: "C2",
-        query,
-        confidence: 70,
-        resultFound: !!found,
-        organicResults,
-        totalResults,
-      };
-
-      if (found) {
-        foundLinkedin = found.url;
-        foundLinkedinSourceUrl = found.sourceUrl;
-        foundConfidence = 70;
-        step.linkedinUrl = found.url;
-        step.linkedinSourceUrl = found.sourceUrl;
-        console.log(`Step C2: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-      }
-      searchSteps.push(step);
-    }
-
-    // Step D: Company + industry sector + state
-    if (!foundLinkedin && micsSector && state) {
-      const query = `"${company}" "${micsSector}" "${state}" site:linkedin.com/company`;
-      console.log(`Executing search: ${query}`);
-      const { organicResults, totalResults } = await executeSearch(query);
-      const found = findLinkedInUrl(organicResults);
-
-      const step: SearchStep = {
-        step: "D",
-        query,
-        confidence: 60,
-        resultFound: !!found,
-        organicResults,
-        totalResults,
-      };
-
-      if (found) {
-        foundLinkedin = found.url;
-        foundLinkedinSourceUrl = found.sourceUrl;
-        foundConfidence = 60;
-        step.linkedinUrl = found.url;
-        step.linkedinSourceUrl = found.sourceUrl;
-        console.log(`Step D: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-      }
-      searchSteps.push(step);
-    }
-
-    // Step E: Company name only (broadest search)
-    if (!foundLinkedin) {
-      const query = `"${company}" site:linkedin.com/company`;
-      console.log(`Executing search: ${query}`);
-      const { organicResults, totalResults } = await executeSearch(query);
-      const found = findLinkedInUrl(organicResults);
-
-      const step: SearchStep = {
-        step: "E",
-        query,
-        confidence: 50,
-        resultFound: !!found,
-        organicResults,
-        totalResults,
-      };
-
-      if (found) {
-        foundLinkedin = found.url;
-        foundLinkedinSourceUrl = found.sourceUrl;
-        foundConfidence = 50;
-        step.linkedinUrl = found.url;
-        step.linkedinSourceUrl = found.sourceUrl;
-        console.log(`Step E: Found LinkedIn URL: ${found.sourceUrl} -> Parsed: ${found.url}`);
-      }
-      searchSteps.push(step);
-    }
-
-    // Log results
     console.log("=== Search Complete ===");
-    console.log(`Steps executed: ${searchSteps.length}`);
-    console.log(`LinkedIn URL (parsed): ${foundLinkedin}`);
-    console.log(`LinkedIn Source URL: ${foundLinkedinSourceUrl}`);
-    console.log(`Confidence: ${foundConfidence}%`);
 
     // Save to database
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -306,16 +123,17 @@ serve(async (req) => {
 
     const existingLogs = existingLead?.enrichment_logs || [];
 
-    // Create new log entry
+    // Create new log entry with query and top3Results
     const newLog = {
       action: "linkedin_search_serper",
       timestamp: new Date().toISOString(),
       source: "serpapi_linkedin_search",
-      confidence: foundConfidence,
+      confidence: foundLinkedin ? foundConfidence : 0,
       linkedinUrl: foundLinkedin,
       linkedinSourceUrl: foundLinkedinSourceUrl,
-      searchSteps,
-      searchParams: { company, city, state, micsSector },
+      query,
+      top3Results,
+      searchParams: { company, city, state },
     };
 
     // Update lead record
@@ -323,7 +141,7 @@ serve(async (req) => {
       .from("leads")
       .update({
         linkedin: foundLinkedin,
-        linkedin_confidence: foundConfidence,
+        linkedin_confidence: foundLinkedin ? foundConfidence : 0,
         linkedin_source_url: foundLinkedinSourceUrl,
         enrichment_logs: [...existingLogs, newLog],
         updated_at: new Date().toISOString(),
@@ -342,9 +160,9 @@ serve(async (req) => {
         success: true,
         linkedin: foundLinkedin,
         linkedinSourceUrl: foundLinkedinSourceUrl,
-        confidence: foundConfidence,
-        searchSteps,
-        stepsExecuted: searchSteps.length,
+        confidence: foundLinkedin ? foundConfidence : 0,
+        query,
+        top3Results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
