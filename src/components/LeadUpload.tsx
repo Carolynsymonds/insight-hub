@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Upload, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -410,11 +410,13 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                     <div className="space-y-2">
                       {TRUCK_TYPE_OPTIONS.map((type) => (
                         <div key={type} className="flex items-center space-x-2">
-                          <Checkbox
+                          <input
+                            type="checkbox"
                             id={`truck-${type}`}
                             checked={selectedTruckTypes.includes(type)}
-                            onCheckedChange={(checked) => handleTruckTypeChange(type, checked as boolean)}
+                            onChange={(e) => handleTruckTypeChange(type, e.target.checked)}
                             disabled={loading}
+                            className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
                           />
                           <Label htmlFor={`truck-${type}`} className="text-sm font-normal cursor-pointer">
                             {type}
@@ -428,11 +430,13 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                     <div className="space-y-2">
                       {FEATURES_OPTIONS.map((feature) => (
                         <div key={feature} className="flex items-center space-x-2">
-                          <Checkbox
+                          <input
+                            type="checkbox"
                             id={`feature-${feature}`}
                             checked={selectedFeatures.includes(feature)}
-                            onCheckedChange={(checked) => handleFeatureChange(feature, checked as boolean)}
+                            onChange={(e) => handleFeatureChange(feature, e.target.checked)}
                             disabled={loading}
+                            className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
                           />
                           <Label htmlFor={`feature-${feature}`} className="text-sm font-normal cursor-pointer">
                             {feature}
