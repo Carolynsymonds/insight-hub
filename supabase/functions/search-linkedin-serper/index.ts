@@ -59,8 +59,8 @@ serve(async (req) => {
     console.log(`=== Starting LinkedIn Search for: ${company} ===`);
     console.log(`Location: ${city}, ${state}`);
 
-    // Single search query: "Company" "City" "State" site:linkedin.com/company
-    const query = `"${company}" "${city || ""}" "${state || ""}" site:linkedin.com/company`.replace(/\s+/g, " ").trim();
+    // Single search query: Company City State site:linkedin.com
+    const query = `${company} ${city || ""} ${state || ""} site:linkedin.com`.replace(/\s+/g, " ").trim();
     console.log(`Search query: ${query}`);
 
     const encodedQuery = encodeURIComponent(query);
