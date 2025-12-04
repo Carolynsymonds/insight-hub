@@ -1734,40 +1734,40 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.facebook && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            <div style={{ userSelect: "text" }}>
-                                              <a
-                                                href={lead.facebook}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.facebook}
-                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                              </a>
-                                            </div>
-                                            {(lead.facebook_confidence || lead.facebook_validated !== null) && (
-                                              <div className="flex items-center gap-1">
-                                                {lead.facebook_validated !== null && (
-                                                  <TooltipProvider>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <Badge 
-                                                          variant={lead.facebook_validated ? "default" : "destructive"} 
-                                                          className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                        >
-                                                          {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
-                                                        </Badge>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent className="max-w-xs">
-                                                        <p className="text-xs">
-                                                          {lead.social_validation_log?.results?.facebook?.reason || "AI validation result"}
-                                                        </p>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TooltipProvider>
-                                                )}
+                                            {lead.facebook_validated === false ? (
+                                              <span className="text-sm text-muted-foreground">Not found</span>
+                                            ) : (
+                                              <div style={{ userSelect: "text" }}>
+                                                <a
+                                                  href={lead.facebook}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                >
+                                                  {lead.facebook}
+                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                </a>
                                               </div>
+                                            )}
+                                            {lead.facebook_validated !== null && (
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Badge 
+                                                      variant={lead.facebook_validated ? "default" : "destructive"} 
+                                                      className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                    >
+                                                      {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
+                                                    </Badge>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-xs">
+                                                      {lead.social_validation_log?.results?.facebook?.reason || "AI validation result"}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
                                             )}
                                           </div>
                                         </div>
@@ -1853,40 +1853,40 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.linkedin && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            <div style={{ userSelect: "text" }}>
-                                              <a
-                                                href={lead.linkedin}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.linkedin}
-                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                              </a>
-                                            </div>
-                                            {(lead.linkedin_confidence || lead.linkedin_validated !== null) && (
-                                              <div className="flex items-center gap-1">
-                                                {lead.linkedin_validated !== null && (
-                                                  <TooltipProvider>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <Badge 
-                                                          variant={lead.linkedin_validated ? "default" : "destructive"} 
-                                                          className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                        >
-                                                          {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
-                                                        </Badge>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent className="max-w-xs">
-                                                        <p className="text-xs">
-                                                          {lead.social_validation_log?.results?.linkedin?.reason || "AI validation result"}
-                                                        </p>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TooltipProvider>
-                                                )}
+                                            {lead.linkedin_validated === false ? (
+                                              <span className="text-sm text-muted-foreground">Not found</span>
+                                            ) : (
+                                              <div style={{ userSelect: "text" }}>
+                                                <a
+                                                  href={lead.linkedin}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                >
+                                                  {lead.linkedin}
+                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                </a>
                                               </div>
+                                            )}
+                                            {lead.linkedin_validated !== null && (
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Badge 
+                                                      variant={lead.linkedin_validated ? "default" : "destructive"} 
+                                                      className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                    >
+                                                      {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
+                                                    </Badge>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-xs">
+                                                      {lead.social_validation_log?.results?.linkedin?.reason || "AI validation result"}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
                                             )}
                                           </div>
                                         </div>
@@ -1972,40 +1972,40 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       {lead.instagram && (
                                         <div className="p-3 border rounded-lg bg-muted/30">
                                           <div className="flex items-center justify-between">
-                                            <div style={{ userSelect: "text" }}>
-                                              <a
-                                                href={lead.instagram}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.instagram}
-                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                              </a>
-                                            </div>
-                                            {(lead.instagram_confidence || lead.instagram_validated !== null) && (
-                                              <div className="flex items-center gap-1">
-                                                {lead.instagram_validated !== null && (
-                                                  <TooltipProvider>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        <Badge 
-                                                          variant={lead.instagram_validated ? "default" : "destructive"} 
-                                                          className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                        >
-                                                          {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
-                                                        </Badge>
-                                                      </TooltipTrigger>
-                                                      <TooltipContent className="max-w-xs">
-                                                        <p className="text-xs">
-                                                          {lead.social_validation_log?.results?.instagram?.reason || "AI validation result"}
-                                                        </p>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TooltipProvider>
-                                                )}
+                                            {lead.instagram_validated === false ? (
+                                              <span className="text-sm text-muted-foreground">Not found</span>
+                                            ) : (
+                                              <div style={{ userSelect: "text" }}>
+                                                <a
+                                                  href={lead.instagram}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                >
+                                                  {lead.instagram}
+                                                  <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                </a>
                                               </div>
+                                            )}
+                                            {lead.instagram_validated !== null && (
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Badge 
+                                                      variant={lead.instagram_validated ? "default" : "destructive"} 
+                                                      className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                    >
+                                                      {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
+                                                    </Badge>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-xs">
+                                                      {lead.social_validation_log?.results?.instagram?.reason || "AI validation result"}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
                                             )}
                                           </div>
                                         </div>
