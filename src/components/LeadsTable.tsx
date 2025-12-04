@@ -1697,62 +1697,53 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                     <p className="text-muted-foreground">
                                                       <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
                                                     </p>
-                                                    {fbLog.searchSteps && (
-                                                      <div className="space-y-1.5 mt-2">
-                                                        {fbLog.searchSteps.map((step: any, idx: number) => (
-                                                          <div key={idx} className="p-2 bg-background rounded border">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                              <Badge 
-                                                                variant={step.resultFound ? "default" : "secondary"}
-                                                                className="text-xs h-5"
-                                                              >
-                                                                Step {step.step}
-                                                              </Badge>
-                                                              <span className="text-muted-foreground">
-                                                                {step.confidence}% confidence
-                                                              </span>
-                                                              {step.resultFound && (
-                                                                <span className="text-green-600 font-medium">✓ Found</span>
+                                                    {fbLog.query && (
+                                                      <div className="mt-2">
+                                                        <p className="text-muted-foreground font-medium mb-1">Query:</p>
+                                                        <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                          {fbLog.query}
+                                                        </p>
+                                                      </div>
+                                                    )}
+                                                    {fbLog.top3Results && fbLog.top3Results.length > 0 && (
+                                                      <div className="mt-2 space-y-1.5">
+                                                        <p className="text-muted-foreground font-medium">
+                                                          Top {fbLog.top3Results.length} Results:
+                                                        </p>
+                                                        {fbLog.top3Results.map((result: any, rIdx: number) => (
+                                                          <div key={rIdx} className="p-2 bg-background rounded border text-xs">
+                                                            <div className="flex items-start gap-1.5">
+                                                              {result.favicon && (
+                                                                <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
                                                               )}
-                                                            </div>
-                                                            <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                              {step.query}
-                                                            </p>
-                                                            {/* Organic Results */}
-                                                            {step.organicResults && step.organicResults.length > 0 && (
-                                                              <div className="mt-2 space-y-1.5">
-                                                                <p className="text-muted-foreground text-xs font-medium">
-                                                                  Results ({step.organicResults.length}):
+                                                              <div className="flex-1 min-w-0">
+                                                                <p className="font-medium" title={result.title}>
+                                                                  {result.position}. {result.title}
                                                                 </p>
-                                                                {step.organicResults.slice(0, 5).map((result: any, rIdx: number) => (
-                                                                  <div key={rIdx} className="p-1.5 bg-muted/30 rounded text-xs">
-                                                                    <div className="flex items-start gap-1.5">
-                                                                      {result.favicon && (
-                                                                        <img src={result.favicon} alt="" className="w-4 h-4 mt-0.5 rounded" />
-                                                                      )}
-                                                                      <div className="flex-1 min-w-0">
-                                                                        <p className="font-medium truncate" title={result.title}>
-                                                                          {result.position}. {result.title}
-                                                                        </p>
-                                                                        <a 
-                                                                          href={result.link} 
-                                                                          target="_blank" 
-                                                                          rel="noopener noreferrer"
-                                                                          className="text-primary hover:underline break-all text-xs"
-                                                                        >
-                                                                          {result.displayed_link || result.link}
-                                                                        </a>
-                                                                        {result.snippet && (
-                                                                          <p className="text-muted-foreground mt-0.5 line-clamp-2">
-                                                                            {result.snippet}
-                                                                          </p>
-                                                                        )}
-                                                                      </div>
-                                                                    </div>
+                                                                <a 
+                                                                  href={result.link} 
+                                                                  target="_blank" 
+                                                                  rel="noopener noreferrer"
+                                                                  className="text-primary hover:underline break-all text-xs"
+                                                                >
+                                                                  {result.displayed_link || result.link}
+                                                                </a>
+                                                                {result.snippet && (
+                                                                  <p className="text-muted-foreground mt-0.5">
+                                                                    {result.snippet}
+                                                                  </p>
+                                                                )}
+                                                                {result.rich_snippet?.top?.extensions && (
+                                                                  <div className="mt-1 flex flex-wrap gap-1">
+                                                                    {result.rich_snippet.top.extensions.map((ext: string, eIdx: number) => (
+                                                                      <Badge key={eIdx} variant="secondary" className="text-xs h-5">
+                                                                        {ext}
+                                                                      </Badge>
+                                                                    ))}
                                                                   </div>
-                                                                ))}
+                                                                )}
                                                               </div>
-                                                            )}
+                                                            </div>
                                                           </div>
                                                         ))}
                                                       </div>
