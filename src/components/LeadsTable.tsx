@@ -2858,6 +2858,19 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                                         {item.snippet}
                                                       </p>
                                                     )}
+                                                    
+                                                    {/* Explicit link to article */}
+                                                    {item.link && (
+                                                      <a 
+                                                        href={item.link} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                                      >
+                                                        <ExternalLink className="h-3 w-3" />
+                                                        Read full article
+                                                      </a>
+                                                    )}
                                                   </div>
                                                 ))}
                                               </div>
