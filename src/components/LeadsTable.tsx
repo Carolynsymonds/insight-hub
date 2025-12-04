@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
@@ -207,6 +208,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
       link: string;
     }>;
   } | null>(null);
+  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+
+  // Filter leads based on domain validity (Match Score >= 50% = valid)
+  const filteredLeads = leads.filter((lead) => {
+    if (domainFilter === 'all') return true;
+    if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
+    if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
+    return true;
+  });
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
     if (!logs) return false;
@@ -725,6 +735,26 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
   };
   return (
     <>
+      {/* Filter Bar */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Filter by:</span>
+          <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Domain Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Domains</SelectItem>
+              <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
+              <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-sm text-muted-foreground">
+          Showing {filteredLeads.length} of {leads.length} leads
+        </span>
+      </div>
+
       <StickyScrollTable className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-20">
@@ -759,14 +789,14 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.length === 0 ? (
+            {filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={18} className="text-center text-muted-foreground py-8">
-                  No leads yet. Add your first lead above.
+                  {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
                 </TableCell>
               </TableRow>
             ) : (
-              leads.map((lead) => (
+              filteredLeads.map((lead) => (
                 <TableRow
                   key={lead.id}
                   className="cursor-pointer hover:bg-muted/50 group"
