@@ -2831,7 +2831,9 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         className="w-full"
                                         disabled={
                                           findingContacts === lead.id ||
-                                          !lead.domain
+                                          !lead.domain ||
+                                          lead.match_score === null ||
+                                          (lead.match_score ?? 0) < 50
                                         }
                                         onClick={() => handleFindContacts(lead)}
                                       >
@@ -2849,9 +2851,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       </Button>
 
                                       {/* Show disabled state reason */}
-                                      {!lead.domain && (
+                                      {!lead.domain ? (
                                         <p className="text-xs text-muted-foreground text-center">
                                           ⚠️ Domain required. Run enrichment first.
+                                        </p>
+                                      ) : (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                        <p className="text-xs text-destructive/70 text-center">
+                                          {lead.match_score === null 
+                                            ? "Blocked: Match Score not calculated"
+                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
                                         </p>
                                       )}
                                     </div>
@@ -2941,7 +2949,12 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                       size="sm"
                                       variant="outline"
                                       className="w-full"
-                                      disabled={fetchingNews === lead.id || !lead.domain}
+                                      disabled={
+                                        fetchingNews === lead.id || 
+                                        !lead.domain ||
+                                        lead.match_score === null ||
+                                        (lead.match_score ?? 0) < 50
+                                      }
                                       onClick={() => handleGetCompanyNews(lead)}
                                     >
                                       {fetchingNews === lead.id ? (
@@ -2956,9 +2969,15 @@ const LeadsTable = ({ leads, onEnrichComplete }: LeadsTableProps) => {
                                         </>
                                       )}
                                     </Button>
-                                    {!lead.domain && (
+                                    {!lead.domain ? (
                                       <p className="text-xs text-muted-foreground">
                                         Domain required. Run enrichment first.
+                                      </p>
+                                    ) : (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                      <p className="text-xs text-destructive/70">
+                                        {lead.match_score === null 
+                                          ? "Blocked: Match Score not calculated"
+                                          : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
                                       </p>
                                     )}
 
