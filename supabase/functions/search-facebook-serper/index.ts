@@ -22,9 +22,29 @@ interface SearchStep {
   confidence: number;
   resultFound: boolean;
   facebookUrl?: string;
+  facebookSourceUrl?: string;
   organicResults?: OrganicResult[];
   totalResults?: number;
 }
+
+// Extract clean Facebook profile URL from any Facebook URL
+const extractFacebookProfile = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    // Remove m. or www. prefix and normalize to facebook.com
+    const hostname = urlObj.hostname.replace(/^(m\.|www\.)/i, "facebook.com".includes(urlObj.hostname.replace(/^(m\.|www\.)/i, "")) ? "" : "");
+    const normalizedHost = "facebook.com";
+    // Get the first path segment (profile ID)
+    const pathParts = urlObj.pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      // Return clean profile URL with just the profile ID
+      return `https://${normalizedHost}/${pathParts[0]}`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -124,6 +144,7 @@ Deno.serve(async (req) => {
 
     const searchSteps: SearchStep[] = [];
     let facebookUrl: string | null = null;
+    let facebookSourceUrl: string | null = null;
     let facebookConfidence: number = 0;
 
     // Step A: Full name + city + state + site:facebook.com (95%)
@@ -131,17 +152,20 @@ Deno.serve(async (req) => {
       const query = `"${company}" "${city}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "A", query, confidence: 95, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 95;
-        console.log(`Step A: Found Facebook URL: ${result.url}`);
+        console.log(`Step A: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -150,17 +174,20 @@ Deno.serve(async (req) => {
       const query = `"${company}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "B", query, confidence: 90, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 90;
-        console.log(`Step B: Found Facebook URL: ${result.url}`);
+        console.log(`Step B: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -169,17 +196,20 @@ Deno.serve(async (req) => {
       const query = `"${companyNoPeriods}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "C1", query, confidence: 75, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 75;
-        console.log(`Step C1: Found Facebook URL: ${result.url}`);
+        console.log(`Step C1: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -188,17 +218,20 @@ Deno.serve(async (req) => {
       const query = `"${companyNoSpaces}" "${city}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "C2", query, confidence: 70, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 70;
-        console.log(`Step C2: Found Facebook URL: ${result.url}`);
+        console.log(`Step C2: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -207,17 +240,20 @@ Deno.serve(async (req) => {
       const query = `"${company}" "${micsSector}" "${state}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "D", query, confidence: 60, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 60;
-        console.log(`Step D: Found Facebook URL: ${result.url}`);
+        console.log(`Step D: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -229,17 +265,20 @@ Deno.serve(async (req) => {
       const query = `"${formattedPhone}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "E1", query, confidence: 85, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 85;
-        console.log(`Step E1: Found Facebook URL: ${result.url}`);
+        console.log(`Step E1: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
@@ -248,22 +287,26 @@ Deno.serve(async (req) => {
       const query = `"+1${phoneClean}" site:facebook.com`;
       const data = await executeSearch(query);
       const result = findFacebookUrl(data);
+      const parsedUrl = result.url ? extractFacebookProfile(result.url) : undefined;
       searchSteps.push({ 
         step: "E2", query, confidence: 80, 
         resultFound: !!result.url, 
-        facebookUrl: result.url || undefined,
+        facebookUrl: parsedUrl,
+        facebookSourceUrl: result.url || undefined,
         organicResults: result.organicResults,
         totalResults: result.totalResults
       });
       if (result.url) {
-        facebookUrl = result.url;
+        facebookSourceUrl = result.url;
+        facebookUrl = parsedUrl!;
         facebookConfidence = 80;
-        console.log(`Step E2: Found Facebook URL: ${result.url}`);
+        console.log(`Step E2: Found Facebook URL: ${result.url} -> Parsed: ${parsedUrl}`);
       }
     }
 
     console.log(`=== Search Complete ===`);
-    console.log(`Facebook URL: ${facebookUrl || "Not found"}`);
+    console.log(`Facebook URL (parsed): ${facebookUrl || "Not found"}`);
+    console.log(`Facebook Source URL: ${facebookSourceUrl || "Not found"}`);
     console.log(`Confidence: ${facebookConfidence}%`);
     console.log(`Steps executed: ${searchSteps.length}`);
 
@@ -294,6 +337,7 @@ Deno.serve(async (req) => {
       },
       searchSteps,
       facebookUrl,
+      facebookSourceUrl,
       confidence: facebookConfidence,
       source: "serpapi_facebook_search",
     };
@@ -302,6 +346,7 @@ Deno.serve(async (req) => {
       .from("leads")
       .update({ 
         facebook: facebookUrl,
+        facebook_source_url: facebookSourceUrl,
         facebook_confidence: facebookConfidence > 0 ? facebookConfidence : null,
         enrichment_logs: [...existingLogs, facebookSearchLog],
       })
@@ -317,6 +362,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         facebook: facebookUrl,
+        facebookSourceUrl,
         confidence: facebookConfidence > 0 ? facebookConfidence : null,
         searchSteps,
         stepsExecuted: searchSteps.length,
