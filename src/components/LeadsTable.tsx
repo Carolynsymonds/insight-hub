@@ -3458,6 +3458,183 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                 </AccordionContent>
                               </AccordionItem>
 
+                              {/* Enrich Contact Accordion - Check if lead exists in company contacts */}
+                              <AccordionItem value="enrich-contact" className="border-border">
+                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    <span>Enrich Contact</span>
+                                    {(() => {
+                                      // Check if lead exists in company_contacts by email or name
+                                      const matchedContact = lead.company_contacts?.find(c => 
+                                        (lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
+                                        (lead.full_name && c.name && c.name.toLowerCase() === lead.full_name.toLowerCase())
+                                      );
+                                      return matchedContact ? (
+                                        <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Found
+                                        </Badge>
+                                      ) : null;
+                                    })()}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-4">
+                                    {/* Check if lead contact exists in company_contacts */}
+                                    {(() => {
+                                      const matchedContact = lead.company_contacts?.find(c => 
+                                        (lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
+                                        (lead.full_name && c.name && c.name.toLowerCase() === lead.full_name.toLowerCase())
+                                      );
+
+                                      if (matchedContact) {
+                                        return (
+                                          <div className="space-y-3">
+                                            <div className="p-4 border rounded-lg bg-green-50/50 border-green-200">
+                                              <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                  <div className="flex items-center gap-2">
+                                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                                    <p className="font-semibold text-sm text-green-800">Contact Found in Company</p>
+                                                  </div>
+                                                  <p className="text-xs text-muted-foreground mt-1">
+                                                    This lead matches a discovered company contact
+                                                  </p>
+                                                </div>
+                                              </div>
+
+                                              <div className="space-y-3 border-t border-green-200 pt-3">
+                                                {/* Name */}
+                                                <div className="flex justify-between items-start">
+                                                  <span className="text-xs text-muted-foreground">Name</span>
+                                                  <span className="text-sm font-medium text-right">
+                                                    {matchedContact.name || `${matchedContact.first_name || ''} ${matchedContact.last_name || ''}`.trim() || '—'}
+                                                  </span>
+                                                </div>
+
+                                                {/* Title */}
+                                                {matchedContact.title && (
+                                                  <div className="flex justify-between items-start">
+                                                    <span className="text-xs text-muted-foreground">Title</span>
+                                                    <span className="text-sm text-right">{matchedContact.title}</span>
+                                                  </div>
+                                                )}
+
+                                                {/* Email */}
+                                                {matchedContact.email && (
+                                                  <div className="flex justify-between items-start">
+                                                    <span className="text-xs text-muted-foreground">Email</span>
+                                                    <div className="flex items-center gap-2">
+                                                      <a
+                                                        href={`mailto:${matchedContact.email}`}
+                                                        className="text-sm text-primary hover:underline"
+                                                      >
+                                                        {matchedContact.email}
+                                                      </a>
+                                                      {matchedContact.email_status === 'verified' && (
+                                                        <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                          Verified
+                                                        </Badge>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {/* LinkedIn */}
+                                                {matchedContact.linkedin_url && (
+                                                  <div className="flex justify-between items-start">
+                                                    <span className="text-xs text-muted-foreground">LinkedIn</span>
+                                                    <a
+                                                      href={matchedContact.linkedin_url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                    >
+                                                      <Linkedin className="h-3 w-3" />
+                                                      View Profile
+                                                      <ExternalLink className="h-3 w-3" />
+                                                    </a>
+                                                  </div>
+                                                )}
+
+                                                {/* Source */}
+                                                <div className="flex justify-between items-start">
+                                                  <span className="text-xs text-muted-foreground">Source</span>
+                                                  <Badge 
+                                                    variant="outline" 
+                                                    className={matchedContact.source === 'apollo_people_search' 
+                                                      ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                                                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                    }
+                                                  >
+                                                    {matchedContact.source === 'apollo_people_search' ? 'Apollo' : 'Scraped'}
+                                                  </Badge>
+                                                </div>
+
+                                                {/* Additional badges */}
+                                                {(matchedContact.is_personal || matchedContact.found_without_role_filter) && (
+                                                  <div className="flex justify-between items-start">
+                                                    <span className="text-xs text-muted-foreground">Status</span>
+                                                    <div className="flex gap-1">
+                                                      {matchedContact.is_personal && (
+                                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px]">
+                                                          Personal Email
+                                                        </Badge>
+                                                      )}
+                                                      {matchedContact.found_without_role_filter && (
+                                                        <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">
+                                                          Name Only
+                                                        </Badge>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+
+                                      // Contact not found in company_contacts
+                                      return (
+                                        <div className="space-y-3">
+                                          <div className="p-4 border rounded-lg bg-muted/30">
+                                            <div className="text-center space-y-2">
+                                              <Users className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                                              <p className="text-sm font-medium">Contact Not Found</p>
+                                              <p className="text-xs text-muted-foreground">
+                                                This lead ({lead.full_name}) was not found in the company contacts list.
+                                              </p>
+                                              {!lead.company_contacts?.length && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  Run "Find Company Contacts" first to discover contacts at this company.
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Show lead's current data */}
+                                          <div className="border rounded-lg p-3 space-y-2">
+                                            <p className="text-xs font-medium text-muted-foreground">Lead Data:</p>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                              <span className="text-muted-foreground">Name:</span>
+                                              <span>{lead.full_name}</span>
+                                              <span className="text-muted-foreground">Email:</span>
+                                              <span>{lead.email || '—'}</span>
+                                              <span className="text-muted-foreground">Company:</span>
+                                              <span>{lead.company || '—'}</span>
+                                              <span className="text-muted-foreground">Domain:</span>
+                                              <span>{lead.domain || '—'}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
                               {/* Company News Accordion - After Find Contacts */}
                               <AccordionItem value="company-news" className="border-border">
                                 <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
