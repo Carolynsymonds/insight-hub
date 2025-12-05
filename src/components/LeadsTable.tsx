@@ -1046,7 +1046,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               <TableHead>Company</TableHead>
               <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>
               <TableHead>Zipcode</TableHead>
-              <TableHead>DMA</TableHead>
+              <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>
               <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
                 <div className="flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
