@@ -1030,8 +1030,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
               <TableHead className="border-t-2 border-lavender">
-                <div className="flex flex-col items-start gap-1">
-                  {/* Expand button in rounded container at top */}
+                <div className="flex items-center gap-2">
+                  {/* Expand button in rounded pill */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -1045,12 +1045,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                     <ChevronsRight className={`h-3 w-3 mr-1 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
                     {showEnrichedColumns ? 'Collapse' : 'Expand'}
                   </Button>
-                  
-                  {/* Company Domain label below */}
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4" />
-                    Company Domain
-                  </div>
+                  <Link2 className="h-4 w-4" />
+                  Company Domain
                 </div>
               </TableHead>
               {showEnrichedColumns && (
