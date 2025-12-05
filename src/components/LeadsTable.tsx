@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, CornerDownRight } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -1032,9 +1032,9 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
               title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
             >
-              <CornerDownRight className="h-4 w-4 mr-2 text-muted-foreground/70" />
-              {showEnrichedColumns ? 'Collapse' : 'Expand'}
-              <ChevronsRight className={`h-4 w-4 ml-2 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+              <ArrowDown className="h-4 w-4 mr-2 text-muted-foreground/70" />
+              <span className="border-r border-border/50 pr-2 mr-2">{showEnrichedColumns ? 'Collapse' : 'Expand'}</span>
+              <ChevronsRight className={`h-4 w-4 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
             </Button>
           </div>
           <div className="rounded-lg border">
