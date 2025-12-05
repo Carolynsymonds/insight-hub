@@ -1022,7 +1022,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       <StickyScrollTable className="overflow-x-auto">
         <div className="min-w-max">
           {/* Collapse/Expand button row - scrolls with table, above the table border */}
-          <div className="flex" style={{ paddingBottom: 0, marginBottom: -2 }}>
+          <div className="flex" style={{ paddingBottom: 0, marginBottom: -1 }}>
             <div style={{ width: '1383px' }} className="shrink-0" />
             <Button
               variant="outline"
