@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, CornerDownRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -1027,13 +1027,14 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-3 text-xs font-medium border-lavender text-foreground"
-              style={{ backgroundColor: 'white', borderRadius: 'unset' }}
+              className="h-8 px-3 text-sm font-normal border-border/50 text-muted-foreground hover:bg-muted/50"
+              style={{ backgroundColor: 'white', borderRadius: 0 }}
               onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
               title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
             >
-              <ChevronsRight className={`h-3 w-3 mr-1 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+              <CornerDownRight className="h-4 w-4 mr-2 text-muted-foreground/70" />
               {showEnrichedColumns ? 'Collapse' : 'Expand'}
+              <ChevronsRight className={`h-4 w-4 ml-2 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
             </Button>
           </div>
           <div className="rounded-lg border">
