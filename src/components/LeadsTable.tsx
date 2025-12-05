@@ -1022,12 +1022,13 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       <StickyScrollTable className="overflow-x-auto">
         <div className="min-w-max">
           {/* Collapse/Expand button row - scrolls with table, above the table border */}
-          <div className="flex py-2">
-            <div style={{ width: '850px' }} className="shrink-0" /> {/* Spacer to align with Company Domain */}
+          <div className="flex" style={{ paddingBottom: 0, marginBottom: -2 }}>
+            <div style={{ width: '1383px' }} className="shrink-0" />
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-3 rounded-full text-xs font-medium bg-lavender/20 hover:bg-lavender/40 border-lavender text-foreground"
+              className="h-7 px-3 text-xs font-medium border-lavender text-foreground"
+              style={{ backgroundColor: 'white', borderRadius: 'unset' }}
               onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
               title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
             >
