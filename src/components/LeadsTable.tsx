@@ -1029,7 +1029,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               <TableHead>MICS Sector</TableHead>
               <TableHead>Zipcode</TableHead>
               <TableHead>DMA</TableHead>
-              <TableHead>
+              <TableHead className="border-t-2 border-lavender">
                 <div className="flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
                   Company Domain
