@@ -1356,10 +1356,10 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                         >
                           <DrawerHeader className="flex flex-row items-center justify-between select-none">
                             <div>
-                              <DrawerTitle className="select-none">Enrichments</DrawerTitle>
-                              {lead.domain && (
-                                <p className="text-sm text-muted-foreground mt-1 select-text">{lead.domain}</p>
-                              )}
+                            <DrawerTitle className="select-none">Enrichments</DrawerTitle>
+                              <p className="text-sm text-muted-foreground mt-1 select-text">
+                                {lead.domain || lead.company || 'Unknown'}
+                              </p>
                             </div>
                             <Button
                               variant="ghost"
