@@ -1019,25 +1019,22 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         </div>
       )}
 
-      {/* Collapse/Expand button positioned above table, aligned over Company Domain column */}
-      <div className="flex mb-2">
-        <div className="flex-shrink-0" style={{ width: 'calc(100px + 180px + 150px + 120px + 100px + 100px)' }}>
-          {/* Spacer for: Name, Email, Company, MICS Sector, Zipcode, DMA columns */}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 px-3 rounded-full text-xs font-medium bg-lavender/20 hover:bg-lavender/40 border-lavender text-foreground"
-          onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
-          title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
-        >
-          <ChevronsRight className={`h-3 w-3 mr-1 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
-          {showEnrichedColumns ? 'Collapse' : 'Expand'}
-        </Button>
-      </div>
-
       <StickyScrollTable className="rounded-lg border overflow-x-auto">
-        <Table>
+        <div className="min-w-max">
+          {/* Collapse/Expand button row - scrolls with table */}
+          <div className="flex py-2 pl-[750px]">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 rounded-full text-xs font-medium bg-lavender/20 hover:bg-lavender/40 border-lavender text-foreground"
+              onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
+              title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
+            >
+              <ChevronsRight className={`h-3 w-3 mr-1 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+              {showEnrichedColumns ? 'Collapse' : 'Expand'}
+            </Button>
+          </div>
+          <Table>
           <TableHeader className="sticky top-0 bg-background z-20">
             <TableRow>
               <TableHead>Name</TableHead>
@@ -3980,7 +3977,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </StickyScrollTable>
 
       <Dialog open={showTextModal} onOpenChange={setShowTextModal}>
