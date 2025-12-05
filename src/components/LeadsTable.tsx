@@ -1067,7 +1067,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                   <TableHead className="border-t-2 border-lavender">News</TableHead>
                 </>
               )}
-              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px] border-t-0">
+              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]" style={{ borderTop: 'none' }}>
                 Actions
               </TableHead>
             </TableRow>
