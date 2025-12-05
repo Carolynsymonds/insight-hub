@@ -1050,16 +1050,16 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               </TableHead>
               {showEnrichedColumns && (
                 <>
-                  <TableHead>Socials</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead className="min-w-[250px]">Description</TableHead>
-                  <TableHead>Annual Revenue</TableHead>
-                  <TableHead>Industry</TableHead>
-                  <TableHead>Founded</TableHead>
-                  <TableHead>Contacts</TableHead>
-                  <TableHead>Logo</TableHead>
-                  <TableHead className="min-w-[200px]">Products/Services</TableHead>
-                  <TableHead>News</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Socials</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Size</TableHead>
+                  <TableHead className="min-w-[250px] border-t-2 border-lavender">Description</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Industry</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Founded</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Contacts</TableHead>
+                  <TableHead className="border-t-2 border-lavender">Logo</TableHead>
+                  <TableHead className="min-w-[200px] border-t-2 border-lavender">Products/Services</TableHead>
+                  <TableHead className="border-t-2 border-lavender">News</TableHead>
                 </>
               )}
               <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">
