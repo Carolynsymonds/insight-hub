@@ -6,7 +6,30 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download } from "lucide-react";
+import {
+  Search,
+  Sparkles,
+  Loader2,
+  Trash2,
+  ExternalLink,
+  Link2,
+  Info,
+  X,
+  MapPin,
+  CheckCircle,
+  Users,
+  Mail,
+  Newspaper,
+  ChevronRight,
+  Linkedin,
+  Instagram,
+  Facebook,
+  ChevronsRight,
+  Twitter,
+  Github,
+  ArrowDown,
+  Download,
+} from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -151,13 +174,13 @@ interface Lead {
       platform: string;
       query: string;
       found: boolean;
-      source: 'apollo' | 'google_search';
+      source: "apollo" | "google_search";
       url?: string;
     }>;
   }> | null;
   scraped_data_log: {
     // Common
-    source?: 'apollo' | 'scraper';
+    source?: "apollo" | "scraper";
     // Apollo-specific
     organization_name?: string;
     fields_populated?: string[];
@@ -208,10 +231,16 @@ interface LeadsTableProps {
   leads: Lead[];
   onEnrichComplete: () => void;
   hideFilterBar?: boolean;
-  domainFilter?: 'all' | 'valid' | 'invalid';
-  onDomainFilterChange?: (value: 'all' | 'valid' | 'invalid') => void;
+  domainFilter?: "all" | "valid" | "invalid";
+  onDomainFilterChange?: (value: "all" | "valid" | "invalid") => void;
 }
-const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilter: externalDomainFilter, onDomainFilterChange }: LeadsTableProps) => {
+const LeadsTable = ({
+  leads,
+  onEnrichComplete,
+  hideFilterBar = false,
+  domainFilter: externalDomainFilter,
+  onDomainFilterChange,
+}: LeadsTableProps) => {
   const { toast } = useToast();
   const [enrichingSource, setEnrichingSource] = useState<{ leadId: string; source: string } | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -247,7 +276,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       link: string;
     }>;
   } | null>(null);
-  const [internalDomainFilter, setInternalDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [internalDomainFilter, setInternalDomainFilter] = useState<"all" | "valid" | "invalid">("all");
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
   const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
@@ -264,9 +293,9 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
-    if (domainFilter === 'all') return true;
-    if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
-    if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
+    if (domainFilter === "all") return true;
+    if (domainFilter === "valid") return lead.match_score !== null && lead.match_score >= 50;
+    if (domainFilter === "invalid") return lead.match_score === null || lead.match_score < 50;
     return true;
   });
 
@@ -278,28 +307,26 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
   };
 
   const handleExportCSV = () => {
-    const headers = ['Company Name', 'Domain', 'Confidence Score'];
-    const rows = filteredLeads.map(lead => [
-      lead.company || '',
-      lead.domain || '',
-      lead.enrichment_confidence !== null ? `${lead.enrichment_confidence}%` : ''
+    const headers = ["Company Name", "Domain", "Confidence Score"];
+    const rows = filteredLeads.map((lead) => [
+      lead.company || "",
+      lead.domain || "",
+      lead.enrichment_confidence !== null ? `${lead.enrichment_confidence}%` : "",
     ]);
-    
+
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => 
-        `"${String(cell).replace(/"/g, '""')}"`
-      ).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `leads-export-${new Date().toISOString().split('T')[0]}.csv`);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `leads-export-${new Date().toISOString().split("T")[0]}.csv`);
     link.click();
     URL.revokeObjectURL(url);
-    
+
     toast({
       title: "Export Complete",
       description: `Exported ${filteredLeads.length} leads to CSV`,
@@ -597,7 +624,8 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
     if (!hasMicsData) {
       toast({
         title: "Cannot Score Industry Relevance",
-        description: "No MICS classification data available. Industry relevance requires MICS Sector, Subsector, or Segment to compare against.",
+        description:
+          "No MICS classification data available. Industry relevance requires MICS Sector, Subsector, or Segment to compare against.",
         variant: "destructive",
       });
       return;
@@ -745,9 +773,18 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
     setScoringSocials(lead.id);
     try {
       // Extract organic results from enrichment logs
-      const fbLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "facebook_search_serper") as any;
-      const liLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "linkedin_search_serper") as any;
-      const igLog = lead.enrichment_logs?.slice().reverse().find(log => log.action === "instagram_search_serper") as any;
+      const fbLog = lead.enrichment_logs
+        ?.slice()
+        .reverse()
+        .find((log) => log.action === "facebook_search_serper") as any;
+      const liLog = lead.enrichment_logs
+        ?.slice()
+        .reverse()
+        .find((log) => log.action === "linkedin_search_serper") as any;
+      const igLog = lead.enrichment_logs
+        ?.slice()
+        .reverse()
+        .find((log) => log.action === "instagram_search_serper") as any;
 
       const facebookResults = fbLog?.top3Results || fbLog?.searchSteps?.[0]?.organicResults || [];
       const linkedinResults = liLog?.top3Results || liLog?.searchSteps?.[0]?.organicResults || [];
@@ -772,7 +809,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
 
       toast({
         title: "Social Profiles Scored!",
-        description: `Facebook: ${data.facebook_validated === null ? 'N/A' : data.facebook_validated ? 'Valid' : 'Invalid'}, LinkedIn: ${data.linkedin_validated === null ? 'N/A' : data.linkedin_validated ? 'Valid' : 'Invalid'}, Instagram: ${data.instagram_validated === null ? 'N/A' : data.instagram_validated ? 'Valid' : 'Invalid'}`,
+        description: `Facebook: ${data.facebook_validated === null ? "N/A" : data.facebook_validated ? "Valid" : "Invalid"}, LinkedIn: ${data.linkedin_validated === null ? "N/A" : data.linkedin_validated ? "Valid" : "Invalid"}, Instagram: ${data.instagram_validated === null ? "N/A" : data.instagram_validated ? "Valid" : "Invalid"}`,
       });
 
       onEnrichComplete();
@@ -851,9 +888,10 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
 
       toast({
         title: data.contactsFound > 0 ? "Contacts Found!" : "No Contacts Found",
-        description: data.contactsFound > 0
-          ? `Found ${data.contactsFound} key contacts at this company`
-          : "No key contacts found for this company",
+        description:
+          data.contactsFound > 0
+            ? `Found ${data.contactsFound} key contacts at this company`
+            : "No key contacts found for this company",
       });
 
       onEnrichComplete();
@@ -871,7 +909,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
   const handleEnrichContact = async (lead: Lead) => {
     setEnrichingContact(lead.id);
     setEnrichContactSteps(null); // Reset steps
-    
+
     try {
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
         body: {
@@ -924,18 +962,18 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       return;
     }
 
-    const isDirectApollo = lead.enrichment_source === 'apollo_api';
+    const isDirectApollo = lead.enrichment_source === "apollo_api";
     const skipApollo = lead.apollo_not_found === true;
-    
+
     setEnrichingCompanyDetails(lead.id);
-    
+
     // Set initial step message based on path
     if (skipApollo) {
-      setCompanyDetailsStep({ step: 1, message: 'Scraping website...' });
+      setCompanyDetailsStep({ step: 1, message: "Scraping website..." });
     } else if (isDirectApollo) {
-      setCompanyDetailsStep({ step: 1, message: 'Retrieving details from Apollo...' });
+      setCompanyDetailsStep({ step: 1, message: "Retrieving details from Apollo..." });
     } else {
-      setCompanyDetailsStep({ step: 1, message: 'Searching Apollo for domain...' });
+      setCompanyDetailsStep({ step: 1, message: "Searching Apollo for domain..." });
     }
 
     try {
@@ -951,12 +989,12 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
       if (error) throw error;
 
       // Log the enrichment steps for debugging
-      console.log('=== COMPANY DETAILS ENRICHMENT RESULT ===');
-      console.log('Source:', data.source);
-      console.log('Enriched Fields:', data.enrichedFields);
-      console.log('Enrichment Steps:', JSON.stringify(data.enrichmentSteps, null, 2));
+      console.log("=== COMPANY DETAILS ENRICHMENT RESULT ===");
+      console.log("Source:", data.source);
+      console.log("Enriched Fields:", data.enrichedFields);
+      console.log("Enrichment Steps:", JSON.stringify(data.enrichmentSteps, null, 2));
       if (data.scrapedData) {
-        console.log('Scraped Data:', JSON.stringify(data.scrapedData, null, 2));
+        console.log("Scraped Data:", JSON.stringify(data.scrapedData, null, 2));
       }
 
       // Handle not found case
@@ -967,7 +1005,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         });
       } else {
         const fieldsCount = data.enrichedFields?.length || 0;
-        const sourceLabel = data.source === 'scraper' ? 'website scraping' : 'Apollo';
+        const sourceLabel = data.source === "scraper" ? "website scraping" : "Apollo";
         toast({
           title: "Company Details Enriched!",
           description: `${fieldsCount} fields populated from ${sourceLabel}.`,
@@ -976,7 +1014,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
 
       onEnrichComplete();
     } catch (error: any) {
-      console.error('Company Details Enrichment Error:', error);
+      console.error("Company Details Enrichment Error:", error);
       toast({
         title: "Enrichment Failed",
         description: error.message,
@@ -1031,7 +1069,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Filter by:</span>
-            <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
+            <Select value={domainFilter} onValueChange={(value: "all" | "valid" | "invalid") => setDomainFilter(value)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Domain Status" />
               </SelectTrigger>
@@ -1042,12 +1080,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               </SelectContent>
             </Select>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="gap-2"
-          >
+          <Button variant="" size="sm" onClick={handleExportCSV} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
@@ -1061,936 +1094,749 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         <div className="min-w-max">
           {/* Collapse/Expand button row - scrolls with table, above the table border */}
           <div className="flex" style={{ paddingBottom: 0, marginBottom: -1 }}>
-            <div style={{ width: '1383px' }} className="shrink-0" />
+            <div style={{ width: "1383px" }} className="shrink-0" />
             <Button
               variant="outline"
               size="sm"
               className="h-8 px-3 text-sm font-normal border-border/50 text-muted-foreground hover:bg-muted/50"
-              style={{ backgroundColor: 'white', borderRadius: 0 }}
+              style={{ backgroundColor: "white", borderRadius: 0 }}
               onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
               title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
             >
               <ArrowDown className="h-4 w-4 mr-2 text-muted-foreground/70" />
-              <span className="border-r border-border/50 pr-2 mr-2">{showEnrichedColumns ? 'Collapse' : 'Expand'}</span>
-              <ChevronsRight className={`h-4 w-4 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? 'rotate-180' : ''}`} />
+              <span className="border-r border-border/50 pr-2 mr-2">{showEnrichedColumns ? "Collapse" : "Expand"}</span>
+              <ChevronsRight
+                className={`h-4 w-4 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? "rotate-180" : ""}`}
+              />
             </Button>
           </div>
           <div className="rounded-lg border">
             <Table>
-          <TableHeader className="sticky top-0 bg-background z-20">
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>
-              <TableHead>Zipcode</TableHead>
-              <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>
-              <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
-                <div className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4" />
-                  Company Domain
-                </div>
-              </TableHead>
-              {showEnrichedColumns && (
-                <>
-                  <TableHead className="border-t-2 border-lavender">Socials</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Size</TableHead>
-                  <TableHead className="min-w-[250px] border-t-2 border-lavender">Description</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Industry</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Founded</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Contacts</TableHead>
-                  <TableHead className="border-t-2 border-lavender">Logo</TableHead>
-                  <TableHead className="min-w-[200px] border-t-2 border-lavender">Products/Services</TableHead>
-                  <TableHead className="border-t-2 border-lavender">News</TableHead>
-                </>
-              )}
-              <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px] border-t-2 border-background">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeads.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={showEnrichedColumns ? 17 : 7} className="text-center text-muted-foreground py-8">
-                  {leads.length === 0 ? "No leads yet. Add your first lead above." : "No leads match the current filter."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredLeads.map((lead) => (
-                <TableRow
-                  key={lead.id}
-                  className="cursor-pointer hover:bg-muted/50 group"
-                  onClick={() => showLeadDetails(lead)}
-                >
-                  <TableCell className="font-medium">{lead.full_name}</TableCell>
-                  <TableCell>{lead.email || "—"}</TableCell>
-                  <TableCell>{lead.company || "—"}</TableCell>
-                  <TableCell>{lead.mics_sector || "—"}</TableCell>
-                  <TableCell>{lead.zipcode || "—"}</TableCell>
-                  <TableCell>{lead.dma || "—"}</TableCell>
-                  <TableCell>
-                    {lead.domain ? (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`https://${lead.domain}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {lead.domain}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                        {lead.match_score !== null && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-white text-black border-border"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.match_score}%
-                          </Badge>
-                        )}
-                      </div>
-                    ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
-                      (() => {
-                        const checkedSources = new Set<string>();
-                        lead.enrichment_logs.forEach((log) => {
-                          if (log.source.startsWith("email_")) {
-                            checkedSources.add("Email");
-                          } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
-                            checkedSources.add("Google");
-                          } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
-                            checkedSources.add("Apollo");
-                          }
-                        });
-                        const sourceList = Array.from(checkedSources).join(", ");
-                        return (
-                          <div className="flex flex-col gap-1">
-                            <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
-                            {lead.diagnosis_category && (
-                              <Badge variant="outline" className="text-xs w-fit">
-                                {lead.diagnosis_category}
+              <TableHeader className="sticky top-0 bg-background z-20">
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>
+                  <TableHead>Zipcode</TableHead>
+                  <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>
+                  <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                    <div className="flex items-center gap-2">
+                      <Link2 className="h-4 w-4" />
+                      Company Domain
+                    </div>
+                  </TableHead>
+                  {showEnrichedColumns && (
+                    <>
+                      <TableHead className="border-t-2 border-lavender">Socials</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Size</TableHead>
+                      <TableHead className="min-w-[250px] border-t-2 border-lavender">Description</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Industry</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Founded</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Contacts</TableHead>
+                      <TableHead className="border-t-2 border-lavender">Logo</TableHead>
+                      <TableHead className="min-w-[200px] border-t-2 border-lavender">Products/Services</TableHead>
+                      <TableHead className="border-t-2 border-lavender">News</TableHead>
+                    </>
+                  )}
+                  <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px] border-t-2 border-background">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={showEnrichedColumns ? 17 : 7}
+                      className="text-center text-muted-foreground py-8"
+                    >
+                      {leads.length === 0
+                        ? "No leads yet. Add your first lead above."
+                        : "No leads match the current filter."}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <TableRow
+                      key={lead.id}
+                      className="cursor-pointer hover:bg-muted/50 group"
+                      onClick={() => showLeadDetails(lead)}
+                    >
+                      <TableCell className="font-medium">{lead.full_name}</TableCell>
+                      <TableCell>{lead.email || "—"}</TableCell>
+                      <TableCell>{lead.company || "—"}</TableCell>
+                      <TableCell>{lead.mics_sector || "—"}</TableCell>
+                      <TableCell>{lead.zipcode || "—"}</TableCell>
+                      <TableCell>{lead.dma || "—"}</TableCell>
+                      <TableCell>
+                        {lead.domain ? (
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`https://${lead.domain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {lead.domain}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            {lead.match_score !== null && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-white text-black border-border"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {lead.match_score}%
                               </Badge>
                             )}
                           </div>
-                        );
-                      })()
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  {showEnrichedColumns && (
-                    <>
-                  <TableCell>
-                    <div className="flex flex-col gap-1 text-xs">
-                      {/* LinkedIn */}
-                      <div className="flex items-center gap-1.5">
-                        <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        {lead.linkedin ? (
-                          <>
-                            <a
-                              href={lead.linkedin}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[120px]"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {(() => {
-                                try {
-                                  return new URL(lead.linkedin).pathname.replace(/\/$/, '') || '/';
-                                } catch {
-                                  return lead.linkedin;
-                                }
-                              })()}
-                            </a>
-                            {lead.linkedin_validated === false && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
-                            )}
-                          </>
+                        ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                          (() => {
+                            const checkedSources = new Set<string>();
+                            lead.enrichment_logs.forEach((log) => {
+                              if (log.source.startsWith("email_")) {
+                                checkedSources.add("Email");
+                              } else if (
+                                log.source === "google_knowledge_graph" ||
+                                log.source === "google_local_results"
+                              ) {
+                                checkedSources.add("Google");
+                              } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
+                                checkedSources.add("Apollo");
+                              }
+                            });
+                            const sourceList = Array.from(checkedSources).join(", ");
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
+                                {lead.diagnosis_category && (
+                                  <Badge variant="outline" className="text-xs w-fit">
+                                    {lead.diagnosis_category}
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()
                         ) : (
-                          <span className="text-muted-foreground">not found</span>
+                          "—"
                         )}
-                      </div>
-                      
-                      {/* Instagram */}
-                      <div className="flex items-center gap-1.5">
-                        <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        {lead.instagram ? (
-                          <>
-                            <a
-                              href={lead.instagram}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[120px]"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {(() => {
-                                try {
-                                  return new URL(lead.instagram).pathname.replace(/\/$/, '') || '/';
-                                } catch {
-                                  return lead.instagram;
-                                }
-                              })()}
-                            </a>
-                            {lead.instagram_validated === false && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
+                      </TableCell>
+                      {showEnrichedColumns && (
+                        <>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                              {/* LinkedIn */}
+                              <div className="flex items-center gap-1.5">
+                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.linkedin ? (
+                                  <>
+                                    <a
+                                      href={lead.linkedin}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline truncate max-w-[120px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {(() => {
+                                        try {
+                                          return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
+                                        } catch {
+                                          return lead.linkedin;
+                                        }
+                                      })()}
+                                    </a>
+                                    {lead.linkedin_validated === false && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
+                                      >
+                                        Invalid
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">not found</span>
+                                )}
+                              </div>
+
+                              {/* Instagram */}
+                              <div className="flex items-center gap-1.5">
+                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.instagram ? (
+                                  <>
+                                    <a
+                                      href={lead.instagram}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline truncate max-w-[120px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {(() => {
+                                        try {
+                                          return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                                        } catch {
+                                          return lead.instagram;
+                                        }
+                                      })()}
+                                    </a>
+                                    {lead.instagram_validated === false && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
+                                      >
+                                        Invalid
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">not found</span>
+                                )}
+                              </div>
+
+                              {/* Facebook */}
+                              <div className="flex items-center gap-1.5">
+                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.facebook ? (
+                                  <>
+                                    <a
+                                      href={lead.facebook}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline truncate max-w-[120px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {(() => {
+                                        try {
+                                          return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
+                                        } catch {
+                                          return lead.facebook;
+                                        }
+                                      })()}
+                                    </a>
+                                    {lead.facebook_validated === false && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
+                                      >
+                                        Invalid
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">not found</span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{lead.size || "—"}</TableCell>
+                          <TableCell
+                            className="max-w-[250px] cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              if (lead.description || lead.vehicle_tracking_interest_explanation) {
+                                e.stopPropagation();
+                                setDescriptionModalLead(lead);
+                              }
+                            }}
+                          >
+                            <div className="truncate">{lead.description || "—"}</div>
+                          </TableCell>
+                          <TableCell>{lead.annual_revenue || "—"}</TableCell>
+                          <TableCell>{lead.company_industry || "—"}</TableCell>
+                          <TableCell>{lead.founded_date || "—"}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const apolloContacts =
+                                lead.company_contacts?.filter((c) => c.source === "apollo_people_search") || [];
+                              const scraperContacts =
+                                lead.company_contacts?.filter((c) => c.source !== "apollo_people_search") || [];
+                              const totalContacts =
+                                apolloContacts.length + scraperContacts.length + (lead.contact_email ? 1 : 0);
+
+                              if (totalContacts === 0) return "—";
+
+                              return (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-1 text-primary hover:underline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setContactsModalLead(lead);
+                                    setShowContactsModal(true);
+                                  }}
+                                >
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {totalContacts} contact{totalContacts > 1 ? "s" : ""}
+                                </Button>
+                              );
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            {lead.logo_url ? (
+                              <a
+                                href={lead.logo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              "—"
                             )}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">not found</span>
-                        )}
-                      </div>
-                      
-                      {/* Facebook */}
-                      <div className="flex items-center gap-1.5">
-                        <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        {lead.facebook ? (
-                          <>
-                            <a
-                              href={lead.facebook}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate max-w-[120px]"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {(() => {
+                          </TableCell>
+                          <TableCell
+                            className="max-w-[200px] cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              if (lead.products_services) {
+                                e.stopPropagation();
+                                setModalContent({ title: "Products/Services", text: lead.products_services });
+                                setShowTextModal(true);
+                              }
+                            }}
+                          >
+                            <div className="truncate">{lead.products_services || "—"}</div>
+                          </TableCell>
+                          <TableCell
+                            className="max-w-[200px] cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              if (lead.news) {
+                                e.stopPropagation();
                                 try {
-                                  return new URL(lead.facebook).pathname.replace(/\/$/, '') || '/';
+                                  const newsData = JSON.parse(lead.news);
+                                  setNewsModalData(newsData);
+                                  setShowNewsModal(true);
                                 } catch {
-                                  return lead.facebook;
+                                  setModalContent({ title: "News", text: lead.news });
+                                  setShowTextModal(true);
                                 }
-                              })()}
-                            </a>
-                            {lead.facebook_validated === false && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 text-destructive border-destructive">Invalid</Badge>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">not found</span>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{lead.size || "—"}</TableCell>
-                  <TableCell
-                    className="max-w-[250px] cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      if (lead.description || lead.vehicle_tracking_interest_explanation) {
-                        e.stopPropagation();
-                        setDescriptionModalLead(lead);
-                      }
-                    }}
-                  >
-                    <div className="truncate">{lead.description || "—"}</div>
-                  </TableCell>
-                  <TableCell>{lead.annual_revenue || "—"}</TableCell>
-                  <TableCell>{lead.company_industry || "—"}</TableCell>
-                  <TableCell>{lead.founded_date || "—"}</TableCell>
-                  <TableCell>
-                    {(() => {
-                      const apolloContacts = lead.company_contacts?.filter(c => c.source === 'apollo_people_search') || [];
-                      const scraperContacts = lead.company_contacts?.filter(c => c.source !== 'apollo_people_search') || [];
-                      const totalContacts = apolloContacts.length + scraperContacts.length + (lead.contact_email ? 1 : 0);
-                      
-                      if (totalContacts === 0) return "—";
-                      
-                      return (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-1 text-primary hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setContactsModalLead(lead);
-                            setShowContactsModal(true);
-                          }}
-                        >
-                          <Users className="h-3 w-3 mr-1" />
-                          {totalContacts} contact{totalContacts > 1 ? 's' : ''}
-                        </Button>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    {lead.logo_url ? (
-                      <a
-                        href={lead.logo_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
+                              }
+                            }}
+                          >
+                            <div className="truncate">
+                              {lead.news
+                                ? (() => {
+                                    try {
+                                      const newsData = JSON.parse(lead.news);
+                                      return newsData.news_count > 0
+                                        ? `${newsData.news_count} article${newsData.news_count > 1 ? "s" : ""}`
+                                        : "No news";
+                                    } catch {
+                                      return lead.news;
+                                    }
+                                  })()
+                                : "—"}
+                            </div>
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell
+                        className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        View
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className="max-w-[200px] cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      if (lead.products_services) {
-                        e.stopPropagation();
-                        setModalContent({ title: "Products/Services", text: lead.products_services });
-                        setShowTextModal(true);
-                      }
-                    }}
-                  >
-                    <div className="truncate">{lead.products_services || "—"}</div>
-                  </TableCell>
-                  <TableCell
-                    className="max-w-[200px] cursor-pointer hover:text-primary"
-                    onClick={(e) => {
-                      if (lead.news) {
-                        e.stopPropagation();
-                        try {
-                          const newsData = JSON.parse(lead.news);
-                          setNewsModalData(newsData);
-                          setShowNewsModal(true);
-                        } catch {
-                          setModalContent({ title: "News", text: lead.news });
-                          setShowTextModal(true);
-                        }
-                      }
-                    }}
-                  >
-                    <div className="truncate">
-                      {lead.news ? (() => {
-                        try {
-                          const newsData = JSON.parse(lead.news);
-                          return newsData.news_count > 0 
-                            ? `${newsData.news_count} article${newsData.news_count > 1 ? 's' : ''}`
-                            : 'No news';
-                        } catch {
-                          return lead.news;
-                        }
-                      })() : "—"}
-                    </div>
-                  </TableCell>
-                    </>
-                  )}
-                  <TableCell
-                    className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex justify-end gap-2">
-                      <Drawer
-                        direction="right"
-                        open={openDrawer === lead.id}
-                        onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
-                        dismissible={false}
-                      >
-                        <DrawerTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <Search className="h-4 w-4" />
-                          </Button>
-                        </DrawerTrigger>
-                        <DrawerContent
-                          direction="right"
-                          className="bg-background [&_*]:select-text [&_button]:select-none [&_[role=button]]:select-none"
-                        >
-                          <DrawerHeader className="flex flex-row items-center justify-between select-none">
-                            <div>
-                            <DrawerTitle className="select-none">Enrichments</DrawerTitle>
-                              <p className="text-sm text-muted-foreground mt-1 select-text">
-                                {lead.domain || lead.company || 'Unknown'}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setOpenDrawer(null)}
-                              className="select-none"
+                        <div className="flex justify-end gap-2">
+                          <Drawer
+                            direction="right"
+                            open={openDrawer === lead.id}
+                            onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
+                            dismissible={false}
+                          >
+                            <DrawerTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Search className="h-4 w-4" />
+                              </Button>
+                            </DrawerTrigger>
+                            <DrawerContent
+                              direction="right"
+                              className="bg-background [&_*]:select-text [&_button]:select-none [&_[role=button]]:select-none"
                             >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </DrawerHeader>
-                          <div className="px-4 pb-8 select-text overflow-y-auto" style={{ userSelect: "text" }}>
-                            <Accordion type="single" collapsible className="w-full">
-                              <AccordionItem value="company-domain" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  Company Domain
-                                </AccordionTrigger>
-                                <AccordionContent className="select-text" style={{ userSelect: "text" }}>
-                                  <div className="space-y-3 pt-2">
-                                    {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
-                                      <>
-                                        {/* Group logs by source */}
-                                        {(() => {
-                                          // Filter out social search sources - they belong in Socials Search section
-                                          const socialSources = ["serpapi_facebook_search", "serpapi_linkedin_search", "serpapi_instagram_search"];
-                                          
-                                          const logsBySource = lead.enrichment_logs
-                                            .filter(log => !socialSources.includes(log.source))
-                                            .reduce(
-                                            (acc, log) => {
-                                              // Normalize all email sources to a single "email" key
-                                              let groupKey = log.source;
-                                              if (log.source.startsWith("email_")) {
-                                                groupKey = "email";
-                                              } else if (
-                                                log.source === "google_knowledge_graph" ||
-                                                log.source === "google_local_results"
-                                              ) {
-                                                groupKey = "google";
-                                              } else if (log.source === "apollo_api") {
-                                                groupKey = "apollo";
-                                              }
+                              <DrawerHeader className="flex flex-row items-center justify-between select-none">
+                                <div>
+                                  <DrawerTitle className="select-none">Enrichments</DrawerTitle>
+                                  <p className="text-sm text-muted-foreground mt-1 select-text">
+                                    {lead.domain || lead.company || "Unknown"}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setOpenDrawer(null)}
+                                  className="select-none"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </DrawerHeader>
+                              <div className="px-4 pb-8 select-text overflow-y-auto" style={{ userSelect: "text" }}>
+                                <Accordion type="single" collapsible className="w-full">
+                                  <AccordionItem value="company-domain" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      Company Domain
+                                    </AccordionTrigger>
+                                    <AccordionContent className="select-text" style={{ userSelect: "text" }}>
+                                      <div className="space-y-3 pt-2">
+                                        {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                                          <>
+                                            {/* Group logs by source */}
+                                            {(() => {
+                                              // Filter out social search sources - they belong in Socials Search section
+                                              const socialSources = [
+                                                "serpapi_facebook_search",
+                                                "serpapi_linkedin_search",
+                                                "serpapi_instagram_search",
+                                              ];
 
-                                              if (!acc[groupKey]) {
-                                                acc[groupKey] = [];
-                                              }
-                                              acc[groupKey].push(log);
-                                              return acc;
-                                            },
-                                            {} as Record<string, EnrichmentLog[]>,
-                                          );
+                                              const logsBySource = lead.enrichment_logs
+                                                .filter((log) => !socialSources.includes(log.source))
+                                                .reduce(
+                                                  (acc, log) => {
+                                                    // Normalize all email sources to a single "email" key
+                                                    let groupKey = log.source;
+                                                    if (log.source.startsWith("email_")) {
+                                                      groupKey = "email";
+                                                    } else if (
+                                                      log.source === "google_knowledge_graph" ||
+                                                      log.source === "google_local_results"
+                                                    ) {
+                                                      groupKey = "google";
+                                                    } else if (log.source === "apollo_api") {
+                                                      groupKey = "apollo";
+                                                    }
 
-                                          return Object.entries(logsBySource).map(([source, logs]) => {
-                                            const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
-                                            const sourceLabel =
-                                              source === "apollo"
-                                                ? "Apollo"
-                                                : source === "google"
-                                                  ? "Google"
-                                                  : source === "email"
-                                                    ? "Email"
-                                                    : source;
+                                                    if (!acc[groupKey]) {
+                                                      acc[groupKey] = [];
+                                                    }
+                                                    acc[groupKey].push(log);
+                                                    return acc;
+                                                  },
+                                                  {} as Record<string, EnrichmentLog[]>,
+                                                );
 
-                                            return (
-                                              <div
-                                                key={source}
-                                                className="border rounded-lg p-3 space-y-3"
-                                                style={{ userSelect: "text" }}
-                                              >
-                                                {/* Source Header */}
-                                                <div className="flex items-center justify-between select-none">
-                                                  <h4 className="font-semibold text-sm select-none">{sourceLabel}</h4>
-                                                  {mostRecentLog.domain && (
-                                                    <div className="flex items-center gap-1">
-                                                      <Badge variant="outline" className="text-xs">
-                                                        {mostRecentLog.confidence}% confidence
-                                                      </Badge>
-                                                      <TooltipProvider>
-                                                        <Tooltip>
-                                                          <TooltipTrigger asChild>
-                                                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                          </TooltipTrigger>
-                                                          <TooltipContent className="max-w-xs">
-                                                            <p className="text-xs">
-                                                              {getConfidenceExplanation(
-                                                                source,
-                                                                mostRecentLog.confidence,
-                                                              )}
-                                                            </p>
-                                                          </TooltipContent>
-                                                        </Tooltip>
-                                                      </TooltipProvider>
-                                                    </div>
-                                                  )}
-                                                </div>
+                                              return Object.entries(logsBySource).map(([source, logs]) => {
+                                                const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
+                                                const sourceLabel =
+                                                  source === "apollo"
+                                                    ? "Apollo"
+                                                    : source === "google"
+                                                      ? "Google"
+                                                      : source === "email"
+                                                        ? "Email"
+                                                        : source;
 
-                                                {/* Domain Display */}
-                                                <div style={{ userSelect: "text" }}>
-                                                  <p className="text-xs text-muted-foreground mb-1 select-text">
-                                                    Domain:
-                                                  </p>
-                                                  {mostRecentLog.domain ? (
-                                                    <a
-                                                      href={`https://${mostRecentLog.domain}`}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-sm text-primary hover:underline flex items-center gap-1 select-text"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      style={{ userSelect: "text" }}
-                                                    >
-                                                      {mostRecentLog.domain}
-                                                      <ExternalLink className="h-3 w-3 select-none" />
-                                                    </a>
-                                                  ) : (
-                                                    <p className="text-sm text-muted-foreground select-text">
-                                                      No domain found
-                                                    </p>
-                                                  )}
-                                                </div>
-
-                                                {/* Source URL Display (if different from domain) */}
-                                                {mostRecentLog.sourceUrl &&
-                                                  mostRecentLog.sourceUrl !== mostRecentLog.domain && (
-                                                    <div style={{ userSelect: "text" }} className="mt-2">
-                                                      <p className="text-xs text-muted-foreground mb-1 select-text">
-                                                        Source URL:
-                                                      </p>
-                                                      <a
-                                                        href={`https://${mostRecentLog.sourceUrl}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        style={{ userSelect: "text" }}
-                                                      >
-                                                        {mostRecentLog.sourceUrl}
-                                                        <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                                      </a>
-                                                    </div>
-                                                  )}
-
-                                                {/* View Logs Button */}
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() =>
-                                                    setShowLogsForSource(showLogsForSource === source ? null : source)
-                                                  }
-                                                  className="w-full select-none"
-                                                >
-                                                  {showLogsForSource === source ? "Hide Logs" : "View Logs"}
-                                                </Button>
-
-                                                {/* Collapsible Logs Section */}
-                                                {showLogsForSource === source && (
+                                                return (
                                                   <div
-                                                    className="space-y-2 max-h-96 overflow-y-auto pt-2 border-t"
+                                                    key={source}
+                                                    className="border rounded-lg p-3 space-y-3"
                                                     style={{ userSelect: "text" }}
                                                   >
-                                                    {/* Show only the most recent log */}
-                                                    {(() => {
-                                                      const latestLog = logs[logs.length - 1];
-                                                      return (
-                                                        <div
-                                                          className="bg-muted/30 rounded-md p-2 text-xs space-y-1"
+                                                    {/* Source Header */}
+                                                    <div className="flex items-center justify-between select-none">
+                                                      <h4 className="font-semibold text-sm select-none">
+                                                        {sourceLabel}
+                                                      </h4>
+                                                      {mostRecentLog.domain && (
+                                                        <div className="flex items-center gap-1">
+                                                          <Badge variant="outline" className="text-xs">
+                                                            {mostRecentLog.confidence}% confidence
+                                                          </Badge>
+                                                          <TooltipProvider>
+                                                            <Tooltip>
+                                                              <TooltipTrigger asChild>
+                                                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                              </TooltipTrigger>
+                                                              <TooltipContent className="max-w-xs">
+                                                                <p className="text-xs">
+                                                                  {getConfidenceExplanation(
+                                                                    source,
+                                                                    mostRecentLog.confidence,
+                                                                  )}
+                                                                </p>
+                                                              </TooltipContent>
+                                                            </Tooltip>
+                                                          </TooltipProvider>
+                                                        </div>
+                                                      )}
+                                                    </div>
+
+                                                    {/* Domain Display */}
+                                                    <div style={{ userSelect: "text" }}>
+                                                      <p className="text-xs text-muted-foreground mb-1 select-text">
+                                                        Domain:
+                                                      </p>
+                                                      {mostRecentLog.domain ? (
+                                                        <a
+                                                          href={`https://${mostRecentLog.domain}`}
+                                                          target="_blank"
+                                                          rel="noopener noreferrer"
+                                                          className="text-sm text-primary hover:underline flex items-center gap-1 select-text"
+                                                          onClick={(e) => e.stopPropagation()}
                                                           style={{ userSelect: "text" }}
                                                         >
-                                                          <div className="flex items-center justify-between">
-                                                            <span className="font-medium text-muted-foreground">
-                                                              {new Date(latestLog.timestamp).toLocaleString()}
-                                                            </span>
-                                                          </div>
+                                                          {mostRecentLog.domain}
+                                                          <ExternalLink className="h-3 w-3 select-none" />
+                                                        </a>
+                                                      ) : (
+                                                        <p className="text-sm text-muted-foreground select-text">
+                                                          No domain found
+                                                        </p>
+                                                      )}
+                                                    </div>
 
-                                                          {/* Search Steps */}
-                                                          {latestLog.searchSteps &&
-                                                            latestLog.searchSteps.length > 0 && (
-                                                              <div className="border rounded p-2 mb-2 bg-background/50">
-                                                                <p className="font-medium mb-2">Search Path:</p>
-                                                                <div className="space-y-2">
-                                                                  {latestLog.searchSteps.map((step, idx) => (
-                                                                    <div
-                                                                      key={idx}
-                                                                      className="border-l-2 border-primary/30 pl-2"
-                                                                    >
-                                                                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                                        <Badge
-                                                                          variant={
-                                                                            step.query.startsWith("Skipped")
-                                                                              ? "outline"
-                                                                              : step.resultFound
-                                                                                ? "default"
-                                                                                : "secondary"
-                                                                          }
-                                                                          className="text-xs h-5"
-                                                                        >
-                                                                          Step {step.step}
-                                                                        </Badge>
-                                                                        {step.spellingCorrected && (
-                                                                          <Badge
-                                                                            variant="outline"
-                                                                            className="text-xs h-5 bg-amber-50 text-amber-700 border-amber-300"
-                                                                          >
-                                                                            Corrected
-                                                                          </Badge>
-                                                                        )}
-                                                                        {step.resultFound && step.source && (
-                                                                          <span className="text-muted-foreground text-xs">
-                                                                            via {step.source}
-                                                                          </span>
-                                                                        )}
-                                                                        {step.query.startsWith("Skipped") && (
-                                                                          <span className="text-muted-foreground text-xs italic">
-                                                                            Skipped
-                                                                          </span>
-                                                                        )}
-                                                                      </div>
-                                                                      {step.spellingCorrection && (
-                                                                        <div className="text-amber-600 text-xs mt-1 mb-2 bg-amber-50 p-2 rounded border border-amber-200">
-                                                                          ✏️ Spelling correction:{" "}
-                                                                          <span className="font-semibold">
-                                                                            "{step.spellingCorrection.original}"
-                                                                          </span>{" "}
-                                                                          →{" "}
-                                                                          <span className="font-semibold">
-                                                                            "{step.spellingCorrection.corrected}"
-                                                                          </span>
-                                                                        </div>
-                                                                      )}
-                                                                      <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
-                                                                        {step.query}
-                                                                      </p>
-                                                                      <p className="mt-1 font-medium text-xs">
-                                                                        {step.query.startsWith("Skipped")
-                                                                          ? "⊘ Skipped"
-                                                                          : step.resultFound
-                                                                            ? "✓ Found results"
-                                                                            : "✗ No results"}
-                                                                      </p>
-                                                                    </div>
-                                                                  ))}
-                                                                </div>
-                                                              </div>
-                                                            )}
-
-                                                          <div className="text-muted-foreground space-y-0.5">
-                                                            <p>
-                                                              <span className="font-medium">Company:</span>{" "}
-                                                              {latestLog.searchParams.company}
-                                                            </p>
-                                                            {latestLog.searchParams.city && (
-                                                              <p>
-                                                                <span className="font-medium">City:</span>{" "}
-                                                                {latestLog.searchParams.city}
-                                                              </p>
-                                                            )}
-                                                            {latestLog.searchParams.state && (
-                                                              <p>
-                                                                <span className="font-medium">State:</span>{" "}
-                                                                {latestLog.searchParams.state}
-                                                              </p>
-                                                            )}
-                                                            {latestLog.searchParams.micsSector && (
-                                                              <p>
-                                                                <span className="font-medium">MICS Sector:</span>{" "}
-                                                                {latestLog.searchParams.micsSector}
-                                                              </p>
-                                                            )}
-                                                            {latestLog.searchParams.email && (
-                                                              <p>
-                                                                <span className="font-medium">Email:</span>{" "}
-                                                                {latestLog.searchParams.email}
-                                                              </p>
-                                                            )}
-                                                            {latestLog.searchParams.extractedDomain && (
-                                                              <p>
-                                                                <span className="font-medium">Extracted Domain:</span>{" "}
-                                                                {latestLog.searchParams.extractedDomain}
-                                                              </p>
-                                                            )}
-                                                            <p>
-                                                              <span className="font-medium">Organizations found:</span>{" "}
-                                                              {latestLog.organizationsFound}
-                                                            </p>
-                                                          </div>
-                                                          {latestLog.selectedOrganization && (
-                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                              <p className="font-medium">
-                                                                {latestLog.selectedOrganization.name}
-                                                              </p>
-                                                              <p>Domain: {latestLog.selectedOrganization.domain}</p>
-                                                              {latestLog.selectedOrganization.revenue && (
-                                                                <p>Revenue: {latestLog.selectedOrganization.revenue}</p>
-                                                              )}
-                                                              {latestLog.selectedOrganization.foundedYear && (
-                                                                <p>
-                                                                  Founded: {latestLog.selectedOrganization.foundedYear}
-                                                                </p>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {latestLog.gpsCoordinates && (
-                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                              <p className="font-medium">GPS Coordinates</p>
-                                                              <p>Latitude: {latestLog.gpsCoordinates.latitude}</p>
-                                                              <p>Longitude: {latestLog.gpsCoordinates.longitude}</p>
-                                                            </div>
-                                                          )}
-                                                          {latestLog.searchInformation && (
-                                                            <div className="border-t pt-1 mt-1 space-y-0.5">
-                                                              <p className="font-medium">Search Info</p>
-                                                              <p>
-                                                                Query: {latestLog.searchInformation.query_displayed}
-                                                              </p>
-                                                              <p>
-                                                                Results for: {latestLog.searchInformation.results_for}
-                                                              </p>
-                                                            </div>
-                                                          )}
+                                                    {/* Source URL Display (if different from domain) */}
+                                                    {mostRecentLog.sourceUrl &&
+                                                      mostRecentLog.sourceUrl !== mostRecentLog.domain && (
+                                                        <div style={{ userSelect: "text" }} className="mt-2">
+                                                          <p className="text-xs text-muted-foreground mb-1 select-text">
+                                                            Source URL:
+                                                          </p>
+                                                          <a
+                                                            href={`https://${mostRecentLog.sourceUrl}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{ userSelect: "text" }}
+                                                          >
+                                                            {mostRecentLog.sourceUrl}
+                                                            <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                          </a>
                                                         </div>
-                                                      );
-                                                    })()}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            );
-                                          });
-                                        })()}
-                                      </>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground">No enrichment data yet</p>
-                                    )}
+                                                      )}
 
-                                    {/* Facebook Profile Section */}
-                                    {lead.facebook && (
-                                      <div className="border rounded-lg p-3 space-y-3">
-                                        <div className="flex items-center justify-between select-none">
-                                          <h4 className="font-semibold text-sm select-none">Facebook</h4>
-                                          {lead.facebook_confidence && (
-                                            <div className="flex items-center gap-1">
-                                              <Badge variant="outline" className="text-xs">
-                                                {lead.facebook_confidence}% confidence
-                                              </Badge>
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-xs">
-                                                      {lead.facebook_confidence === 85
-                                                        ? "85% - Found with company name + location (high confidence)"
-                                                        : "50% - Found with company name only (medium confidence)"}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div style={{ userSelect: "text" }}>
-                                          <p className="text-xs text-muted-foreground mb-1 select-text">Profile:</p>
-                                          <a
-                                            href={lead.facebook}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {lead.facebook}
-                                            <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                          </a>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Generic Diagnose Button - appears when no domain currently found */}
-                                    {lead.enrichment_logs &&
-                                      lead.enrichment_logs.length > 0 &&
-                                      (() => {
-                                        const hasApolloOrGoogle = lead.enrichment_logs.some(
-                                          (log) => log.source === "apollo_api" || log.source.startsWith("google_"),
-                                        );
-
-                                        return hasApolloOrGoogle && !lead.domain ? (
-                                          <div className="mt-4 pt-4 border-t space-y-3">
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() => handleDiagnose(lead)}
-                                              disabled={diagnosing?.leadId === lead.id}
-                                              className="w-full select-none"
-                                            >
-                                              {diagnosing?.leadId === lead.id ? (
-                                                <>
-                                                  <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                                  Diagnosing...
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Sparkles className="h-3 w-3 mr-2" />
-                                                  Diagnose Why No Domain Found
-                                                </>
-                                              )}
-                                            </Button>
-
-                                            {/* Diagnosis Results */}
-                                            {lead.diagnosis_category && (
-                                              <div className="border rounded-lg overflow-hidden">
-                                                {/* Category Header - Collapsible */}
-                                                <button
-                                                  onClick={() =>
-                                                    setExpandedDiagnosis(expandedDiagnosis === lead.id ? null : lead.id)
-                                                  }
-                                                  className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
-                                                >
-                                                  <div className="flex items-center gap-2 flex-1">
-                                                    <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                                                    <span className="text-sm font-medium">
-                                                      {lead.diagnosis_category}
-                                                    </span>
-                                                    <Badge
-                                                      variant={
-                                                        lead.diagnosis_confidence === "high"
-                                                          ? "default"
-                                                          : lead.diagnosis_confidence === "medium"
-                                                            ? "secondary"
-                                                            : "outline"
+                                                    {/* View Logs Button */}
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      onClick={() =>
+                                                        setShowLogsForSource(
+                                                          showLogsForSource === source ? null : source,
+                                                        )
                                                       }
-                                                      className="text-xs"
+                                                      className="w-full select-none"
                                                     >
-                                                      {lead.diagnosis_confidence}
-                                                    </Badge>
+                                                      {showLogsForSource === source ? "Hide Logs" : "View Logs"}
+                                                    </Button>
+
+                                                    {/* Collapsible Logs Section */}
+                                                    {showLogsForSource === source && (
+                                                      <div
+                                                        className="space-y-2 max-h-96 overflow-y-auto pt-2 border-t"
+                                                        style={{ userSelect: "text" }}
+                                                      >
+                                                        {/* Show only the most recent log */}
+                                                        {(() => {
+                                                          const latestLog = logs[logs.length - 1];
+                                                          return (
+                                                            <div
+                                                              className="bg-muted/30 rounded-md p-2 text-xs space-y-1"
+                                                              style={{ userSelect: "text" }}
+                                                            >
+                                                              <div className="flex items-center justify-between">
+                                                                <span className="font-medium text-muted-foreground">
+                                                                  {new Date(latestLog.timestamp).toLocaleString()}
+                                                                </span>
+                                                              </div>
+
+                                                              {/* Search Steps */}
+                                                              {latestLog.searchSteps &&
+                                                                latestLog.searchSteps.length > 0 && (
+                                                                  <div className="border rounded p-2 mb-2 bg-background/50">
+                                                                    <p className="font-medium mb-2">Search Path:</p>
+                                                                    <div className="space-y-2">
+                                                                      {latestLog.searchSteps.map((step, idx) => (
+                                                                        <div
+                                                                          key={idx}
+                                                                          className="border-l-2 border-primary/30 pl-2"
+                                                                        >
+                                                                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                                            <Badge
+                                                                              variant={
+                                                                                step.query.startsWith("Skipped")
+                                                                                  ? "outline"
+                                                                                  : step.resultFound
+                                                                                    ? "default"
+                                                                                    : "secondary"
+                                                                              }
+                                                                              className="text-xs h-5"
+                                                                            >
+                                                                              Step {step.step}
+                                                                            </Badge>
+                                                                            {step.spellingCorrected && (
+                                                                              <Badge
+                                                                                variant="outline"
+                                                                                className="text-xs h-5 bg-amber-50 text-amber-700 border-amber-300"
+                                                                              >
+                                                                                Corrected
+                                                                              </Badge>
+                                                                            )}
+                                                                            {step.resultFound && step.source && (
+                                                                              <span className="text-muted-foreground text-xs">
+                                                                                via {step.source}
+                                                                              </span>
+                                                                            )}
+                                                                            {step.query.startsWith("Skipped") && (
+                                                                              <span className="text-muted-foreground text-xs italic">
+                                                                                Skipped
+                                                                              </span>
+                                                                            )}
+                                                                          </div>
+                                                                          {step.spellingCorrection && (
+                                                                            <div className="text-amber-600 text-xs mt-1 mb-2 bg-amber-50 p-2 rounded border border-amber-200">
+                                                                              ✏️ Spelling correction:{" "}
+                                                                              <span className="font-semibold">
+                                                                                "{step.spellingCorrection.original}"
+                                                                              </span>{" "}
+                                                                              →{" "}
+                                                                              <span className="font-semibold">
+                                                                                "{step.spellingCorrection.corrected}"
+                                                                              </span>
+                                                                            </div>
+                                                                          )}
+                                                                          <p className="text-muted-foreground break-all font-mono text-xs mt-1 bg-muted/50 p-1 rounded">
+                                                                            {step.query}
+                                                                          </p>
+                                                                          <p className="mt-1 font-medium text-xs">
+                                                                            {step.query.startsWith("Skipped")
+                                                                              ? "⊘ Skipped"
+                                                                              : step.resultFound
+                                                                                ? "✓ Found results"
+                                                                                : "✗ No results"}
+                                                                          </p>
+                                                                        </div>
+                                                                      ))}
+                                                                    </div>
+                                                                  </div>
+                                                                )}
+
+                                                              <div className="text-muted-foreground space-y-0.5">
+                                                                <p>
+                                                                  <span className="font-medium">Company:</span>{" "}
+                                                                  {latestLog.searchParams.company}
+                                                                </p>
+                                                                {latestLog.searchParams.city && (
+                                                                  <p>
+                                                                    <span className="font-medium">City:</span>{" "}
+                                                                    {latestLog.searchParams.city}
+                                                                  </p>
+                                                                )}
+                                                                {latestLog.searchParams.state && (
+                                                                  <p>
+                                                                    <span className="font-medium">State:</span>{" "}
+                                                                    {latestLog.searchParams.state}
+                                                                  </p>
+                                                                )}
+                                                                {latestLog.searchParams.micsSector && (
+                                                                  <p>
+                                                                    <span className="font-medium">MICS Sector:</span>{" "}
+                                                                    {latestLog.searchParams.micsSector}
+                                                                  </p>
+                                                                )}
+                                                                {latestLog.searchParams.email && (
+                                                                  <p>
+                                                                    <span className="font-medium">Email:</span>{" "}
+                                                                    {latestLog.searchParams.email}
+                                                                  </p>
+                                                                )}
+                                                                {latestLog.searchParams.extractedDomain && (
+                                                                  <p>
+                                                                    <span className="font-medium">
+                                                                      Extracted Domain:
+                                                                    </span>{" "}
+                                                                    {latestLog.searchParams.extractedDomain}
+                                                                  </p>
+                                                                )}
+                                                                <p>
+                                                                  <span className="font-medium">
+                                                                    Organizations found:
+                                                                  </span>{" "}
+                                                                  {latestLog.organizationsFound}
+                                                                </p>
+                                                              </div>
+                                                              {latestLog.selectedOrganization && (
+                                                                <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                                  <p className="font-medium">
+                                                                    {latestLog.selectedOrganization.name}
+                                                                  </p>
+                                                                  <p>Domain: {latestLog.selectedOrganization.domain}</p>
+                                                                  {latestLog.selectedOrganization.revenue && (
+                                                                    <p>
+                                                                      Revenue: {latestLog.selectedOrganization.revenue}
+                                                                    </p>
+                                                                  )}
+                                                                  {latestLog.selectedOrganization.foundedYear && (
+                                                                    <p>
+                                                                      Founded:{" "}
+                                                                      {latestLog.selectedOrganization.foundedYear}
+                                                                    </p>
+                                                                  )}
+                                                                </div>
+                                                              )}
+                                                              {latestLog.gpsCoordinates && (
+                                                                <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                                  <p className="font-medium">GPS Coordinates</p>
+                                                                  <p>Latitude: {latestLog.gpsCoordinates.latitude}</p>
+                                                                  <p>Longitude: {latestLog.gpsCoordinates.longitude}</p>
+                                                                </div>
+                                                              )}
+                                                              {latestLog.searchInformation && (
+                                                                <div className="border-t pt-1 mt-1 space-y-0.5">
+                                                                  <p className="font-medium">Search Info</p>
+                                                                  <p>
+                                                                    Query: {latestLog.searchInformation.query_displayed}
+                                                                  </p>
+                                                                  <p>
+                                                                    Results for:{" "}
+                                                                    {latestLog.searchInformation.results_for}
+                                                                  </p>
+                                                                </div>
+                                                              )}
+                                                            </div>
+                                                          );
+                                                        })()}
+                                                      </div>
+                                                    )}
                                                   </div>
-                                                  <svg
-                                                    className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? "rotate-180" : ""}`}
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                  >
-                                                    <path
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                      strokeWidth={2}
-                                                      d="M19 9l-7 7-7-7"
-                                                    />
-                                                  </svg>
-                                                </button>
-
-                                                {/* Expanded Details */}
-                                                {expandedDiagnosis === lead.id && (
-                                                  <div className="p-3 bg-background space-y-2 border-t">
-                                                    <div>
-                                                      <p className="text-xs font-medium mb-1">Diagnosis</p>
-                                                      <p className="text-xs text-muted-foreground">
-                                                        {lead.diagnosis_explanation}
-                                                      </p>
-                                                    </div>
-                                                    <div>
-                                                      <p className="text-xs font-medium mb-1">Recommendation</p>
-                                                      <p className="text-xs text-muted-foreground">
-                                                        {lead.diagnosis_recommendation}
-                                                      </p>
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        ) : null;
-                                      })()}
-
-                                    {/* Enrich Company Details Button - only show when domain is found and match_score >= 50% */}
-                                    {lead.domain && (lead.match_score ?? 0) >= 50 && (
-                                      <div className="pt-4 border-t space-y-2">
-                                        {lead.enrichment_source === 'apollo_api' && (
-                                          <p className="text-xs text-primary">
-                                            ✓ Domain found via Apollo - direct retrieval
-                                          </p>
-                                        )}
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleEnrichCompanyDetails(lead)}
-                                          disabled={enrichingCompanyDetails === lead.id}
-                                          className="w-full"
-                                        >
-                                          {enrichingCompanyDetails === lead.id ? (
-                                            <>
-                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                              {companyDetailsStep?.message || 'Enriching...'}
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Sparkles className="mr-2 h-4 w-4" />
-                                              Enrich Company Details
-                                            </>
-                                          )}
-                                        </Button>
-                                        {enrichingCompanyDetails !== lead.id && (
-                                          <p className="text-xs text-muted-foreground text-center">
-                                            Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                    {lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
-                                      <div className="pt-4 border-t">
-                                        <p className="text-xs text-destructive/70 text-center">
-                                          {lead.match_score === null 
-                                            ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
-                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
-                                        </p>
-                                      </div>
-                                    )}
-
-                                    {/* Enrich Buttons */}
-                                    <div className="space-y-2 mt-4">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleEnrich(lead, "apollo")}
-                                        disabled={enrichingSource?.leadId === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "apollo" ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Enriching with Apollo...
+                                                );
+                                              });
+                                            })()}
                                           </>
                                         ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Enrich with Apollo
-                                          </>
+                                          <p className="text-sm text-muted-foreground">No enrichment data yet</p>
                                         )}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleEnrich(lead, "google")}
-                                        disabled={enrichingSource?.leadId === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "google" ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Enriching with Google...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Enrich with Google
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleEnrich(lead, "email")}
-                                        disabled={enrichingSource?.leadId === lead.id || !lead.email}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingSource?.leadId === lead.id && enrichingSource?.source === "email" ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Enriching with Email...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Enrich with Email
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
 
-                              {/* Socials Search Section */}
-                              <AccordionItem value="socials-search" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  Socials Search
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-4 pt-2">
-                                    {/* Facebook Section */}
-                                    <div className="space-y-3">
-                                      <p className="text-xs font-medium text-muted-foreground">Facebook</p>
-                                      
-                                      {/* Existing Facebook result display */}
-                                      {lead.facebook && (
-                                        <div className="p-3 border rounded-lg bg-muted/30">
-                                          <div className="flex items-center justify-between">
+                                        {/* Facebook Profile Section */}
+                                        {lead.facebook && (
+                                          <div className="border rounded-lg p-3 space-y-3">
+                                            <div className="flex items-center justify-between select-none">
+                                              <h4 className="font-semibold text-sm select-none">Facebook</h4>
+                                              {lead.facebook_confidence && (
+                                                <div className="flex items-center gap-1">
+                                                  <Badge variant="outline" className="text-xs">
+                                                    {lead.facebook_confidence}% confidence
+                                                  </Badge>
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.facebook_confidence === 85
+                                                            ? "85% - Found with company name + location (high confidence)"
+                                                            : "50% - Found with company name only (medium confidence)"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                </div>
+                                              )}
+                                            </div>
                                             <div style={{ userSelect: "text" }}>
+                                              <p className="text-xs text-muted-foreground mb-1 select-text">Profile:</p>
                                               <a
                                                 href={lead.facebook}
                                                 target="_blank"
@@ -2002,2024 +1848,2633 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                                                 <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
                                               </a>
                                             </div>
-                                            {lead.facebook_validated !== null && (
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Badge 
-                                                      variant={lead.facebook_validated ? "default" : "destructive"} 
-                                                      className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                    >
-                                                      {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
-                                                    </Badge>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-xs">
-                                                      {lead.social_validation_log?.results?.facebook?.reason || "AI validation result"}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                            )}
                                           </div>
-                                        </div>
-                                      )}
-
-                                      {/* Facebook Search Logs */}
-                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "facebook_search_serper") && (
-                                        <Collapsible>
-                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
-                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
-                                            View Search Logs
-                                          </CollapsibleTrigger>
-                                          <CollapsibleContent>
-                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
-                                              {(() => {
-                                                const fbLog = [...lead.enrichment_logs].reverse().find(log => log.action === "facebook_search_serper") as any;
-                                                if (!fbLog) return null;
-                                                
-                                                // Support both old format (searchSteps[0].organicResults) and new format (top3Results)
-                                                const query = fbLog.query || fbLog.searchSteps?.[0]?.query || '';
-                                                const organicResults = fbLog.top3Results || fbLog.searchSteps?.[0]?.organicResults || [];
-                                                
-                                                return (
-                                                  <>
-                                                    <p className="text-muted-foreground">
-                                                      <span className="font-medium">Searched:</span> {new Date(fbLog.timestamp).toLocaleString()}
-                                                    </p>
-                                                    {query && (
-                                                      <div className="mt-2">
-                                                        <p className="text-muted-foreground font-medium mb-1">Query:</p>
-                                                        <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                          {query}
-                                                        </p>
-                                                      </div>
-                                                    )}
-                                                    {organicResults.length > 0 && (
-                                                      <div className="mt-2 space-y-2">
-                                                        <p className="text-muted-foreground font-medium">
-                                                          organic_results ({organicResults.length}):
-                                                        </p>
-                                                        {organicResults.map((result: any, rIdx: number) => (
-                                                          <pre key={rIdx} className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
-                                                            {JSON.stringify(result, null, 2)}
-                                                          </pre>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </>
-                                                );
-                                              })()}
-                                            </div>
-                                          </CollapsibleContent>
-                                        </Collapsible>
-                                      )}
-
-                                      {/* Search Facebook Button */}
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSearchFacebookSerper(lead)}
-                                        disabled={enrichingFacebook === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingFacebook === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Searching Facebook...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Search className="mr-2 h-4 w-4" />
-                                            Search Facebook
-                                          </>
                                         )}
-                                      </Button>
-                                    </div>
 
-                                    {/* LinkedIn Section */}
-                                    <div className="space-y-3 pt-3 border-t">
-                                      <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
-                                      
-                                      {/* LinkedIn result display */}
-                                      {lead.linkedin && (
-                                        <div className="p-3 border rounded-lg bg-muted/30">
-                                          <div className="flex items-center justify-between">
-                                            <div style={{ userSelect: "text" }}>
-                                              <a
-                                                href={lead.linkedin}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.linkedin}
-                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                              </a>
-                                            </div>
-                                            {lead.linkedin_validated !== null && (
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Badge 
-                                                      variant={lead.linkedin_validated ? "default" : "destructive"} 
-                                                      className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                    >
-                                                      {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
-                                                    </Badge>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-xs">
-                                                      {lead.social_validation_log?.results?.linkedin?.reason || "AI validation result"}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
+                                        {/* Generic Diagnose Button - appears when no domain currently found */}
+                                        {lead.enrichment_logs &&
+                                          lead.enrichment_logs.length > 0 &&
+                                          (() => {
+                                            const hasApolloOrGoogle = lead.enrichment_logs.some(
+                                              (log) => log.source === "apollo_api" || log.source.startsWith("google_"),
+                                            );
 
-                                      {/* LinkedIn Search Logs */}
-                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "linkedin_search_serper") && (
-                                        <Collapsible>
-                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
-                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
-                                            View Search Logs
-                                          </CollapsibleTrigger>
-                                          <CollapsibleContent>
-                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
-                                              {(() => {
-                                                const liLog = [...lead.enrichment_logs].reverse().find(log => log.action === "linkedin_search_serper") as any;
-                                                if (!liLog) return null;
-                                                
-                                                // Support both old format (searchSteps) and new format (query + top3Results)
-                                                const query = liLog.query || liLog.searchSteps?.[0]?.query || '';
-                                                const organicResults = liLog.top3Results || liLog.searchSteps?.[0]?.organicResults || [];
-                                                
-                                                return (
-                                                  <>
-                                                    <p className="text-muted-foreground">
-                                                      <span className="font-medium">Searched:</span> {new Date(liLog.timestamp).toLocaleString()}
-                                                    </p>
-                                                    {query && (
-                                                      <div className="mt-2">
-                                                        <p className="text-muted-foreground font-medium mb-1">Query:</p>
-                                                        <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                          {query}
-                                                        </p>
-                                                      </div>
-                                                    )}
-                                                    {organicResults.length > 0 && (
-                                                      <div className="mt-2 space-y-2">
-                                                        <p className="text-muted-foreground font-medium">
-                                                          organic_results ({organicResults.length}):
-                                                        </p>
-                                                        {organicResults.map((result: any, rIdx: number) => (
-                                                          <pre key={rIdx} className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
-                                                            {JSON.stringify(result, null, 2)}
-                                                          </pre>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </>
-                                                );
-                                              })()}
-                                            </div>
-                                          </CollapsibleContent>
-                                        </Collapsible>
-                                      )}
+                                            return hasApolloOrGoogle && !lead.domain ? (
+                                              <div className="mt-4 pt-4 border-t space-y-3">
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => handleDiagnose(lead)}
+                                                  disabled={diagnosing?.leadId === lead.id}
+                                                  className="w-full select-none"
+                                                >
+                                                  {diagnosing?.leadId === lead.id ? (
+                                                    <>
+                                                      <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                                      Diagnosing...
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Sparkles className="h-3 w-3 mr-2" />
+                                                      Diagnose Why No Domain Found
+                                                    </>
+                                                  )}
+                                                </Button>
 
-                                      {/* Search LinkedIn Button */}
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSearchLinkedinSerper(lead)}
-                                        disabled={enrichingLinkedin === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingLinkedin === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Searching LinkedIn...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Search className="mr-2 h-4 w-4" />
-                                            Search LinkedIn
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-
-                                    {/* Instagram Section */}
-                                    <div className="space-y-3 pt-3 border-t">
-                                      <p className="text-xs font-medium text-muted-foreground">Instagram</p>
-                                      
-                                      {/* Instagram result display */}
-                                      {lead.instagram && (
-                                        <div className="p-3 border rounded-lg bg-muted/30">
-                                          <div className="flex items-center justify-between">
-                                            <div style={{ userSelect: "text" }}>
-                                              <a
-                                                href={lead.instagram}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.instagram}
-                                                <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
-                                              </a>
-                                            </div>
-                                            {lead.instagram_validated !== null && (
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Badge 
-                                                      variant={lead.instagram_validated ? "default" : "destructive"} 
-                                                      className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
-                                                    >
-                                                      {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
-                                                    </Badge>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-xs">
-                                                      {lead.social_validation_log?.results?.instagram?.reason || "AI validation result"}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {/* Instagram Search Logs */}
-                                      {lead.enrichment_logs && lead.enrichment_logs.some(log => log.action === "instagram_search_serper") && (
-                                        <Collapsible>
-                                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
-                                            <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
-                                            View Search Logs
-                                          </CollapsibleTrigger>
-                                          <CollapsibleContent>
-                                            <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
-                                              {(() => {
-                                                const igLog = [...lead.enrichment_logs].reverse().find(log => log.action === "instagram_search_serper") as any;
-                                                if (!igLog) return null;
-                                                
-                                                const query = igLog.query || '';
-                                                const organicResults = igLog.top3Results || [];
-                                                
-                                                return (
-                                                  <>
-                                                    <p className="text-muted-foreground">
-                                                      <span className="font-medium">Searched:</span> {new Date(igLog.timestamp).toLocaleString()}
-                                                    </p>
-                                                    {query && (
-                                                      <div className="mt-2">
-                                                        <p className="text-muted-foreground font-medium mb-1">Query:</p>
-                                                        <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
-                                                          {query}
-                                                        </p>
-                                                      </div>
-                                                    )}
-                                                    {organicResults.length > 0 && (
-                                                      <div className="mt-2 space-y-2">
-                                                        <p className="text-muted-foreground font-medium">
-                                                          organic_results ({organicResults.length}):
-                                                        </p>
-                                                        {organicResults.map((result: any, rIdx: number) => (
-                                                          <pre key={rIdx} className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
-                                                            {JSON.stringify(result, null, 2)}
-                                                          </pre>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </>
-                                                );
-                                              })()}
-                                            </div>
-                                          </CollapsibleContent>
-                                        </Collapsible>
-                                      )}
-
-                                      {/* Search Instagram Button */}
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSearchInstagramSerper(lead)}
-                                        disabled={enrichingInstagram === lead.id || !lead.company}
-                                        className="w-full"
-                                        variant="outline"
-                                      >
-                                        {enrichingInstagram === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Searching Instagram...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Search className="mr-2 h-4 w-4" />
-                                            Search Instagram
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-
-                                    {/* Calculate Score Button */}
-                                    <div className="pt-4 border-t">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleScoreSocialRelevance(lead)}
-                                        disabled={scoringSocials === lead.id || (!lead.facebook && !lead.linkedin && !lead.instagram)}
-                                        className="w-full"
-                                        variant="default"
-                                      >
-                                        {scoringSocials === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Scoring Socials...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Calculate Score
-                                          </>
-                                        )}
-                                      </Button>
-                                      {!lead.facebook && !lead.linkedin && !lead.instagram && (
-                                        <p className="text-xs text-muted-foreground mt-2 text-center">
-                                          Search for at least one social profile first
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    <p className="text-xs text-muted-foreground text-center pt-2">
-                                      Social search: Facebook, LinkedIn, Instagram
-                                    </p>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-
-                              <AccordionItem value="match-score" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  Match Score
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-3 pt-2">
-                                    {/* Email Validated Banner - Show when email_domain_validated is true */}
-                                    {lead.email_domain_validated && (
-                                      <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                                        <div className="flex items-center gap-2">
-                                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                          <div className="flex-1">
-                                            <p className="text-sm font-semibold text-green-700 dark:text-green-300">
-                                              Domain Validated via Email Match
-                                            </p>
-                                            <p className="text-xs text-green-600 dark:text-green-400">
-                                              Scraped contact email matches lead's email address
-                                            </p>
-                                          </div>
-                                          <Badge className="bg-green-600 hover:bg-green-600 text-white border-green-600">
-                                            100% Confirmed
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Overall Match Score Display */}
-                                    <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
-                                      <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                                            Overall Match Score
-                                          </p>
-                                          {lead.match_score !== null ? (
-                                            <div className="flex items-center gap-3">
-                                              <p className="text-4xl font-bold">{lead.match_score}%</p>
-                                              <Badge
-                                                variant={
-                                                  lead.match_score >= 80
-                                                    ? "default"
-                                                    : lead.match_score >= 50
-                                                      ? "secondary"
-                                                      : "destructive"
-                                                }
-                                                className={
-                                                  lead.match_score >= 80
-                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                    : lead.match_score >= 50
-                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                }
-                                              >
-                                                {lead.match_score >= 80
-                                                  ? "🟢 High"
-                                                  : lead.match_score >= 50
-                                                    ? "🟡 Medium"
-                                                    : "🔴 Low"}
-                                              </Badge>
-                                            </div>
-                                          ) : (
-                                            <p className="text-sm text-muted-foreground italic">Not calculated yet</p>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {lead.match_score_source && (
-                                        <div className="mb-3 pb-3 border-b">
-                                          <p className="text-xs text-muted-foreground mb-1">Determined by:</p>
-                                          <p className="text-sm font-medium">
-                                            {lead.match_score_source === "email_validated" && "✅ Email Validated via Website Scrape"}
-                                            {lead.match_score_source === "email_domain" && "📧 Email Domain Verified"}
-                                            {lead.match_score_source === "google_knowledge_graph" &&
-                                              "🌐 Google Knowledge Graph"}
-                                            {lead.match_score_source === "calculated" &&
-                                              "📊 Distance + Domain Relevance + Industry Relevance"}
-                                          </p>
-                                        </div>
-                                      )}
-
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        className="w-full"
-                                        disabled={calculatingMatchScore === lead.id}
-                                        onClick={() => handleCalculateMatchScore(lead)}
-                                      >
-                                        {calculatingMatchScore === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Calculating...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Calculate Match Score
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-
-                                    {/* Nested Accordion for Distance */}
-                                    <Accordion type="single" collapsible className="w-full">
-                                      <AccordionItem value="distance" className="border-border">
-                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
-                                          <div className="flex items-center justify-between w-full pr-4">
-                                            <div className="flex items-center gap-2">
-                                              <span>Distance</span>
-                                              {lead.distance_miles && (
-                                                <span className="font-semibold text-foreground">
-                                                  {lead.distance_miles} miles
-                                                </span>
-                                              )}
-                                            </div>
-                                            {lead.distance_confidence && (
-                                              <Badge
-                                                variant={
-                                                  lead.distance_confidence === "high"
-                                                    ? "default"
-                                                    : lead.distance_confidence === "medium"
-                                                      ? "secondary"
-                                                      : lead.distance_confidence === "undefined"
-                                                        ? "outline"
-                                                        : "destructive"
-                                                }
-                                                className={
-                                                  lead.distance_confidence === "high"
-                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                    : lead.distance_confidence === "medium"
-                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                      : lead.distance_confidence === "undefined"
-                                                        ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
-                                                        : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                }
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.distance_confidence === "high"
-                                                  ? "🟢 High"
-                                                  : lead.distance_confidence === "medium"
-                                                    ? "🟡 Medium"
-                                                    : lead.distance_confidence === "undefined"
-                                                      ? "⚪ Undefined"
-                                                      : "🔴 Low"}
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                          <div className="space-y-3 pt-2">
-                                            {/* Distance Details (if calculated) */}
-                                            {lead.distance_miles ? (
-                                              <div className="p-4 bg-muted rounded-lg space-y-3">
-                                                <div>
-                                                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                                                    Distance
-                                                  </p>
-                                                  <p className="text-3xl font-bold">{lead.distance_miles} miles</p>
-                                                  <p className="text-xs text-muted-foreground mt-1">
-                                                    📍 From {lead.city}, {lead.state} {lead.zipcode}
-                                                  </p>
-                                                </div>
-
-                                                {/* Distance Confidence Details */}
-                                                {lead.distance_confidence && (
-                                                  <div className="pt-3 border-t">
-                                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                      Confidence Level
-                                                    </p>
-                                                    <Badge
-                                                      variant={
-                                                        lead.distance_confidence === "high"
-                                                          ? "default"
-                                                          : lead.distance_confidence === "medium"
-                                                            ? "secondary"
-                                                            : lead.distance_confidence === "undefined"
-                                                              ? "outline"
-                                                              : "destructive"
+                                                {/* Diagnosis Results */}
+                                                {lead.diagnosis_category && (
+                                                  <div className="border rounded-lg overflow-hidden">
+                                                    {/* Category Header - Collapsible */}
+                                                    <button
+                                                      onClick={() =>
+                                                        setExpandedDiagnosis(
+                                                          expandedDiagnosis === lead.id ? null : lead.id,
+                                                        )
                                                       }
-                                                      className={
-                                                        lead.distance_confidence === "high"
-                                                          ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                          : lead.distance_confidence === "medium"
-                                                            ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                            : lead.distance_confidence === "undefined"
-                                                              ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
-                                                              : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                      }
+                                                      className="w-full p-3 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between text-left"
                                                     >
-                                                      {lead.distance_confidence === "high"
-                                                        ? "🟢 High Confidence"
-                                                        : lead.distance_confidence === "medium"
-                                                          ? "🟡 Medium Confidence"
-                                                          : lead.distance_confidence === "undefined"
-                                                            ? "⚪ Undefined"
-                                                            : "🔴 Low Confidence"}
-                                                    </Badge>
-                                                    <p className="text-xs text-muted-foreground mt-2">
-                                                      {lead.distance_confidence === "high"
-                                                        ? "Lead is within 50 miles - likely a strong match"
-                                                        : lead.distance_confidence === "medium"
-                                                          ? "Lead is 50-100 miles away - moderate match"
-                                                          : lead.distance_confidence === "undefined"
-                                                            ? "No coordinates found for this company"
-                                                            : "Lead is over 100 miles away - lower match likelihood"}
-                                                    </p>
+                                                      <div className="flex items-center gap-2 flex-1">
+                                                        <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                                                        <span className="text-sm font-medium">
+                                                          {lead.diagnosis_category}
+                                                        </span>
+                                                        <Badge
+                                                          variant={
+                                                            lead.diagnosis_confidence === "high"
+                                                              ? "default"
+                                                              : lead.diagnosis_confidence === "medium"
+                                                                ? "secondary"
+                                                                : "outline"
+                                                          }
+                                                          className="text-xs"
+                                                        >
+                                                          {lead.diagnosis_confidence}
+                                                        </Badge>
+                                                      </div>
+                                                      <svg
+                                                        className={`h-4 w-4 transition-transform ${expandedDiagnosis === lead.id ? "rotate-180" : ""}`}
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                      >
+                                                        <path
+                                                          strokeLinecap="round"
+                                                          strokeLinejoin="round"
+                                                          strokeWidth={2}
+                                                          d="M19 9l-7 7-7-7"
+                                                        />
+                                                      </svg>
+                                                    </button>
+
+                                                    {/* Expanded Details */}
+                                                    {expandedDiagnosis === lead.id && (
+                                                      <div className="p-3 bg-background space-y-2 border-t">
+                                                        <div>
+                                                          <p className="text-xs font-medium mb-1">Diagnosis</p>
+                                                          <p className="text-xs text-muted-foreground">
+                                                            {lead.diagnosis_explanation}
+                                                          </p>
+                                                        </div>
+                                                        <div>
+                                                          <p className="text-xs font-medium mb-1">Recommendation</p>
+                                                          <p className="text-xs text-muted-foreground">
+                                                            {lead.diagnosis_recommendation}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 )}
                                               </div>
-                                            ) : (
-                                              <p className="text-sm text-muted-foreground">
-                                                No distance calculated yet
+                                            ) : null;
+                                          })()}
+
+                                        {/* Enrich Company Details Button - only show when domain is found and match_score >= 50% */}
+                                        {lead.domain && (lead.match_score ?? 0) >= 50 && (
+                                          <div className="pt-4 border-t space-y-2">
+                                            {lead.enrichment_source === "apollo_api" && (
+                                              <p className="text-xs text-primary">
+                                                ✓ Domain found via Apollo - direct retrieval
                                               </p>
                                             )}
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleEnrichCompanyDetails(lead)}
+                                              disabled={enrichingCompanyDetails === lead.id}
+                                              className="w-full"
+                                            >
+                                              {enrichingCompanyDetails === lead.id ? (
+                                                <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  {companyDetailsStep?.message || "Enriching..."}
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Sparkles className="mr-2 h-4 w-4" />
+                                                  Enrich Company Details
+                                                </>
+                                              )}
+                                            </Button>
+                                            {enrichingCompanyDetails !== lead.id && (
+                                              <p className="text-xs text-muted-foreground text-center">
+                                                Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+                                        {lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                          <div className="pt-4 border-t">
+                                            <p className="text-xs text-destructive/70 text-center">
+                                              {lead.match_score === null
+                                                ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
+                                                : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
+                                            </p>
+                                          </div>
+                                        )}
 
-                                            {/* Show Find Coordinates button if domain exists but no coordinates */}
-                                            {lead.domain && (
-                                              <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="w-full"
-                                                disabled={findingCoordinates === lead.id}
-                                                onClick={() => handleFindCoordinates(lead)}
-                                              >
-                                                {findingCoordinates === lead.id ? (
+                                        {/* Enrich Buttons */}
+                                        <div className="space-y-2 mt-4">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleEnrich(lead, "apollo")}
+                                            disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingSource?.leadId === lead.id &&
+                                            enrichingSource?.source === "apollo" ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Enriching with Apollo...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich with Apollo
+                                              </>
+                                            )}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleEnrich(lead, "google")}
+                                            disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingSource?.leadId === lead.id &&
+                                            enrichingSource?.source === "google" ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Enriching with Google...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich with Google
+                                              </>
+                                            )}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleEnrich(lead, "email")}
+                                            disabled={enrichingSource?.leadId === lead.id || !lead.email}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingSource?.leadId === lead.id &&
+                                            enrichingSource?.source === "email" ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Enriching with Email...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich with Email
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+
+                                  {/* Socials Search Section */}
+                                  <AccordionItem value="socials-search" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      Socials Search
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-4 pt-2">
+                                        {/* Facebook Section */}
+                                        <div className="space-y-3">
+                                          <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+
+                                          {/* Existing Facebook result display */}
+                                          {lead.facebook && (
+                                            <div className="p-3 border rounded-lg bg-muted/30">
+                                              <div className="flex items-center justify-between">
+                                                <div style={{ userSelect: "text" }}>
+                                                  <a
+                                                    href={lead.facebook}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.facebook}
+                                                    <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                  </a>
+                                                </div>
+                                                {lead.facebook_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge
+                                                          variant={lead.facebook_validated ? "default" : "destructive"}
+                                                          className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.facebook?.reason ||
+                                                            "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Facebook Search Logs */}
+                                          {lead.enrichment_logs &&
+                                            lead.enrichment_logs.some(
+                                              (log) => log.action === "facebook_search_serper",
+                                            ) && (
+                                              <Collapsible>
+                                                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                                  <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                                  View Search Logs
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                                    {(() => {
+                                                      const fbLog = [...lead.enrichment_logs]
+                                                        .reverse()
+                                                        .find((log) => log.action === "facebook_search_serper") as any;
+                                                      if (!fbLog) return null;
+
+                                                      // Support both old format (searchSteps[0].organicResults) and new format (top3Results)
+                                                      const query = fbLog.query || fbLog.searchSteps?.[0]?.query || "";
+                                                      const organicResults =
+                                                        fbLog.top3Results ||
+                                                        fbLog.searchSteps?.[0]?.organicResults ||
+                                                        [];
+
+                                                      return (
+                                                        <>
+                                                          <p className="text-muted-foreground">
+                                                            <span className="font-medium">Searched:</span>{" "}
+                                                            {new Date(fbLog.timestamp).toLocaleString()}
+                                                          </p>
+                                                          {query && (
+                                                            <div className="mt-2">
+                                                              <p className="text-muted-foreground font-medium mb-1">
+                                                                Query:
+                                                              </p>
+                                                              <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                                {query}
+                                                              </p>
+                                                            </div>
+                                                          )}
+                                                          {organicResults.length > 0 && (
+                                                            <div className="mt-2 space-y-2">
+                                                              <p className="text-muted-foreground font-medium">
+                                                                organic_results ({organicResults.length}):
+                                                              </p>
+                                                              {organicResults.map((result: any, rIdx: number) => (
+                                                                <pre
+                                                                  key={rIdx}
+                                                                  className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto"
+                                                                >
+                                                                  {JSON.stringify(result, null, 2)}
+                                                                </pre>
+                                                              ))}
+                                                            </div>
+                                                          )}
+                                                        </>
+                                                      );
+                                                    })()}
+                                                  </div>
+                                                </CollapsibleContent>
+                                              </Collapsible>
+                                            )}
+
+                                          {/* Search Facebook Button */}
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleSearchFacebookSerper(lead)}
+                                            disabled={enrichingFacebook === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingFacebook === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Searching Facebook...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Search className="mr-2 h-4 w-4" />
+                                                Search Facebook
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+
+                                        {/* LinkedIn Section */}
+                                        <div className="space-y-3 pt-3 border-t">
+                                          <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+
+                                          {/* LinkedIn result display */}
+                                          {lead.linkedin && (
+                                            <div className="p-3 border rounded-lg bg-muted/30">
+                                              <div className="flex items-center justify-between">
+                                                <div style={{ userSelect: "text" }}>
+                                                  <a
+                                                    href={lead.linkedin}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.linkedin}
+                                                    <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                  </a>
+                                                </div>
+                                                {lead.linkedin_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge
+                                                          variant={lead.linkedin_validated ? "default" : "destructive"}
+                                                          className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.linkedin?.reason ||
+                                                            "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* LinkedIn Search Logs */}
+                                          {lead.enrichment_logs &&
+                                            lead.enrichment_logs.some(
+                                              (log) => log.action === "linkedin_search_serper",
+                                            ) && (
+                                              <Collapsible>
+                                                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                                  <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                                  View Search Logs
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                                    {(() => {
+                                                      const liLog = [...lead.enrichment_logs]
+                                                        .reverse()
+                                                        .find((log) => log.action === "linkedin_search_serper") as any;
+                                                      if (!liLog) return null;
+
+                                                      // Support both old format (searchSteps) and new format (query + top3Results)
+                                                      const query = liLog.query || liLog.searchSteps?.[0]?.query || "";
+                                                      const organicResults =
+                                                        liLog.top3Results ||
+                                                        liLog.searchSteps?.[0]?.organicResults ||
+                                                        [];
+
+                                                      return (
+                                                        <>
+                                                          <p className="text-muted-foreground">
+                                                            <span className="font-medium">Searched:</span>{" "}
+                                                            {new Date(liLog.timestamp).toLocaleString()}
+                                                          </p>
+                                                          {query && (
+                                                            <div className="mt-2">
+                                                              <p className="text-muted-foreground font-medium mb-1">
+                                                                Query:
+                                                              </p>
+                                                              <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                                {query}
+                                                              </p>
+                                                            </div>
+                                                          )}
+                                                          {organicResults.length > 0 && (
+                                                            <div className="mt-2 space-y-2">
+                                                              <p className="text-muted-foreground font-medium">
+                                                                organic_results ({organicResults.length}):
+                                                              </p>
+                                                              {organicResults.map((result: any, rIdx: number) => (
+                                                                <pre
+                                                                  key={rIdx}
+                                                                  className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto"
+                                                                >
+                                                                  {JSON.stringify(result, null, 2)}
+                                                                </pre>
+                                                              ))}
+                                                            </div>
+                                                          )}
+                                                        </>
+                                                      );
+                                                    })()}
+                                                  </div>
+                                                </CollapsibleContent>
+                                              </Collapsible>
+                                            )}
+
+                                          {/* Search LinkedIn Button */}
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleSearchLinkedinSerper(lead)}
+                                            disabled={enrichingLinkedin === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingLinkedin === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Searching LinkedIn...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Search className="mr-2 h-4 w-4" />
+                                                Search LinkedIn
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+
+                                        {/* Instagram Section */}
+                                        <div className="space-y-3 pt-3 border-t">
+                                          <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+
+                                          {/* Instagram result display */}
+                                          {lead.instagram && (
+                                            <div className="p-3 border rounded-lg bg-muted/30">
+                                              <div className="flex items-center justify-between">
+                                                <div style={{ userSelect: "text" }}>
+                                                  <a
+                                                    href={lead.instagram}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline flex items-center gap-1 select-text break-all"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.instagram}
+                                                    <ExternalLink className="h-3 w-3 select-none flex-shrink-0" />
+                                                  </a>
+                                                </div>
+                                                {lead.instagram_validated !== null && (
+                                                  <TooltipProvider>
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Badge
+                                                          variant={lead.instagram_validated ? "default" : "destructive"}
+                                                          className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                        >
+                                                          {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
+                                                        </Badge>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          {lead.social_validation_log?.results?.instagram?.reason ||
+                                                            "AI validation result"}
+                                                        </p>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  </TooltipProvider>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Instagram Search Logs */}
+                                          {lead.enrichment_logs &&
+                                            lead.enrichment_logs.some(
+                                              (log) => log.action === "instagram_search_serper",
+                                            ) && (
+                                              <Collapsible>
+                                                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full justify-start">
+                                                  <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                                  View Search Logs
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <div className="mt-2 p-3 bg-muted/30 rounded-lg space-y-2 text-xs">
+                                                    {(() => {
+                                                      const igLog = [...lead.enrichment_logs]
+                                                        .reverse()
+                                                        .find((log) => log.action === "instagram_search_serper") as any;
+                                                      if (!igLog) return null;
+
+                                                      const query = igLog.query || "";
+                                                      const organicResults = igLog.top3Results || [];
+
+                                                      return (
+                                                        <>
+                                                          <p className="text-muted-foreground">
+                                                            <span className="font-medium">Searched:</span>{" "}
+                                                            {new Date(igLog.timestamp).toLocaleString()}
+                                                          </p>
+                                                          {query && (
+                                                            <div className="mt-2">
+                                                              <p className="text-muted-foreground font-medium mb-1">
+                                                                Query:
+                                                              </p>
+                                                              <p className="font-mono text-xs break-all bg-muted/50 p-1 rounded">
+                                                                {query}
+                                                              </p>
+                                                            </div>
+                                                          )}
+                                                          {organicResults.length > 0 && (
+                                                            <div className="mt-2 space-y-2">
+                                                              <p className="text-muted-foreground font-medium">
+                                                                organic_results ({organicResults.length}):
+                                                              </p>
+                                                              {organicResults.map((result: any, rIdx: number) => (
+                                                                <pre
+                                                                  key={rIdx}
+                                                                  className="p-2 bg-background rounded border text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto"
+                                                                >
+                                                                  {JSON.stringify(result, null, 2)}
+                                                                </pre>
+                                                              ))}
+                                                            </div>
+                                                          )}
+                                                        </>
+                                                      );
+                                                    })()}
+                                                  </div>
+                                                </CollapsibleContent>
+                                              </Collapsible>
+                                            )}
+
+                                          {/* Search Instagram Button */}
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleSearchInstagramSerper(lead)}
+                                            disabled={enrichingInstagram === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            {enrichingInstagram === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Searching Instagram...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Search className="mr-2 h-4 w-4" />
+                                                Search Instagram
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+
+                                        {/* Calculate Score Button */}
+                                        <div className="pt-4 border-t">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleScoreSocialRelevance(lead)}
+                                            disabled={
+                                              scoringSocials === lead.id ||
+                                              (!lead.facebook && !lead.linkedin && !lead.instagram)
+                                            }
+                                            className="w-full"
+                                            variant="default"
+                                          >
+                                            {scoringSocials === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Scoring Socials...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Calculate Score
+                                              </>
+                                            )}
+                                          </Button>
+                                          {!lead.facebook && !lead.linkedin && !lead.instagram && (
+                                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                                              Search for at least one social profile first
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        <p className="text-xs text-muted-foreground text-center pt-2">
+                                          Social search: Facebook, LinkedIn, Instagram
+                                        </p>
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+
+                                  <AccordionItem value="match-score" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      Match Score
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-3 pt-2">
+                                        {/* Email Validated Banner - Show when email_domain_validated is true */}
+                                        {lead.email_domain_validated && (
+                                          <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                            <div className="flex items-center gap-2">
+                                              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                              <div className="flex-1">
+                                                <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                                                  Domain Validated via Email Match
+                                                </p>
+                                                <p className="text-xs text-green-600 dark:text-green-400">
+                                                  Scraped contact email matches lead's email address
+                                                </p>
+                                              </div>
+                                              <Badge className="bg-green-600 hover:bg-green-600 text-white border-green-600">
+                                                100% Confirmed
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Overall Match Score Display */}
+                                        <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                              <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                Overall Match Score
+                                              </p>
+                                              {lead.match_score !== null ? (
+                                                <div className="flex items-center gap-3">
+                                                  <p className="text-4xl font-bold">{lead.match_score}%</p>
+                                                  <Badge
+                                                    variant={
+                                                      lead.match_score >= 80
+                                                        ? "default"
+                                                        : lead.match_score >= 50
+                                                          ? "secondary"
+                                                          : "destructive"
+                                                    }
+                                                    className={
+                                                      lead.match_score >= 80
+                                                        ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                        : lead.match_score >= 50
+                                                          ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                          : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                    }
+                                                  >
+                                                    {lead.match_score >= 80
+                                                      ? "🟢 High"
+                                                      : lead.match_score >= 50
+                                                        ? "🟡 Medium"
+                                                        : "🔴 Low"}
+                                                  </Badge>
+                                                </div>
+                                              ) : (
+                                                <p className="text-sm text-muted-foreground italic">
+                                                  Not calculated yet
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {lead.match_score_source && (
+                                            <div className="mb-3 pb-3 border-b">
+                                              <p className="text-xs text-muted-foreground mb-1">Determined by:</p>
+                                              <p className="text-sm font-medium">
+                                                {lead.match_score_source === "email_validated" &&
+                                                  "✅ Email Validated via Website Scrape"}
+                                                {lead.match_score_source === "email_domain" &&
+                                                  "📧 Email Domain Verified"}
+                                                {lead.match_score_source === "google_knowledge_graph" &&
+                                                  "🌐 Google Knowledge Graph"}
+                                                {lead.match_score_source === "calculated" &&
+                                                  "📊 Distance + Domain Relevance + Industry Relevance"}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="w-full"
+                                            disabled={calculatingMatchScore === lead.id}
+                                            onClick={() => handleCalculateMatchScore(lead)}
+                                          >
+                                            {calculatingMatchScore === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Calculating...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Calculate Match Score
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+
+                                        {/* Nested Accordion for Distance */}
+                                        <Accordion type="single" collapsible className="w-full">
+                                          <AccordionItem value="distance" className="border-border">
+                                            <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                              <div className="flex items-center justify-between w-full pr-4">
+                                                <div className="flex items-center gap-2">
+                                                  <span>Distance</span>
+                                                  {lead.distance_miles && (
+                                                    <span className="font-semibold text-foreground">
+                                                      {lead.distance_miles} miles
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {lead.distance_confidence && (
+                                                  <Badge
+                                                    variant={
+                                                      lead.distance_confidence === "high"
+                                                        ? "default"
+                                                        : lead.distance_confidence === "medium"
+                                                          ? "secondary"
+                                                          : lead.distance_confidence === "undefined"
+                                                            ? "outline"
+                                                            : "destructive"
+                                                    }
+                                                    className={
+                                                      lead.distance_confidence === "high"
+                                                        ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                        : lead.distance_confidence === "medium"
+                                                          ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                          : lead.distance_confidence === "undefined"
+                                                            ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
+                                                            : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                    }
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.distance_confidence === "high"
+                                                      ? "🟢 High"
+                                                      : lead.distance_confidence === "medium"
+                                                        ? "🟡 Medium"
+                                                        : lead.distance_confidence === "undefined"
+                                                          ? "⚪ Undefined"
+                                                          : "🔴 Low"}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                              <div className="space-y-3 pt-2">
+                                                {/* Distance Details (if calculated) */}
+                                                {lead.distance_miles ? (
+                                                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                    <div>
+                                                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                        Distance
+                                                      </p>
+                                                      <p className="text-3xl font-bold">{lead.distance_miles} miles</p>
+                                                      <p className="text-xs text-muted-foreground mt-1">
+                                                        📍 From {lead.city}, {lead.state} {lead.zipcode}
+                                                      </p>
+                                                    </div>
+
+                                                    {/* Distance Confidence Details */}
+                                                    {lead.distance_confidence && (
+                                                      <div className="pt-3 border-t">
+                                                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                          Confidence Level
+                                                        </p>
+                                                        <Badge
+                                                          variant={
+                                                            lead.distance_confidence === "high"
+                                                              ? "default"
+                                                              : lead.distance_confidence === "medium"
+                                                                ? "secondary"
+                                                                : lead.distance_confidence === "undefined"
+                                                                  ? "outline"
+                                                                  : "destructive"
+                                                          }
+                                                          className={
+                                                            lead.distance_confidence === "high"
+                                                              ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                              : lead.distance_confidence === "medium"
+                                                                ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                                : lead.distance_confidence === "undefined"
+                                                                  ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300"
+                                                                  : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                          }
+                                                        >
+                                                          {lead.distance_confidence === "high"
+                                                            ? "🟢 High Confidence"
+                                                            : lead.distance_confidence === "medium"
+                                                              ? "🟡 Medium Confidence"
+                                                              : lead.distance_confidence === "undefined"
+                                                                ? "⚪ Undefined"
+                                                                : "🔴 Low Confidence"}
+                                                        </Badge>
+                                                        <p className="text-xs text-muted-foreground mt-2">
+                                                          {lead.distance_confidence === "high"
+                                                            ? "Lead is within 50 miles - likely a strong match"
+                                                            : lead.distance_confidence === "medium"
+                                                              ? "Lead is 50-100 miles away - moderate match"
+                                                              : lead.distance_confidence === "undefined"
+                                                                ? "No coordinates found for this company"
+                                                                : "Lead is over 100 miles away - lower match likelihood"}
+                                                        </p>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-sm text-muted-foreground">
+                                                    No distance calculated yet
+                                                  </p>
+                                                )}
+
+                                                {/* Show Find Coordinates button if domain exists but no coordinates */}
+                                                {lead.domain && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    disabled={findingCoordinates === lead.id}
+                                                    onClick={() => handleFindCoordinates(lead)}
+                                                  >
+                                                    {findingCoordinates === lead.id ? (
+                                                      <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Finding Coordinates...
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <Search className="mr-2 h-4 w-4" />
+                                                        Find Coordinates from Company
+                                                      </>
+                                                    )}
+                                                  </Button>
+                                                )}
+
+                                                {/* Calculate Distance button (enabled when coordinates exist) */}
+                                                {lead.latitude && lead.longitude && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    disabled={
+                                                      !lead.city || !lead.zipcode || calculatingDistance === lead.id
+                                                    }
+                                                    onClick={() => handleCalculateDistance(lead)}
+                                                  >
+                                                    {calculatingDistance === lead.id ? (
+                                                      <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Calculating...
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <MapPin className="mr-2 h-4 w-4" />
+                                                        Calculate Distance
+                                                      </>
+                                                    )}
+                                                  </Button>
+                                                )}
+
+                                                {/* Show message only if no domain and no coordinates */}
+                                                {(!lead.latitude || !lead.longitude) && !lead.domain && (
+                                                  <p className="text-xs text-muted-foreground text-center">
+                                                    Run enrichment first to find a domain
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </AccordionContent>
+                                          </AccordionItem>
+
+                                          {/* Domain Relevance Accordion Item */}
+                                          <AccordionItem value="domain-relevance" className="border-border">
+                                            <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                              <div className="flex items-center justify-between w-full pr-4">
+                                                <div className="flex items-center gap-2">
+                                                  <span>Domain Relevance</span>
+                                                  {lead.domain_relevance_score !== null && (
+                                                    <span className="font-semibold text-foreground">
+                                                      {lead.domain_relevance_score}/100
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {lead.domain_relevance_score !== null && (
+                                                  <Badge
+                                                    variant={
+                                                      lead.domain_relevance_score >= 80
+                                                        ? "default"
+                                                        : lead.domain_relevance_score >= 50
+                                                          ? "secondary"
+                                                          : "destructive"
+                                                    }
+                                                    className={
+                                                      lead.domain_relevance_score >= 80
+                                                        ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                        : lead.domain_relevance_score >= 50
+                                                          ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                          : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                    }
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.domain_relevance_score >= 80
+                                                      ? "🟢 High"
+                                                      : lead.domain_relevance_score >= 50
+                                                        ? "🟡 Medium"
+                                                        : "🔴 Low"}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                              <div className="space-y-3 pt-2">
+                                                {/* Domain Relevance Details */}
+                                                {lead.domain_relevance_score !== null ? (
+                                                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                    <div>
+                                                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                        AI Relevance Score
+                                                      </p>
+                                                      <p className="text-3xl font-bold">
+                                                        {lead.domain_relevance_score}/100
+                                                      </p>
+                                                      <p className="text-xs text-muted-foreground mt-1">
+                                                        Evaluated by ChatGPT
+                                                      </p>
+                                                    </div>
+
+                                                    {lead.domain_relevance_explanation && (
+                                                      <div className="pt-3 border-t">
+                                                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                          Analysis
+                                                        </p>
+                                                        <p className="text-sm text-foreground">
+                                                          {lead.domain_relevance_explanation}
+                                                        </p>
+                                                      </div>
+                                                    )}
+
+                                                    <div className="pt-3 border-t">
+                                                      <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                        Company
+                                                      </p>
+                                                      <p className="text-sm text-foreground font-medium">
+                                                        {lead.company}
+                                                      </p>
+                                                      <p className="text-sm font-medium text-muted-foreground mb-2 mt-3">
+                                                        Domain
+                                                      </p>
+                                                      <a
+                                                        href={`https://${lead.domain}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                                                      >
+                                                        {lead.domain}
+                                                        <ExternalLink className="h-3 w-3" />
+                                                      </a>
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-sm text-muted-foreground">
+                                                    No relevance score calculated yet
+                                                  </p>
+                                                )}
+
+                                                {/* Score Button */}
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="w-full"
+                                                  disabled={!lead.company || !lead.domain || scoringDomain === lead.id}
+                                                  onClick={() => handleScoreDomainRelevance(lead)}
+                                                >
+                                                  {scoringDomain === lead.id ? (
+                                                    <>
+                                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                      Scoring...
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Sparkles className="mr-2 h-4 w-4" />
+                                                      Score Domain Relevance
+                                                    </>
+                                                  )}
+                                                </Button>
+
+                                                {/* Show message if domain not available */}
+                                                {(!lead.domain || !lead.company) && (
+                                                  <p className="text-xs text-muted-foreground text-center">
+                                                    Run domain enrichment first to get company domain
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </AccordionContent>
+                                          </AccordionItem>
+
+                                          {/* Industry Relevance Accordion Item */}
+                                          <AccordionItem value="industry-relevance" className="border-border">
+                                            <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
+                                              <div className="flex items-center justify-between w-full pr-4">
+                                                <div className="flex items-center gap-2">
+                                                  <span>Industry Relevance</span>
+                                                  {lead.industry_relevance_score !== null && (
+                                                    <span className="font-semibold text-foreground">
+                                                      {lead.industry_relevance_score}/100
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {lead.industry_relevance_score !== null && (
+                                                  <Badge
+                                                    variant={
+                                                      lead.industry_relevance_score >= 80
+                                                        ? "default"
+                                                        : lead.industry_relevance_score >= 50
+                                                          ? "secondary"
+                                                          : "destructive"
+                                                    }
+                                                    className={
+                                                      lead.industry_relevance_score >= 80
+                                                        ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                                        : lead.industry_relevance_score >= 50
+                                                          ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
+                                                          : "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                                                    }
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    {lead.industry_relevance_score >= 80
+                                                      ? "🟢 High"
+                                                      : lead.industry_relevance_score >= 50
+                                                        ? "🟡 Medium"
+                                                        : "🔴 Low"}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                              <div className="space-y-3 pt-2">
+                                                {lead.industry_relevance_score !== null ? (
+                                                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                                                    <div>
+                                                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                                                        AI Industry Match Score
+                                                      </p>
+                                                      <p className="text-3xl font-bold">
+                                                        {lead.industry_relevance_score}/100
+                                                      </p>
+                                                      <p className="text-xs text-muted-foreground mt-1">
+                                                        Evaluated by Gemini AI
+                                                      </p>
+                                                    </div>
+
+                                                    {lead.industry_relevance_explanation && (
+                                                      <div className="pt-3 border-t">
+                                                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                          Analysis
+                                                        </p>
+                                                        <p className="text-sm text-foreground">
+                                                          {lead.industry_relevance_explanation}
+                                                        </p>
+                                                      </div>
+                                                    )}
+
+                                                    <div className="pt-3 border-t">
+                                                      <p className="text-sm font-medium text-muted-foreground mb-2">
+                                                        MICS Classification
+                                                      </p>
+                                                      {lead.mics_sector && (
+                                                        <p className="text-sm text-foreground">
+                                                          <span className="font-medium">Sector:</span>{" "}
+                                                          {lead.mics_sector}
+                                                        </p>
+                                                      )}
+                                                      {lead.mics_subsector && (
+                                                        <p className="text-sm text-foreground mt-1">
+                                                          <span className="font-medium">Subsector:</span>{" "}
+                                                          {lead.mics_subsector}
+                                                        </p>
+                                                      )}
+                                                      {lead.mics_segment && (
+                                                        <p className="text-sm text-foreground mt-1">
+                                                          <span className="font-medium">Segment:</span>{" "}
+                                                          {lead.mics_segment}
+                                                        </p>
+                                                      )}
+                                                      {!lead.mics_sector &&
+                                                        !lead.mics_subsector &&
+                                                        !lead.mics_segment && (
+                                                          <p className="text-sm text-muted-foreground italic">
+                                                            No MICS classification data available
+                                                          </p>
+                                                        )}
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-sm text-muted-foreground">
+                                                    No industry relevance score calculated yet
+                                                  </p>
+                                                )}
+
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="w-full"
+                                                  disabled={
+                                                    !lead.domain ||
+                                                    scoringIndustry === lead.id ||
+                                                    (!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment)
+                                                  }
+                                                  onClick={() => handleScoreIndustryRelevance(lead)}
+                                                >
+                                                  {scoringIndustry === lead.id ? (
+                                                    <>
+                                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                      Scoring...
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Sparkles className="mr-2 h-4 w-4" />
+                                                      Calculate Industry Relevance
+                                                    </>
+                                                  )}
+                                                </Button>
+
+                                                {!lead.domain && (
+                                                  <p className="text-xs text-muted-foreground text-center">
+                                                    Run domain enrichment first
+                                                  </p>
+                                                )}
+                                                {lead.domain &&
+                                                  !lead.mics_sector &&
+                                                  !lead.mics_subsector &&
+                                                  !lead.mics_segment && (
+                                                    <p className="text-xs text-muted-foreground text-center">
+                                                      No MICS classification data - cannot score industry relevance
+                                                    </p>
+                                                  )}
+                                              </div>
+                                            </AccordionContent>
+                                          </AccordionItem>
+                                        </Accordion>
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+
+                                  {/* Company Details Accordion Item - Only visible when domain exists */}
+                                  {lead.domain && (
+                                    <AccordionItem value="company-details" className="border-border">
+                                      <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                        Company Details
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="space-y-3 pt-2">
+                                          <p className="text-sm text-muted-foreground mb-3">
+                                            {lead.apollo_not_found ? (
+                                              <>
+                                                {lead.scraped_data_log ? (
                                                   <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Finding Coordinates...
+                                                    Company details enriched via website scraping
+                                                    <span className="block text-xs text-green-600 mt-1">
+                                                      ✓ Scraped from website (Apollo: Company not found)
+                                                    </span>
                                                   </>
                                                 ) : (
                                                   <>
-                                                    <Search className="mr-2 h-4 w-4" />
-                                                    Find Coordinates from Company
+                                                    Enrich this lead by scraping the company website
+                                                    <span className="block text-xs text-yellow-600 mt-1">
+                                                      ⚠ Apollo: Company not found - will use website scraping
+                                                    </span>
                                                   </>
                                                 )}
-                                              </Button>
+                                              </>
+                                            ) : lead.enrichment_source === "apollo_api" ? (
+                                              <>
+                                                Enrich this lead with detailed company information from Apollo
+                                                <span className="block text-xs text-primary mt-1">
+                                                  ✓ Domain found via Apollo - direct retrieval available
+                                                </span>
+                                              </>
+                                            ) : (
+                                              "Enrich this lead with detailed company information"
                                             )}
+                                          </p>
 
-                                            {/* Calculate Distance button (enabled when coordinates exist) */}
-                                            {lead.latitude && lead.longitude && (
+                                          <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="w-full"
+                                            disabled={
+                                              enrichingCompanyDetails === lead.id ||
+                                              lead.match_score === null ||
+                                              (lead.match_score ?? 0) < 50
+                                            }
+                                            onClick={() => handleEnrichCompanyDetails(lead)}
+                                          >
+                                            {enrichingCompanyDetails === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                {companyDetailsStep?.message || "Enriching..."}
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich Company Details
+                                              </>
+                                            )}
+                                          </Button>
+                                          {(lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                            <p className="text-xs text-destructive/70">
+                                              {lead.match_score === null
+                                                ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
+                                                : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
+                                            </p>
+                                          )}
+
+                                          {/* Step progress indicator */}
+                                          {enrichingCompanyDetails === lead.id && companyDetailsStep && (
+                                            <div className="bg-muted/50 rounded-md p-3 space-y-2">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                {lead.apollo_not_found ? (
+                                                  // ScraperAPI path (4 steps)
+                                                  <>
+                                                    <div className="flex items-center gap-1 text-xs">
+                                                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium bg-yellow-500 text-white">
+                                                        ✗
+                                                      </div>
+                                                      <span className="text-muted-foreground line-through">Apollo</span>
+                                                    </div>
+                                                    <div className="w-3 h-px bg-border" />
+                                                    <div className="flex items-center gap-1 text-xs">
+                                                      <div
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                          companyDetailsStep.step === 1
+                                                            ? "bg-primary text-primary-foreground animate-pulse"
+                                                            : "bg-green-500 text-white"
+                                                        }`}
+                                                      >
+                                                        1
+                                                      </div>
+                                                      <span className="text-muted-foreground">Scrape</span>
+                                                    </div>
+                                                    <div className="w-3 h-px bg-border" />
+                                                    <div className="flex items-center gap-1 text-xs">
+                                                      <div
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                          companyDetailsStep.step === 2
+                                                            ? "bg-primary text-primary-foreground animate-pulse"
+                                                            : companyDetailsStep.step > 2
+                                                              ? "bg-green-500 text-white"
+                                                              : "bg-muted text-muted-foreground"
+                                                        }`}
+                                                      >
+                                                        2
+                                                      </div>
+                                                      <span className="text-muted-foreground">Parse</span>
+                                                    </div>
+                                                    <div className="w-3 h-px bg-border" />
+                                                    <div className="flex items-center gap-1 text-xs">
+                                                      <div
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                          companyDetailsStep.step === 3
+                                                            ? "bg-primary text-primary-foreground animate-pulse"
+                                                            : companyDetailsStep.step > 3
+                                                              ? "bg-green-500 text-white"
+                                                              : "bg-muted text-muted-foreground"
+                                                        }`}
+                                                      >
+                                                        3
+                                                      </div>
+                                                      <span className="text-muted-foreground">AI</span>
+                                                    </div>
+                                                  </>
+                                                ) : lead.enrichment_source === "apollo_api" ? (
+                                                  // Single step for direct Apollo
+                                                  <div className="flex items-center gap-2 text-xs">
+                                                    <div
+                                                      className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                        companyDetailsStep.step === 1
+                                                          ? "bg-primary text-primary-foreground animate-pulse"
+                                                          : "bg-green-500 text-white"
+                                                      }`}
+                                                    >
+                                                      1
+                                                    </div>
+                                                    <span className="text-muted-foreground">Direct retrieval</span>
+                                                  </div>
+                                                ) : (
+                                                  // Two steps for non-Apollo sources (may fallback to scraper)
+                                                  <>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <div
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                          companyDetailsStep.step === 1
+                                                            ? "bg-primary text-primary-foreground animate-pulse"
+                                                            : "bg-green-500 text-white"
+                                                        }`}
+                                                      >
+                                                        1
+                                                      </div>
+                                                      <span className="text-muted-foreground">Search Apollo</span>
+                                                    </div>
+                                                    <div className="w-4 h-px bg-border" />
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <div
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
+                                                          companyDetailsStep.step === 2
+                                                            ? "bg-primary text-primary-foreground animate-pulse"
+                                                            : companyDetailsStep.step > 2
+                                                              ? "bg-green-500 text-white"
+                                                              : "bg-muted text-muted-foreground"
+                                                        }`}
+                                                      >
+                                                        2
+                                                      </div>
+                                                      <span className="text-muted-foreground">Get details</span>
+                                                    </div>
+                                                  </>
+                                                )}
+                                              </div>
+                                              <p className="text-xs text-muted-foreground">
+                                                {companyDetailsStep.message}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                            <span>• Company Size</span>
+                                            <span>• Annual Revenue</span>
+                                            <span>• Industry</span>
+                                            <span>• Description</span>
+                                            <span>• Tech Stack</span>
+                                            <span>• LinkedIn URL</span>
+                                          </div>
+
+                                          {/* Scraped Data Log Section */}
+                                          {lead.scraped_data_log && (
+                                            <Accordion type="single" collapsible className="mt-4">
+                                              <AccordionItem
+                                                value="scraped-data"
+                                                className="border rounded-lg bg-muted/30"
+                                              >
+                                                <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
+                                                  <div className="flex items-center gap-2">
+                                                    {lead.scraped_data_log.source === "apollo" ? (
+                                                      <>
+                                                        <span>🚀 Apollo Enrichment Log</span>
+                                                        <Badge
+                                                          variant="outline"
+                                                          className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200"
+                                                        >
+                                                          {lead.scraped_data_log.fields_populated?.length || 0} fields
+                                                        </Badge>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <span>📄 View Scraped Data</span>
+                                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                          {lead.scraped_data_log.services?.length || 0} services found
+                                                        </Badge>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="px-3 pb-3">
+                                                  <div className="space-y-2 text-xs">
+                                                    {/* Apollo Data Display */}
+                                                    {lead.scraped_data_log.source === "apollo" &&
+                                                      lead.scraped_data_log.apollo_data && (
+                                                        <div className="grid gap-1.5">
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">Organization:</span>
+                                                            <span className="font-medium">
+                                                              {lead.scraped_data_log.organization_name}
+                                                            </span>
+                                                          </div>
+                                                          {lead.scraped_data_log.apollo_data.industry && (
+                                                            <div className="flex justify-between">
+                                                              <span className="text-muted-foreground">Industry:</span>
+                                                              <span>{lead.scraped_data_log.apollo_data.industry}</span>
+                                                            </div>
+                                                          )}
+                                                          {lead.scraped_data_log.apollo_data.estimated_employees && (
+                                                            <div className="flex justify-between">
+                                                              <span className="text-muted-foreground">Employees:</span>
+                                                              <span>
+                                                                {lead.scraped_data_log.apollo_data.estimated_employees.toLocaleString()}
+                                                              </span>
+                                                            </div>
+                                                          )}
+                                                          {lead.scraped_data_log.apollo_data.revenue && (
+                                                            <div className="flex justify-between">
+                                                              <span className="text-muted-foreground">Revenue:</span>
+                                                              <span>{lead.scraped_data_log.apollo_data.revenue}</span>
+                                                            </div>
+                                                          )}
+                                                          {lead.scraped_data_log.apollo_data.founded_year && (
+                                                            <div className="flex justify-between">
+                                                              <span className="text-muted-foreground">Founded:</span>
+                                                              <span>
+                                                                {lead.scraped_data_log.apollo_data.founded_year}
+                                                              </span>
+                                                            </div>
+                                                          )}
+                                                          {lead.scraped_data_log.apollo_data.city && (
+                                                            <div className="flex justify-between">
+                                                              <span className="text-muted-foreground">
+                                                                HQ Location:
+                                                              </span>
+                                                              <span>
+                                                                {[
+                                                                  lead.scraped_data_log.apollo_data.city,
+                                                                  lead.scraped_data_log.apollo_data.state,
+                                                                  lead.scraped_data_log.apollo_data.country,
+                                                                ]
+                                                                  .filter(Boolean)
+                                                                  .join(", ")}
+                                                              </span>
+                                                            </div>
+                                                          )}
+                                                          {lead.scraped_data_log.apollo_data.keywords &&
+                                                            lead.scraped_data_log.apollo_data.keywords.length > 0 && (
+                                                              <div>
+                                                                <span className="text-muted-foreground block mb-1">
+                                                                  Keywords:
+                                                                </span>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                  {lead.scraped_data_log.apollo_data.keywords.map(
+                                                                    (kw, idx) => (
+                                                                      <span
+                                                                        key={idx}
+                                                                        className="text-[10px] bg-muted px-1.5 py-0.5 rounded"
+                                                                      >
+                                                                        {kw}
+                                                                      </span>
+                                                                    ),
+                                                                  )}
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                          {lead.scraped_data_log.fields_populated &&
+                                                            lead.scraped_data_log.fields_populated.length > 0 && (
+                                                              <div className="mt-2 pt-2 border-t border-dashed">
+                                                                <span className="text-muted-foreground block mb-1">
+                                                                  Fields Populated:
+                                                                </span>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                  {lead.scraped_data_log.fields_populated.map(
+                                                                    (field, idx) => (
+                                                                      <Badge
+                                                                        key={idx}
+                                                                        variant="secondary"
+                                                                        className="text-[10px] px-1.5 py-0"
+                                                                      >
+                                                                        {field}
+                                                                      </Badge>
+                                                                    ),
+                                                                  )}
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                          {/* Enrichment Steps */}
+                                                          {lead.scraped_data_log.enrichment_steps &&
+                                                            lead.scraped_data_log.enrichment_steps.length > 0 && (
+                                                              <div className="mt-2 pt-2 border-t border-dashed">
+                                                                <span className="text-muted-foreground block mb-1">
+                                                                  Enrichment Steps:
+                                                                </span>
+                                                                <div className="space-y-1">
+                                                                  {lead.scraped_data_log.enrichment_steps.map(
+                                                                    (step, idx) => (
+                                                                      <div
+                                                                        key={idx}
+                                                                        className="flex items-center gap-2 text-[10px]"
+                                                                      >
+                                                                        <Badge
+                                                                          variant={
+                                                                            step.status === "success"
+                                                                              ? "default"
+                                                                              : step.status === "failed"
+                                                                                ? "destructive"
+                                                                                : "secondary"
+                                                                          }
+                                                                          className="text-[9px] px-1 py-0"
+                                                                        >
+                                                                          Step {step.step}
+                                                                        </Badge>
+                                                                        <span className="text-muted-foreground">
+                                                                          {step.action.replace(/_/g, " ")}
+                                                                        </span>
+                                                                        <span
+                                                                          className={
+                                                                            step.status === "success"
+                                                                              ? "text-green-600"
+                                                                              : step.status === "failed"
+                                                                                ? "text-red-600"
+                                                                                : "text-muted-foreground"
+                                                                          }
+                                                                        >
+                                                                          {step.status === "success"
+                                                                            ? "✓"
+                                                                            : step.status === "failed"
+                                                                              ? "✗"
+                                                                              : "..."}
+                                                                        </span>
+                                                                      </div>
+                                                                    ),
+                                                                  )}
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                        </div>
+                                                      )}
+
+                                                    {/* Scraper Data Display (existing) */}
+                                                    {lead.scraped_data_log.source !== "apollo" && (
+                                                      <div className="grid gap-1.5">
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">Title:</span>
+                                                          <span
+                                                            className="text-right max-w-[200px] truncate"
+                                                            title={lead.scraped_data_log.title || ""}
+                                                          >
+                                                            {lead.scraped_data_log.title || (
+                                                              <span className="text-muted-foreground/50 italic">
+                                                                Not found
+                                                              </span>
+                                                            )}
+                                                          </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">H1:</span>
+                                                          <span
+                                                            className="text-right max-w-[200px] truncate"
+                                                            title={lead.scraped_data_log.h1 || ""}
+                                                          >
+                                                            {lead.scraped_data_log.h1 || (
+                                                              <span className="text-muted-foreground/50 italic">
+                                                                Not found
+                                                              </span>
+                                                            )}
+                                                          </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">
+                                                            Meta Description:
+                                                          </span>
+                                                          <span
+                                                            className="text-right max-w-[200px] truncate"
+                                                            title={lead.scraped_data_log.meta_description || ""}
+                                                          >
+                                                            {lead.scraped_data_log.meta_description || (
+                                                              <span className="text-muted-foreground/50 italic">
+                                                                Not found
+                                                              </span>
+                                                            )}
+                                                          </span>
+                                                        </div>
+                                                        {lead.scraped_data_log.meta_keywords && (
+                                                          <div>
+                                                            <span className="text-muted-foreground block mb-1">
+                                                              Meta Keywords:
+                                                            </span>
+                                                            <span className="text-[10px] block bg-muted/50 p-1.5 rounded break-words">
+                                                              {lead.scraped_data_log.meta_keywords}
+                                                            </span>
+                                                          </div>
+                                                        )}
+                                                        {lead.scraped_data_log.logo_url && (
+                                                          <div className="flex justify-between items-center">
+                                                            <span className="text-muted-foreground">Logo URL:</span>
+                                                            <a
+                                                              href={
+                                                                lead.scraped_data_log.logo_url.startsWith("http")
+                                                                  ? lead.scraped_data_log.logo_url
+                                                                  : `https://${lead.domain}${lead.scraped_data_log.logo_url}`
+                                                              }
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-primary hover:underline flex items-center gap-1"
+                                                            >
+                                                              View <ExternalLink className="h-2.5 w-2.5" />
+                                                            </a>
+                                                          </div>
+                                                        )}
+                                                        {lead.scraped_data_log.linkedin && (
+                                                          <div className="flex justify-between items-center">
+                                                            <span className="text-muted-foreground">LinkedIn:</span>
+                                                            <a
+                                                              href={
+                                                                lead.scraped_data_log.linkedin.startsWith("http")
+                                                                  ? lead.scraped_data_log.linkedin
+                                                                  : `https://${lead.scraped_data_log.linkedin}`
+                                                              }
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-primary hover:underline flex items-center gap-1"
+                                                            >
+                                                              View <ExternalLink className="h-2.5 w-2.5" />
+                                                            </a>
+                                                          </div>
+                                                        )}
+                                                        {lead.scraped_data_log.facebook && (
+                                                          <div className="flex justify-between items-center">
+                                                            <span className="text-muted-foreground">Facebook:</span>
+                                                            <a
+                                                              href={
+                                                                lead.scraped_data_log.facebook.startsWith("http")
+                                                                  ? lead.scraped_data_log.facebook
+                                                                  : `https://${lead.scraped_data_log.facebook}`
+                                                              }
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-primary hover:underline flex items-center gap-1"
+                                                            >
+                                                              View <ExternalLink className="h-2.5 w-2.5" />
+                                                            </a>
+                                                          </div>
+                                                        )}
+                                                        {lead.scraped_data_log.about_pages &&
+                                                          lead.scraped_data_log.about_pages.length > 0 && (
+                                                            <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                About Pages ({lead.scraped_data_log.about_pages.length}
+                                                                ):
+                                                              </span>
+                                                              <div className="text-[10px] space-y-0.5">
+                                                                {lead.scraped_data_log.about_pages
+                                                                  .slice(0, 5)
+                                                                  .map((page, idx) => (
+                                                                    <a
+                                                                      key={idx}
+                                                                      href={
+                                                                        page.startsWith("http")
+                                                                          ? page
+                                                                          : `https://${lead.domain}${page}`
+                                                                      }
+                                                                      target="_blank"
+                                                                      rel="noopener noreferrer"
+                                                                      className="text-primary hover:underline block truncate"
+                                                                    >
+                                                                      {page}
+                                                                    </a>
+                                                                  ))}
+                                                              </div>
+                                                            </div>
+                                                          )}
+                                                        {lead.scraped_data_log.nav_links &&
+                                                          lead.scraped_data_log.nav_links.length > 0 && (
+                                                            <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                Nav Links ({lead.scraped_data_log.nav_links.length}):
+                                                              </span>
+                                                              <div className="flex flex-wrap gap-1">
+                                                                {lead.scraped_data_log.nav_links
+                                                                  .slice(0, 15)
+                                                                  .map((link, idx) => (
+                                                                    <span
+                                                                      key={idx}
+                                                                      className="text-[10px] bg-muted px-1.5 py-0.5 rounded"
+                                                                    >
+                                                                      {link}
+                                                                    </span>
+                                                                  ))}
+                                                              </div>
+                                                            </div>
+                                                          )}
+                                                        {lead.scraped_data_log.services &&
+                                                          lead.scraped_data_log.services.length > 0 && (
+                                                            <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                Services Found ({lead.scraped_data_log.services.length}
+                                                                ):
+                                                              </span>
+                                                              <div className="text-[10px] bg-muted/50 p-1.5 rounded max-h-24 overflow-y-auto">
+                                                                {lead.scraped_data_log.services.join(" • ")}
+                                                              </div>
+                                                            </div>
+                                                          )}
+
+                                                        {/* Deep Scrape Results Section */}
+                                                        {lead.scraped_data_log.deep_scrape && (
+                                                          <div className="mt-3 pt-3 border-t border-dashed">
+                                                            <span className="text-muted-foreground font-medium block mb-2">
+                                                              🔍 Deep Scrape Results
+                                                            </span>
+
+                                                            {/* Pages Scraped */}
+                                                            {lead.scraped_data_log.deep_scrape.pages_scraped?.length >
+                                                            0 ? (
+                                                              <div className="mb-2">
+                                                                <span className="text-muted-foreground block mb-1">
+                                                                  Pages Scraped (
+                                                                  {
+                                                                    lead.scraped_data_log.deep_scrape.pages_scraped
+                                                                      .length
+                                                                  }
+                                                                  ):
+                                                                </span>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                  {lead.scraped_data_log.deep_scrape.pages_scraped.map(
+                                                                    (url, idx) => (
+                                                                      <a
+                                                                        key={idx}
+                                                                        href={
+                                                                          url.startsWith("http")
+                                                                            ? url
+                                                                            : `https://${lead.domain}${url.startsWith("/") ? "" : "/"}${url}`
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20"
+                                                                      >
+                                                                        {url.split("/").pop() || url}
+                                                                      </a>
+                                                                    ),
+                                                                  )}
+                                                                </div>
+                                                              </div>
+                                                            ) : (
+                                                              <div className="mb-2 text-muted-foreground/50 italic text-[10px]">
+                                                                No high-value pages found to scrape
+                                                              </div>
+                                                            )}
+
+                                                            {/* Found Data Grid */}
+                                                            <div className="grid gap-1.5 text-[11px]">
+                                                              {/* Founded Year */}
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">
+                                                                  Founded Year:
+                                                                </span>
+                                                                {lead.scraped_data_log.deep_scrape.founded_year ? (
+                                                                  <span className="flex items-center gap-1">
+                                                                    {lead.scraped_data_log.deep_scrape.founded_year}
+                                                                    {lead.scraped_data_log.deep_scrape.sources
+                                                                      ?.founded_year_source && (
+                                                                      <Badge
+                                                                        variant="outline"
+                                                                        className="text-[9px] px-1 py-0"
+                                                                      >
+                                                                        from{" "}
+                                                                        {
+                                                                          lead.scraped_data_log.deep_scrape.sources
+                                                                            .founded_year_source
+                                                                        }
+                                                                      </Badge>
+                                                                    )}
+                                                                  </span>
+                                                                ) : (
+                                                                  <span className="text-muted-foreground/50 italic">
+                                                                    Not found
+                                                                  </span>
+                                                                )}
+                                                              </div>
+
+                                                              {/* Employee Count */}
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">
+                                                                  Employee Count:
+                                                                </span>
+                                                                {lead.scraped_data_log.deep_scrape.employee_count ? (
+                                                                  <span className="flex items-center gap-1">
+                                                                    {lead.scraped_data_log.deep_scrape.employee_count}
+                                                                    {lead.scraped_data_log.deep_scrape.sources
+                                                                      ?.employee_count_source && (
+                                                                      <Badge
+                                                                        variant="outline"
+                                                                        className="text-[9px] px-1 py-0"
+                                                                      >
+                                                                        from{" "}
+                                                                        {
+                                                                          lead.scraped_data_log.deep_scrape.sources
+                                                                            .employee_count_source
+                                                                        }
+                                                                      </Badge>
+                                                                    )}
+                                                                  </span>
+                                                                ) : (
+                                                                  <span className="text-muted-foreground/50 italic">
+                                                                    Not found
+                                                                  </span>
+                                                                )}
+                                                              </div>
+
+                                                              {/* Contact Email */}
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">
+                                                                  Contact Email:
+                                                                </span>
+                                                                {lead.scraped_data_log.deep_scrape.contact_email ? (
+                                                                  <span className="flex items-center gap-1">
+                                                                    <a
+                                                                      href={`mailto:${lead.scraped_data_log.deep_scrape.contact_email}`}
+                                                                      className="text-primary hover:underline"
+                                                                    >
+                                                                      {lead.scraped_data_log.deep_scrape.contact_email}
+                                                                    </a>
+                                                                    {lead.scraped_data_log.deep_scrape
+                                                                      .contact_email_personal && (
+                                                                      <Badge
+                                                                        variant="secondary"
+                                                                        className="text-[9px] px-1 py-0 bg-amber-100 text-amber-700"
+                                                                      >
+                                                                        Personal
+                                                                      </Badge>
+                                                                    )}
+                                                                    {lead.scraped_data_log.deep_scrape.sources
+                                                                      ?.contact_email_source && (
+                                                                      <Badge
+                                                                        variant="outline"
+                                                                        className="text-[9px] px-1 py-0"
+                                                                      >
+                                                                        from{" "}
+                                                                        {
+                                                                          lead.scraped_data_log.deep_scrape.sources
+                                                                            .contact_email_source
+                                                                        }
+                                                                      </Badge>
+                                                                    )}
+                                                                  </span>
+                                                                ) : (
+                                                                  <span className="text-muted-foreground/50 italic">
+                                                                    Not found
+                                                                  </span>
+                                                                )}
+                                                              </div>
+
+                                                              {/* Email Validation Status */}
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">
+                                                                  Email Validation:
+                                                                </span>
+                                                                {lead.email_domain_validated ? (
+                                                                  <span className="flex items-center gap-1 text-green-600">
+                                                                    <span className="text-[10px]">
+                                                                      ✓ Matches lead email
+                                                                    </span>
+                                                                    <Badge className="text-[9px] px-1 py-0 bg-green-100 text-green-700 border-green-300">
+                                                                      100% Valid
+                                                                    </Badge>
+                                                                  </span>
+                                                                ) : lead.scraped_data_log?.deep_scrape?.contact_email &&
+                                                                  lead.email ? (
+                                                                  <span className="text-amber-600 text-[10px]">
+                                                                    Different from lead
+                                                                  </span>
+                                                                ) : (
+                                                                  <span className="text-muted-foreground/50 italic text-[10px]">
+                                                                    —
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        )}
+
+                                                        {/* Company Contacts Found */}
+                                                        {lead.company_contacts && lead.company_contacts.length > 0 && (
+                                                          <div className="mt-3 pt-3 border-t border-dashed">
+                                                            <span className="text-muted-foreground font-medium block mb-2">
+                                                              📧 Additional Contacts ({lead.company_contacts.length})
+                                                            </span>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                              {lead.company_contacts.map((contact, idx) => (
+                                                                <a
+                                                                  key={idx}
+                                                                  href={`mailto:${contact.email}`}
+                                                                  className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-1 hover:bg-blue-100"
+                                                                >
+                                                                  {contact.email}
+                                                                  {contact.is_personal && (
+                                                                    <Badge
+                                                                      variant="secondary"
+                                                                      className="text-[8px] px-1 py-0 bg-amber-100 text-amber-700"
+                                                                    >
+                                                                      Personal
+                                                                    </Badge>
+                                                                  )}
+                                                                </a>
+                                                              ))}
+                                                            </div>
+                                                          </div>
+                                                        )}
+
+                                                        {/* Show message if no deep scrape was performed */}
+                                                        {!lead.scraped_data_log.deep_scrape && (
+                                                          <div className="mt-3 pt-3 border-t border-dashed">
+                                                            <span className="text-muted-foreground/50 italic text-[10px]">
+                                                              🔍 Deep Scrape: Not performed
+                                                            </span>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </AccordionContent>
+                                              </AccordionItem>
+                                            </Accordion>
+                                          )}
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  )}
+
+                                  {/* Find Contacts Accordion - Always visible when Apollo enriched */}
+                                  <AccordionItem value="find-contacts" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4" />
+                                        <span>Find Contacts</span>
+                                        {lead.company_contacts &&
+                                          lead.company_contacts.filter((c) => c.name).length > 0 && (
+                                            <Badge variant="secondary" className="ml-2">
+                                              {lead.company_contacts.filter((c) => c.name).length} found
+                                            </Badge>
+                                          )}
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-4">
+                                        {/* Find Contacts Button */}
+                                        <div className="space-y-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                            disabled={
+                                              findingContacts === lead.id ||
+                                              !lead.domain ||
+                                              lead.match_score === null ||
+                                              (lead.match_score ?? 0) < 50
+                                            }
+                                            onClick={() => handleFindContacts(lead)}
+                                          >
+                                            {findingContacts === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Searching Contacts...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Users className="mr-2 h-4 w-4" />
+                                                Find Company Contacts
+                                              </>
+                                            )}
+                                          </Button>
+
+                                          {/* Show disabled state reason */}
+                                          {!lead.domain ? (
+                                            <p className="text-xs text-muted-foreground text-center">
+                                              ⚠️ Domain required. Run enrichment first.
+                                            </p>
+                                          ) : (
+                                            (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                              <p className="text-xs text-destructive/70 text-center">
+                                                {lead.match_score === null
+                                                  ? "Blocked: Match Score not calculated"
+                                                  : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
+                                              </p>
+                                            )
+                                          )}
+                                        </div>
+
+                                        {/* Display Found Contacts */}
+                                        {lead.company_contacts &&
+                                          lead.company_contacts.filter((c) => c.name).length > 0 && (
+                                            <div className="space-y-3 pt-2 border-t">
+                                              <p className="text-xs text-muted-foreground">Discovered Contacts:</p>
+                                              <div className="space-y-2">
+                                                {lead.company_contacts
+                                                  .filter((contact) => contact.name)
+                                                  .map((contact, idx) => (
+                                                    <div key={idx} className="p-3 border rounded-lg bg-muted/30">
+                                                      <div className="flex items-start justify-between">
+                                                        <div>
+                                                          <p className="font-medium text-sm">{contact.name}</p>
+                                                          {contact.title && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                              {contact.title}
+                                                            </p>
+                                                          )}
+                                                        </div>
+                                                        {contact.email_status === "verified" && (
+                                                          <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                            Verified
+                                                          </Badge>
+                                                        )}
+                                                      </div>
+                                                      <div className="mt-2 space-y-1">
+                                                        {contact.email && (
+                                                          <div className="flex items-center gap-2 text-xs">
+                                                            <Mail className="h-3 w-3 text-muted-foreground" />
+                                                            <a
+                                                              href={`mailto:${contact.email}`}
+                                                              className="text-primary hover:underline"
+                                                            >
+                                                              {contact.email}
+                                                            </a>
+                                                          </div>
+                                                        )}
+                                                        {contact.linkedin_url && (
+                                                          <div className="flex items-center gap-2 text-xs">
+                                                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                                            <a
+                                                              href={contact.linkedin_url}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-primary hover:underline"
+                                                            >
+                                                              LinkedIn Profile
+                                                            </a>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+
+                                  {/* Enrich Contact Accordion - Check if lead exists in company contacts */}
+                                  <AccordionItem value="enrich-contact" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4" />
+                                        <span>Enrich Contact</span>
+                                        {(() => {
+                                          // Check if lead exists in company_contacts by email or name
+                                          const matchedContact = lead.company_contacts?.find(
+                                            (c) =>
+                                              (lead.email &&
+                                                c.email &&
+                                                c.email.toLowerCase() === lead.email.toLowerCase()) ||
+                                              (lead.full_name &&
+                                                c.name &&
+                                                c.name.toLowerCase() === lead.full_name.toLowerCase()),
+                                          );
+                                          return matchedContact ? (
+                                            <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                              Found
+                                            </Badge>
+                                          ) : null;
+                                        })()}
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-4">
+                                        {/* Check if lead contact exists in company_contacts */}
+                                        {(() => {
+                                          const matchedContact = lead.company_contacts?.find(
+                                            (c) =>
+                                              (lead.email &&
+                                                c.email &&
+                                                c.email.toLowerCase() === lead.email.toLowerCase()) ||
+                                              (lead.full_name &&
+                                                c.name &&
+                                                c.name.toLowerCase() === lead.full_name.toLowerCase()),
+                                          );
+
+                                          if (matchedContact) {
+                                            return (
+                                              <div className="space-y-3">
+                                                <div className="p-4 border rounded-lg bg-green-50/50 border-green-200">
+                                                  <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                      <div className="flex items-center gap-2">
+                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        <p className="font-semibold text-sm text-green-800">
+                                                          Contact Found in Company
+                                                        </p>
+                                                      </div>
+                                                      <p className="text-xs text-muted-foreground mt-1">
+                                                        This lead matches a discovered company contact
+                                                      </p>
+                                                    </div>
+                                                  </div>
+
+                                                  <div className="space-y-3 border-t border-green-200 pt-3">
+                                                    {/* Name */}
+                                                    <div className="flex justify-between items-start">
+                                                      <span className="text-xs text-muted-foreground">Name</span>
+                                                      <span className="text-sm font-medium text-right">
+                                                        {matchedContact.name ||
+                                                          `${matchedContact.first_name || ""} ${matchedContact.last_name || ""}`.trim() ||
+                                                          "—"}
+                                                      </span>
+                                                    </div>
+
+                                                    {/* Title */}
+                                                    {matchedContact.title && (
+                                                      <div className="flex justify-between items-start">
+                                                        <span className="text-xs text-muted-foreground">Title</span>
+                                                        <span className="text-sm text-right">
+                                                          {matchedContact.title}
+                                                        </span>
+                                                      </div>
+                                                    )}
+
+                                                    {/* Email */}
+                                                    {matchedContact.email && (
+                                                      <div className="flex justify-between items-start">
+                                                        <span className="text-xs text-muted-foreground">Email</span>
+                                                        <div className="flex items-center gap-2">
+                                                          <a
+                                                            href={`mailto:${matchedContact.email}`}
+                                                            className="text-sm text-primary hover:underline"
+                                                          >
+                                                            {matchedContact.email}
+                                                          </a>
+                                                          {matchedContact.email_status === "verified" && (
+                                                            <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                              Verified
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                    {/* Social Profiles */}
+                                                    {(matchedContact.linkedin_url ||
+                                                      matchedContact.facebook_url ||
+                                                      matchedContact.twitter_url ||
+                                                      matchedContact.github_url) && (
+                                                      <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-muted-foreground">
+                                                          Social Profiles
+                                                        </span>
+                                                        <div className="space-y-1.5">
+                                                          {matchedContact.linkedin_url && (
+                                                            <div className="flex items-center justify-between gap-2">
+                                                              <a
+                                                                href={matchedContact.linkedin_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                              >
+                                                                <Linkedin className="h-3 w-3" />
+                                                                {matchedContact.linkedin_url
+                                                                  .replace("https://", "")
+                                                                  .replace("linkedin.com/", "")}
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                              </a>
+                                                              {matchedContact.social_search_logs?.find(
+                                                                (l) => l.platform === "linkedin",
+                                                              ) && (
+                                                                <Badge
+                                                                  variant="outline"
+                                                                  className={
+                                                                    matchedContact.social_search_logs.find(
+                                                                      (l) => l.platform === "linkedin",
+                                                                    )?.source === "apollo"
+                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
+                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
+                                                                  }
+                                                                >
+                                                                  {matchedContact.social_search_logs.find(
+                                                                    (l) => l.platform === "linkedin",
+                                                                  )?.source === "apollo"
+                                                                    ? "Apollo"
+                                                                    : "Google"}
+                                                                </Badge>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                          {matchedContact.facebook_url && (
+                                                            <div className="flex items-center justify-between gap-2">
+                                                              <a
+                                                                href={matchedContact.facebook_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                              >
+                                                                <Facebook className="h-3 w-3" />
+                                                                {matchedContact.facebook_url
+                                                                  .replace("https://", "")
+                                                                  .replace("facebook.com/", "")}
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                              </a>
+                                                              {matchedContact.social_search_logs?.find(
+                                                                (l) => l.platform === "facebook",
+                                                              ) && (
+                                                                <Badge
+                                                                  variant="outline"
+                                                                  className={
+                                                                    matchedContact.social_search_logs.find(
+                                                                      (l) => l.platform === "facebook",
+                                                                    )?.source === "apollo"
+                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
+                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
+                                                                  }
+                                                                >
+                                                                  {matchedContact.social_search_logs.find(
+                                                                    (l) => l.platform === "facebook",
+                                                                  )?.source === "apollo"
+                                                                    ? "Apollo"
+                                                                    : "Google"}
+                                                                </Badge>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                          {matchedContact.twitter_url && (
+                                                            <div className="flex items-center justify-between gap-2">
+                                                              <a
+                                                                href={matchedContact.twitter_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                              >
+                                                                <Twitter className="h-3 w-3" />
+                                                                {matchedContact.twitter_url
+                                                                  .replace("https://", "")
+                                                                  .replace("twitter.com/", "")}
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                              </a>
+                                                              {matchedContact.social_search_logs?.find(
+                                                                (l) => l.platform === "twitter",
+                                                              ) && (
+                                                                <Badge
+                                                                  variant="outline"
+                                                                  className={
+                                                                    matchedContact.social_search_logs.find(
+                                                                      (l) => l.platform === "twitter",
+                                                                    )?.source === "apollo"
+                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
+                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
+                                                                  }
+                                                                >
+                                                                  {matchedContact.social_search_logs.find(
+                                                                    (l) => l.platform === "twitter",
+                                                                  )?.source === "apollo"
+                                                                    ? "Apollo"
+                                                                    : "Google"}
+                                                                </Badge>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                          {matchedContact.github_url && (
+                                                            <div className="flex items-center justify-between gap-2">
+                                                              <a
+                                                                href={matchedContact.github_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                              >
+                                                                <Github className="h-3 w-3" />
+                                                                {matchedContact.github_url
+                                                                  .replace("https://", "")
+                                                                  .replace("github.com/", "")}
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                              </a>
+                                                              {matchedContact.social_search_logs?.find(
+                                                                (l) => l.platform === "github",
+                                                              ) && (
+                                                                <Badge
+                                                                  variant="outline"
+                                                                  className={
+                                                                    matchedContact.social_search_logs.find(
+                                                                      (l) => l.platform === "github",
+                                                                    )?.source === "apollo"
+                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
+                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
+                                                                  }
+                                                                >
+                                                                  {matchedContact.social_search_logs.find(
+                                                                    (l) => l.platform === "github",
+                                                                  )?.source === "apollo"
+                                                                    ? "Apollo"
+                                                                    : "Google"}
+                                                                </Badge>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                    {/* Source */}
+                                                    <div className="flex justify-between items-start">
+                                                      <span className="text-xs text-muted-foreground">Source</span>
+                                                      <Badge
+                                                        variant="outline"
+                                                        className={
+                                                          matchedContact.source === "apollo_people_search"
+                                                            ? "bg-purple-50 text-purple-700 border-purple-200"
+                                                            : "bg-blue-50 text-blue-700 border-blue-200"
+                                                        }
+                                                      >
+                                                        {matchedContact.source === "apollo_people_search"
+                                                          ? "Apollo"
+                                                          : "Scraped"}
+                                                      </Badge>
+                                                    </div>
+
+                                                    {/* Additional badges */}
+                                                    {(matchedContact.is_personal ||
+                                                      matchedContact.found_without_role_filter) && (
+                                                      <div className="flex justify-between items-start">
+                                                        <span className="text-xs text-muted-foreground">Status</span>
+                                                        <div className="flex gap-1">
+                                                          {matchedContact.is_personal && (
+                                                            <Badge
+                                                              variant="outline"
+                                                              className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px]"
+                                                            >
+                                                              Personal Email
+                                                            </Badge>
+                                                          )}
+                                                          {matchedContact.found_without_role_filter && (
+                                                            <Badge
+                                                              variant="outline"
+                                                              className="bg-muted text-muted-foreground text-[10px]"
+                                                            >
+                                                              Name Only
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </div>
+
+                                                  {/* Re-search button */}
+                                                  <div className="pt-3 border-t border-green-200">
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="w-full"
+                                                      disabled={
+                                                        enrichingContact === lead.id || !lead.email || !lead.full_name
+                                                      }
+                                                      onClick={() => handleEnrichContact(lead)}
+                                                    >
+                                                      {enrichingContact === lead.id ? (
+                                                        <>
+                                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                          Searching...
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Search className="mr-2 h-4 w-4" />
+                                                          Re-search in Apollo
+                                                        </>
+                                                      )}
+                                                    </Button>
+                                                    <p className="text-xs text-muted-foreground mt-1 text-center">
+                                                      Search for additional social profiles
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+
+                                          // Contact not found in company_contacts
+                                          return (
+                                            <div className="space-y-3">
+                                              {/* Show lead's current data */}
+                                              <div className="border rounded-lg p-3 space-y-2">
+                                                <p className="text-xs font-medium text-muted-foreground">Lead Data</p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                  <span className="text-muted-foreground">Name:</span>
+                                                  <span>{lead.full_name}</span>
+                                                  <span className="text-muted-foreground">Email:</span>
+                                                  <span>{lead.email || "—"}</span>
+                                                  <span className="text-muted-foreground">Company:</span>
+                                                  <span>{lead.company || "—"}</span>
+                                                  <span className="text-muted-foreground">Domain:</span>
+                                                  <span>{lead.domain || "—"}</span>
+                                                </div>
+                                              </div>
+
+                                              {/* Search Button */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
                                                 className="w-full"
                                                 disabled={
-                                                  !lead.city || !lead.zipcode || calculatingDistance === lead.id
+                                                  enrichingContact === lead.id || !lead.email || !lead.full_name
                                                 }
-                                                onClick={() => handleCalculateDistance(lead)}
+                                                onClick={() => handleEnrichContact(lead)}
                                               >
-                                                {calculatingDistance === lead.id ? (
+                                                {enrichingContact === lead.id ? (
                                                   <>
                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Calculating...
+                                                    Searching...
                                                   </>
                                                 ) : (
                                                   <>
-                                                    <MapPin className="mr-2 h-4 w-4" />
-                                                    Calculate Distance
+                                                    <Search className="mr-2 h-4 w-4" />
+                                                    Enrich Contact
                                                   </>
                                                 )}
                                               </Button>
-                                            )}
-
-                                            {/* Show message only if no domain and no coordinates */}
-                                            {(!lead.latitude || !lead.longitude) && !lead.domain && (
-                                              <p className="text-xs text-muted-foreground text-center">
-                                                Run enrichment first to find a domain
-                                              </p>
-                                            )}
-                                          </div>
-                                        </AccordionContent>
-                                      </AccordionItem>
-
-                                      {/* Domain Relevance Accordion Item */}
-                                      <AccordionItem value="domain-relevance" className="border-border">
-                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
-                                          <div className="flex items-center justify-between w-full pr-4">
-                                            <div className="flex items-center gap-2">
-                                              <span>Domain Relevance</span>
-                                              {lead.domain_relevance_score !== null && (
-                                                <span className="font-semibold text-foreground">
-                                                  {lead.domain_relevance_score}/100
-                                                </span>
-                                              )}
-                                            </div>
-                                            {lead.domain_relevance_score !== null && (
-                                              <Badge
-                                                variant={
-                                                  lead.domain_relevance_score >= 80
-                                                    ? "default"
-                                                    : lead.domain_relevance_score >= 50
-                                                      ? "secondary"
-                                                      : "destructive"
-                                                }
-                                                className={
-                                                  lead.domain_relevance_score >= 80
-                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                    : lead.domain_relevance_score >= 50
-                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                }
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.domain_relevance_score >= 80
-                                                  ? "🟢 High"
-                                                  : lead.domain_relevance_score >= 50
-                                                    ? "🟡 Medium"
-                                                    : "🔴 Low"}
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                          <div className="space-y-3 pt-2">
-                                            {/* Domain Relevance Details */}
-                                            {lead.domain_relevance_score !== null ? (
-                                              <div className="p-4 bg-muted rounded-lg space-y-3">
-                                                <div>
-                                                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                                                    AI Relevance Score
-                                                  </p>
-                                                  <p className="text-3xl font-bold">
-                                                    {lead.domain_relevance_score}/100
-                                                  </p>
-                                                  <p className="text-xs text-muted-foreground mt-1">
-                                                    Evaluated by ChatGPT
-                                                  </p>
-                                                </div>
-
-                                                {lead.domain_relevance_explanation && (
-                                                  <div className="pt-3 border-t">
-                                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                      Analysis
-                                                    </p>
-                                                    <p className="text-sm text-foreground">
-                                                      {lead.domain_relevance_explanation}
-                                                    </p>
-                                                  </div>
-                                                )}
-
-                                                <div className="pt-3 border-t">
-                                                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                    Company
-                                                  </p>
-                                                  <p className="text-sm text-foreground font-medium">{lead.company}</p>
-                                                  <p className="text-sm font-medium text-muted-foreground mb-2 mt-3">
-                                                    Domain
-                                                  </p>
-                                                  <a
-                                                    href={`https://${lead.domain}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                                                  >
-                                                    {lead.domain}
-                                                    <ExternalLink className="h-3 w-3" />
-                                                  </a>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <p className="text-sm text-muted-foreground">
-                                                No relevance score calculated yet
-                                              </p>
-                                            )}
-
-                                            {/* Score Button */}
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="w-full"
-                                              disabled={!lead.company || !lead.domain || scoringDomain === lead.id}
-                                              onClick={() => handleScoreDomainRelevance(lead)}
-                                            >
-                                              {scoringDomain === lead.id ? (
-                                                <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  Scoring...
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Sparkles className="mr-2 h-4 w-4" />
-                                                  Score Domain Relevance
-                                                </>
-                                              )}
-                                            </Button>
-
-                                            {/* Show message if domain not available */}
-                                            {(!lead.domain || !lead.company) && (
-                                              <p className="text-xs text-muted-foreground text-center">
-                                                Run domain enrichment first to get company domain
-                                              </p>
-                                            )}
-                                          </div>
-                                        </AccordionContent>
-                                      </AccordionItem>
-
-                                      {/* Industry Relevance Accordion Item */}
-                                      <AccordionItem value="industry-relevance" className="border-border">
-                                        <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
-                                          <div className="flex items-center justify-between w-full pr-4">
-                                            <div className="flex items-center gap-2">
-                                              <span>Industry Relevance</span>
-                                              {lead.industry_relevance_score !== null && (
-                                                <span className="font-semibold text-foreground">
-                                                  {lead.industry_relevance_score}/100
-                                                </span>
-                                              )}
-                                            </div>
-                                            {lead.industry_relevance_score !== null && (
-                                              <Badge
-                                                variant={
-                                                  lead.industry_relevance_score >= 80
-                                                    ? "default"
-                                                    : lead.industry_relevance_score >= 50
-                                                      ? "secondary"
-                                                      : "destructive"
-                                                }
-                                                className={
-                                                  lead.industry_relevance_score >= 80
-                                                    ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                    : lead.industry_relevance_score >= 50
-                                                      ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                      : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                }
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                {lead.industry_relevance_score >= 80
-                                                  ? "🟢 High"
-                                                  : lead.industry_relevance_score >= 50
-                                                    ? "🟡 Medium"
-                                                    : "🔴 Low"}
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                          <div className="space-y-3 pt-2">
-                                            {lead.industry_relevance_score !== null ? (
-                                              <div className="p-4 bg-muted rounded-lg space-y-3">
-                                                <div>
-                                                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                                                    AI Industry Match Score
-                                                  </p>
-                                                  <p className="text-3xl font-bold">
-                                                    {lead.industry_relevance_score}/100
-                                                  </p>
-                                                  <p className="text-xs text-muted-foreground mt-1">
-                                                    Evaluated by Gemini AI
-                                                  </p>
-                                                </div>
-
-                                                {lead.industry_relevance_explanation && (
-                                                  <div className="pt-3 border-t">
-                                                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                      Analysis
-                                                    </p>
-                                                    <p className="text-sm text-foreground">
-                                                      {lead.industry_relevance_explanation}
-                                                    </p>
-                                                  </div>
-                                                )}
-
-                                                <div className="pt-3 border-t">
-                                                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                    MICS Classification
-                                                  </p>
-                                                  {lead.mics_sector && (
-                                                    <p className="text-sm text-foreground">
-                                                      <span className="font-medium">Sector:</span> {lead.mics_sector}
-                                                    </p>
-                                                  )}
-                                                  {lead.mics_subsector && (
-                                                    <p className="text-sm text-foreground mt-1">
-                                                      <span className="font-medium">Subsector:</span>{" "}
-                                                      {lead.mics_subsector}
-                                                    </p>
-                                                  )}
-                                                  {lead.mics_segment && (
-                                                    <p className="text-sm text-foreground mt-1">
-                                                      <span className="font-medium">Segment:</span> {lead.mics_segment}
-                                                    </p>
-                                                  )}
-                                                  {!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment && (
-                                                    <p className="text-sm text-muted-foreground italic">
-                                                      No MICS classification data available
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <p className="text-sm text-muted-foreground">
-                                                No industry relevance score calculated yet
-                                              </p>
-                                            )}
-
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="w-full"
-                                              disabled={
-                                                !lead.domain || 
-                                                scoringIndustry === lead.id ||
-                                                (!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment)
-                                              }
-                                              onClick={() => handleScoreIndustryRelevance(lead)}
-                                            >
-                                              {scoringIndustry === lead.id ? (
-                                                <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  Scoring...
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Sparkles className="mr-2 h-4 w-4" />
-                                                  Calculate Industry Relevance
-                                                </>
-                                              )}
-                                            </Button>
-
-                                            {!lead.domain && (
-                                              <p className="text-xs text-muted-foreground text-center">
-                                                Run domain enrichment first
-                                              </p>
-                                            )}
-                                            {lead.domain && !lead.mics_sector && !lead.mics_subsector && !lead.mics_segment && (
-                                              <p className="text-xs text-muted-foreground text-center">
-                                                No MICS classification data - cannot score industry relevance
-                                              </p>
-                                            )}
-                                          </div>
-                                        </AccordionContent>
-                                      </AccordionItem>
-                                    </Accordion>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-
-                              {/* Company Details Accordion Item - Only visible when domain exists */}
-                              {lead.domain && (
-                                <AccordionItem value="company-details" className="border-border">
-                                  <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                    Company Details
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="space-y-3 pt-2">
-                                      <p className="text-sm text-muted-foreground mb-3">
-                                        {lead.apollo_not_found ? (
-                                          <>
-                                            {lead.scraped_data_log ? (
-                                              <>
-                                                Company details enriched via website scraping
-                                                <span className="block text-xs text-green-600 mt-1">
-                                                  ✓ Scraped from website (Apollo: Company not found)
-                                                </span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                Enrich this lead by scraping the company website
-                                                <span className="block text-xs text-yellow-600 mt-1">
-                                                  ⚠ Apollo: Company not found - will use website scraping
-                                                </span>
-                                              </>
-                                            )}
-                                          </>
-                                        ) : lead.enrichment_source === 'apollo_api' ? (
-                                          <>
-                                            Enrich this lead with detailed company information from Apollo
-                                            <span className="block text-xs text-primary mt-1">
-                                              ✓ Domain found via Apollo - direct retrieval available
-                                            </span>
-                                          </>
-                                        ) : (
-                                          'Enrich this lead with detailed company information'
-                                        )}
-                                      </p>
-
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        className="w-full"
-                                        disabled={enrichingCompanyDetails === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50}
-                                        onClick={() => handleEnrichCompanyDetails(lead)}
-                                      >
-                                        {enrichingCompanyDetails === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            {companyDetailsStep?.message || 'Enriching...'}
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Sparkles className="mr-2 h-4 w-4" />
-                                            Enrich Company Details
-                                          </>
-                                        )}
-                                      </Button>
-                                      {(lead.match_score === null || (lead.match_score ?? 0) < 50) && (
-                                        <p className="text-xs text-destructive/70">
-                                          {lead.match_score === null 
-                                            ? "Blocked: Match Score not calculated (run Calculate Match Score first)"
-                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
-                                        </p>
-                                      )}
-
-                                      {/* Step progress indicator */}
-                                      {enrichingCompanyDetails === lead.id && companyDetailsStep && (
-                                        <div className="bg-muted/50 rounded-md p-3 space-y-2">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            {lead.apollo_not_found ? (
-                                              // ScraperAPI path (4 steps)
-                                              <>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium bg-yellow-500 text-white">
-                                                    ✗
-                                                  </div>
-                                                  <span className="text-muted-foreground line-through">Apollo</span>
-                                                </div>
-                                                <div className="w-3 h-px bg-border" />
-                                                <div className="flex items-center gap-1 text-xs">
-                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    companyDetailsStep.step === 1 
-                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                      : 'bg-green-500 text-white'
-                                                  }`}>
-                                                    1
-                                                  </div>
-                                                  <span className="text-muted-foreground">Scrape</span>
-                                                </div>
-                                                <div className="w-3 h-px bg-border" />
-                                                <div className="flex items-center gap-1 text-xs">
-                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    companyDetailsStep.step === 2 
-                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                      : companyDetailsStep.step > 2 
-                                                        ? 'bg-green-500 text-white' 
-                                                        : 'bg-muted text-muted-foreground'
-                                                  }`}>
-                                                    2
-                                                  </div>
-                                                  <span className="text-muted-foreground">Parse</span>
-                                                </div>
-                                                <div className="w-3 h-px bg-border" />
-                                                <div className="flex items-center gap-1 text-xs">
-                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    companyDetailsStep.step === 3 
-                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                      : companyDetailsStep.step > 3 
-                                                        ? 'bg-green-500 text-white' 
-                                                        : 'bg-muted text-muted-foreground'
-                                                  }`}>
-                                                    3
-                                                  </div>
-                                                  <span className="text-muted-foreground">AI</span>
-                                                </div>
-                                              </>
-                                            ) : lead.enrichment_source === 'apollo_api' ? (
-                                              // Single step for direct Apollo
-                                              <div className="flex items-center gap-2 text-xs">
-                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                  companyDetailsStep.step === 1 
-                                                    ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                    : 'bg-green-500 text-white'
-                                                }`}>
-                                                  1
-                                                </div>
-                                                <span className="text-muted-foreground">Direct retrieval</span>
-                                              </div>
-                                            ) : (
-                                              // Two steps for non-Apollo sources (may fallback to scraper)
-                                              <>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    companyDetailsStep.step === 1 
-                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                      : 'bg-green-500 text-white'
-                                                  }`}>
-                                                    1
-                                                  </div>
-                                                  <span className="text-muted-foreground">Search Apollo</span>
-                                                </div>
-                                                <div className="w-4 h-px bg-border" />
-                                                <div className="flex items-center gap-2 text-xs">
-                                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                                                    companyDetailsStep.step === 2 
-                                                      ? 'bg-primary text-primary-foreground animate-pulse' 
-                                                      : companyDetailsStep.step > 2 
-                                                        ? 'bg-green-500 text-white' 
-                                                        : 'bg-muted text-muted-foreground'
-                                                  }`}>
-                                                    2
-                                                  </div>
-                                                  <span className="text-muted-foreground">Get details</span>
-                                                </div>
-                                              </>
-                                            )}
-                                          </div>
-                                          <p className="text-xs text-muted-foreground">{companyDetailsStep.message}</p>
-                                        </div>
-                                      )}
-
-                                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                        <span>• Company Size</span>
-                                        <span>• Annual Revenue</span>
-                                        <span>• Industry</span>
-                                        <span>• Description</span>
-                                        <span>• Tech Stack</span>
-                                        <span>• LinkedIn URL</span>
-                                      </div>
-
-                                      {/* Scraped Data Log Section */}
-                                      {lead.scraped_data_log && (
-                                        <Accordion type="single" collapsible className="mt-4">
-                                          <AccordionItem value="scraped-data" className="border rounded-lg bg-muted/30">
-                                            <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
-                                              <div className="flex items-center gap-2">
-                                                {lead.scraped_data_log.source === 'apollo' ? (
-                                                  <>
-                                                    <span>🚀 Apollo Enrichment Log</span>
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                                                      {lead.scraped_data_log.fields_populated?.length || 0} fields
-                                                    </Badge>
-                                                  </>
-                                                ) : (
-                                                  <>
-                                                    <span>📄 View Scraped Data</span>
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                                      {lead.scraped_data_log.services?.length || 0} services found
-                                                    </Badge>
-                                                  </>
-                                                )}
-                                              </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-3 pb-3">
-                                              <div className="space-y-2 text-xs">
-                                                {/* Apollo Data Display */}
-                                                {lead.scraped_data_log.source === 'apollo' && lead.scraped_data_log.apollo_data && (
-                                                  <div className="grid gap-1.5">
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Organization:</span>
-                                                      <span className="font-medium">{lead.scraped_data_log.organization_name}</span>
-                                                    </div>
-                                                    {lead.scraped_data_log.apollo_data.industry && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Industry:</span>
-                                                        <span>{lead.scraped_data_log.apollo_data.industry}</span>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.apollo_data.estimated_employees && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Employees:</span>
-                                                        <span>{lead.scraped_data_log.apollo_data.estimated_employees.toLocaleString()}</span>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.apollo_data.revenue && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Revenue:</span>
-                                                        <span>{lead.scraped_data_log.apollo_data.revenue}</span>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.apollo_data.founded_year && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Founded:</span>
-                                                        <span>{lead.scraped_data_log.apollo_data.founded_year}</span>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.apollo_data.city && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">HQ Location:</span>
-                                                        <span>
-                                                          {[lead.scraped_data_log.apollo_data.city, lead.scraped_data_log.apollo_data.state, lead.scraped_data_log.apollo_data.country].filter(Boolean).join(', ')}
-                                                        </span>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.apollo_data.keywords && lead.scraped_data_log.apollo_data.keywords.length > 0 && (
-                                                      <div>
-                                                        <span className="text-muted-foreground block mb-1">Keywords:</span>
-                                                        <div className="flex flex-wrap gap-1">
-                                                          {lead.scraped_data_log.apollo_data.keywords.map((kw, idx) => (
-                                                            <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
-                                                              {kw}
-                                                            </span>
-                                                          ))}
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                    {lead.scraped_data_log.fields_populated && lead.scraped_data_log.fields_populated.length > 0 && (
-                                                      <div className="mt-2 pt-2 border-t border-dashed">
-                                                        <span className="text-muted-foreground block mb-1">Fields Populated:</span>
-                                                        <div className="flex flex-wrap gap-1">
-                                                          {lead.scraped_data_log.fields_populated.map((field, idx) => (
-                                                            <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                              {field}
-                                                            </Badge>
-                                                          ))}
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                    {/* Enrichment Steps */}
-                                                    {lead.scraped_data_log.enrichment_steps && lead.scraped_data_log.enrichment_steps.length > 0 && (
-                                                      <div className="mt-2 pt-2 border-t border-dashed">
-                                                        <span className="text-muted-foreground block mb-1">Enrichment Steps:</span>
-                                                        <div className="space-y-1">
-                                                          {lead.scraped_data_log.enrichment_steps.map((step, idx) => (
-                                                            <div key={idx} className="flex items-center gap-2 text-[10px]">
-                                                              <Badge 
-                                                                variant={step.status === 'success' ? 'default' : step.status === 'failed' ? 'destructive' : 'secondary'}
-                                                                className="text-[9px] px-1 py-0"
-                                                              >
-                                                                Step {step.step}
-                                                              </Badge>
-                                                              <span className="text-muted-foreground">{step.action.replace(/_/g, ' ')}</span>
-                                                              <span className={step.status === 'success' ? 'text-green-600' : step.status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}>
-                                                                {step.status === 'success' ? '✓' : step.status === 'failed' ? '✗' : '...'}
-                                                              </span>
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-
-                                                {/* Scraper Data Display (existing) */}
-                                                {lead.scraped_data_log.source !== 'apollo' && (
-                                                <div className="grid gap-1.5">
-                                                  <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">Title:</span>
-                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.title || ''}>
-                                                      {lead.scraped_data_log.title || <span className="text-muted-foreground/50 italic">Not found</span>}
-                                                    </span>
-                                                  </div>
-                                                  <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">H1:</span>
-                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.h1 || ''}>
-                                                      {lead.scraped_data_log.h1 || <span className="text-muted-foreground/50 italic">Not found</span>}
-                                                    </span>
-                                                  </div>
-                                                  <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">Meta Description:</span>
-                                                    <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.meta_description || ''}>
-                                                      {lead.scraped_data_log.meta_description || <span className="text-muted-foreground/50 italic">Not found</span>}
-                                                    </span>
-                                                  </div>
-                                                  {lead.scraped_data_log.meta_keywords && (
-                                                    <div>
-                                                      <span className="text-muted-foreground block mb-1">Meta Keywords:</span>
-                                                      <span className="text-[10px] block bg-muted/50 p-1.5 rounded break-words">
-                                                        {lead.scraped_data_log.meta_keywords}
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.logo_url && (
-                                                    <div className="flex justify-between items-center">
-                                                      <span className="text-muted-foreground">Logo URL:</span>
-                                                      <a 
-                                                        href={lead.scraped_data_log.logo_url.startsWith('http') ? lead.scraped_data_log.logo_url : `https://${lead.domain}${lead.scraped_data_log.logo_url}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline flex items-center gap-1"
-                                                      >
-                                                        View <ExternalLink className="h-2.5 w-2.5" />
-                                                      </a>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.linkedin && (
-                                                    <div className="flex justify-between items-center">
-                                                      <span className="text-muted-foreground">LinkedIn:</span>
-                                                      <a 
-                                                        href={lead.scraped_data_log.linkedin.startsWith('http') ? lead.scraped_data_log.linkedin : `https://${lead.scraped_data_log.linkedin}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline flex items-center gap-1"
-                                                      >
-                                                        View <ExternalLink className="h-2.5 w-2.5" />
-                                                      </a>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.facebook && (
-                                                    <div className="flex justify-between items-center">
-                                                      <span className="text-muted-foreground">Facebook:</span>
-                                                      <a 
-                                                        href={lead.scraped_data_log.facebook.startsWith('http') ? lead.scraped_data_log.facebook : `https://${lead.scraped_data_log.facebook}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline flex items-center gap-1"
-                                                      >
-                                                        View <ExternalLink className="h-2.5 w-2.5" />
-                                                      </a>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.about_pages && lead.scraped_data_log.about_pages.length > 0 && (
-                                                    <div>
-                                                      <span className="text-muted-foreground block mb-1">About Pages ({lead.scraped_data_log.about_pages.length}):</span>
-                                                      <div className="text-[10px] space-y-0.5">
-                                                        {lead.scraped_data_log.about_pages.slice(0, 5).map((page, idx) => (
-                                                          <a 
-                                                            key={idx}
-                                                            href={page.startsWith('http') ? page : `https://${lead.domain}${page}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-primary hover:underline block truncate"
-                                                          >
-                                                            {page}
-                                                          </a>
-                                                        ))}
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.nav_links && lead.scraped_data_log.nav_links.length > 0 && (
-                                                    <div>
-                                                      <span className="text-muted-foreground block mb-1">Nav Links ({lead.scraped_data_log.nav_links.length}):</span>
-                                                      <div className="flex flex-wrap gap-1">
-                                                        {lead.scraped_data_log.nav_links.slice(0, 15).map((link, idx) => (
-                                                          <span 
-                                                            key={idx}
-                                                            className="text-[10px] bg-muted px-1.5 py-0.5 rounded"
-                                                          >
-                                                            {link}
-                                                          </span>
-                                                        ))}
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  {lead.scraped_data_log.services && lead.scraped_data_log.services.length > 0 && (
-                                                    <div>
-                                                      <span className="text-muted-foreground block mb-1">Services Found ({lead.scraped_data_log.services.length}):</span>
-                                                      <div className="text-[10px] bg-muted/50 p-1.5 rounded max-h-24 overflow-y-auto">
-                                                        {lead.scraped_data_log.services.join(' • ')}
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  
-                                                  {/* Deep Scrape Results Section */}
-                                                  {lead.scraped_data_log.deep_scrape && (
-                                                    <div className="mt-3 pt-3 border-t border-dashed">
-                                                      <span className="text-muted-foreground font-medium block mb-2">🔍 Deep Scrape Results</span>
-                                                      
-                                                      {/* Pages Scraped */}
-                                                      {lead.scraped_data_log.deep_scrape.pages_scraped?.length > 0 ? (
-                                                        <div className="mb-2">
-                                                          <span className="text-muted-foreground block mb-1">
-                                                            Pages Scraped ({lead.scraped_data_log.deep_scrape.pages_scraped.length}):
-                                                          </span>
-                                                          <div className="flex flex-wrap gap-1">
-                                                            {lead.scraped_data_log.deep_scrape.pages_scraped.map((url, idx) => (
-                                                              <a 
-                                                                key={idx}
-                                                                href={url.startsWith('http') ? url : `https://${lead.domain}${url.startsWith('/') ? '' : '/'}${url}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20"
-                                                              >
-                                                                {url.split('/').pop() || url}
-                                                              </a>
-                                                            ))}
-                                                          </div>
-                                                        </div>
-                                                      ) : (
-                                                        <div className="mb-2 text-muted-foreground/50 italic text-[10px]">
-                                                          No high-value pages found to scrape
-                                                        </div>
-                                                      )}
-                                                      
-                                                      {/* Found Data Grid */}
-                                                      <div className="grid gap-1.5 text-[11px]">
-                                                        {/* Founded Year */}
-                                                        <div className="flex justify-between items-center">
-                                                          <span className="text-muted-foreground">Founded Year:</span>
-                                                          {lead.scraped_data_log.deep_scrape.founded_year ? (
-                                                            <span className="flex items-center gap-1">
-                                                              {lead.scraped_data_log.deep_scrape.founded_year}
-                                                              {lead.scraped_data_log.deep_scrape.sources?.founded_year_source && (
-                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
-                                                                  from {lead.scraped_data_log.deep_scrape.sources.founded_year_source}
-                                                                </Badge>
-                                                              )}
-                                                            </span>
-                                                          ) : (
-                                                            <span className="text-muted-foreground/50 italic">Not found</span>
-                                                          )}
-                                                        </div>
-                                                        
-                                                        {/* Employee Count */}
-                                                        <div className="flex justify-between items-center">
-                                                          <span className="text-muted-foreground">Employee Count:</span>
-                                                          {lead.scraped_data_log.deep_scrape.employee_count ? (
-                                                            <span className="flex items-center gap-1">
-                                                              {lead.scraped_data_log.deep_scrape.employee_count}
-                                                              {lead.scraped_data_log.deep_scrape.sources?.employee_count_source && (
-                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
-                                                                  from {lead.scraped_data_log.deep_scrape.sources.employee_count_source}
-                                                                </Badge>
-                                                              )}
-                                                            </span>
-                                                          ) : (
-                                                            <span className="text-muted-foreground/50 italic">Not found</span>
-                                                          )}
-                                                        </div>
-                                                        
-                                                        {/* Contact Email */}
-                                                        <div className="flex justify-between items-center">
-                                                          <span className="text-muted-foreground">Contact Email:</span>
-                                                          {lead.scraped_data_log.deep_scrape.contact_email ? (
-                                                            <span className="flex items-center gap-1">
-                                                              <a 
-                                                                href={`mailto:${lead.scraped_data_log.deep_scrape.contact_email}`}
-                                                                className="text-primary hover:underline"
-                                                              >
-                                                                {lead.scraped_data_log.deep_scrape.contact_email}
-                                                              </a>
-                                                              {lead.scraped_data_log.deep_scrape.contact_email_personal && (
-                                                                <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-100 text-amber-700">
-                                                                  Personal
-                                                                </Badge>
-                                                              )}
-                                                              {lead.scraped_data_log.deep_scrape.sources?.contact_email_source && (
-                                                                <Badge variant="outline" className="text-[9px] px-1 py-0">
-                                                                  from {lead.scraped_data_log.deep_scrape.sources.contact_email_source}
-                                                                </Badge>
-                                                              )}
-                                                            </span>
-                                                          ) : (
-                                                            <span className="text-muted-foreground/50 italic">Not found</span>
-                                                          )}
-                                                        </div>
-                                                        
-                                                        {/* Email Validation Status */}
-                                                        <div className="flex justify-between items-center">
-                                                          <span className="text-muted-foreground">Email Validation:</span>
-                                                          {lead.email_domain_validated ? (
-                                                            <span className="flex items-center gap-1 text-green-600">
-                                                              <span className="text-[10px]">✓ Matches lead email</span>
-                                                              <Badge className="text-[9px] px-1 py-0 bg-green-100 text-green-700 border-green-300">
-                                                                100% Valid
-                                                              </Badge>
-                                                            </span>
-                                                          ) : lead.scraped_data_log?.deep_scrape?.contact_email && lead.email ? (
-                                                            <span className="text-amber-600 text-[10px]">
-                                                              Different from lead
-                                                            </span>
-                                                          ) : (
-                                                            <span className="text-muted-foreground/50 italic text-[10px]">—</span>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  
-                                                  {/* Company Contacts Found */}
-                                                  {lead.company_contacts && lead.company_contacts.length > 0 && (
-                                                    <div className="mt-3 pt-3 border-t border-dashed">
-                                                      <span className="text-muted-foreground font-medium block mb-2">
-                                                        📧 Additional Contacts ({lead.company_contacts.length})
-                                                      </span>
-                                                      <div className="flex flex-wrap gap-1.5">
-                                                        {lead.company_contacts.map((contact, idx) => (
-                                                          <a 
-                                                            key={idx}
-                                                            href={`mailto:${contact.email}`}
-                                                            className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-1 hover:bg-blue-100"
-                                                          >
-                                                            {contact.email}
-                                                            {contact.is_personal && (
-                                                              <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-amber-100 text-amber-700">
-                                                                Personal
-                                                              </Badge>
-                                                            )}
-                                                          </a>
-                                                        ))}
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  
-                                                  {/* Show message if no deep scrape was performed */}
-                                                  {!lead.scraped_data_log.deep_scrape && (
-                                                    <div className="mt-3 pt-3 border-t border-dashed">
-                                                      <span className="text-muted-foreground/50 italic text-[10px]">
-                                                        🔍 Deep Scrape: Not performed
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                                )}
-                                              </div>
-                                            </AccordionContent>
-                                          </AccordionItem>
-                                        </Accordion>
-                                      )}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              )}
-
-                              {/* Find Contacts Accordion - Always visible when Apollo enriched */}
-                              <AccordionItem value="find-contacts" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    <span>Find Contacts</span>
-                                    {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
-                                      <Badge variant="secondary" className="ml-2">
-                                        {lead.company_contacts.filter(c => c.name).length} found
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-4">
-                                    {/* Find Contacts Button */}
-                                    <div className="space-y-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="w-full"
-                                        disabled={
-                                          findingContacts === lead.id ||
-                                          !lead.domain ||
-                                          lead.match_score === null ||
-                                          (lead.match_score ?? 0) < 50
-                                        }
-                                        onClick={() => handleFindContacts(lead)}
-                                      >
-                                        {findingContacts === lead.id ? (
-                                          <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Searching Contacts...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Users className="mr-2 h-4 w-4" />
-                                            Find Company Contacts
-                                          </>
-                                        )}
-                                      </Button>
-
-                                      {/* Show disabled state reason */}
-                                      {!lead.domain ? (
-                                        <p className="text-xs text-muted-foreground text-center">
-                                          ⚠️ Domain required. Run enrichment first.
-                                        </p>
-                                      ) : (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
-                                        <p className="text-xs text-destructive/70 text-center">
-                                          {lead.match_score === null 
-                                            ? "Blocked: Match Score not calculated"
-                                            : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    {/* Display Found Contacts */}
-                                    {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
-                                      <div className="space-y-3 pt-2 border-t">
-                                        <p className="text-xs text-muted-foreground">Discovered Contacts:</p>
-                                        <div className="space-y-2">
-                                          {lead.company_contacts
-                                            .filter(contact => contact.name)
-                                            .map((contact, idx) => (
-                                              <div key={idx} className="p-3 border rounded-lg bg-muted/30">
-                                                <div className="flex items-start justify-between">
-                                                  <div>
-                                                    <p className="font-medium text-sm">{contact.name}</p>
-                                                    {contact.title && (
-                                                      <p className="text-xs text-muted-foreground">{contact.title}</p>
-                                                    )}
-                                                  </div>
-                                                  {contact.email_status === 'verified' && (
-                                                    <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
-                                                      Verified
-                                                    </Badge>
-                                                  )}
-                                                </div>
-                                                <div className="mt-2 space-y-1">
-                                                  {contact.email && (
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                      <Mail className="h-3 w-3 text-muted-foreground" />
-                                                      <a
-                                                        href={`mailto:${contact.email}`}
-                                                        className="text-primary hover:underline"
-                                                      >
-                                                        {contact.email}
-                                                      </a>
-                                                    </div>
-                                                  )}
-                                                  {contact.linkedin_url && (
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                                                      <a
-                                                        href={contact.linkedin_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline"
-                                                      >
-                                                        LinkedIn Profile
-                                                      </a>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-
-                              {/* Enrich Contact Accordion - Check if lead exists in company contacts */}
-                              <AccordionItem value="enrich-contact" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    <span>Enrich Contact</span>
-                                    {(() => {
-                                      // Check if lead exists in company_contacts by email or name
-                                      const matchedContact = lead.company_contacts?.find(c => 
-                                        (lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
-                                        (lead.full_name && c.name && c.name.toLowerCase() === lead.full_name.toLowerCase())
-                                      );
-                                      return matchedContact ? (
-                                        <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
-                                          <CheckCircle className="h-3 w-3 mr-1" />
-                                          Found
-                                        </Badge>
-                                      ) : null;
-                                    })()}
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-4">
-                                    {/* Check if lead contact exists in company_contacts */}
-                                    {(() => {
-                                      const matchedContact = lead.company_contacts?.find(c => 
-                                        (lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
-                                        (lead.full_name && c.name && c.name.toLowerCase() === lead.full_name.toLowerCase())
-                                      );
-
-                                      if (matchedContact) {
-                                        return (
-                                          <div className="space-y-3">
-                                            <div className="p-4 border rounded-lg bg-green-50/50 border-green-200">
-                                              <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                  <div className="flex items-center gap-2">
-                                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                                    <p className="font-semibold text-sm text-green-800">Contact Found in Company</p>
-                                                  </div>
-                                                  <p className="text-xs text-muted-foreground mt-1">
-                                                    This lead matches a discovered company contact
-                                                  </p>
-                                                </div>
-                                              </div>
-
-                                              <div className="space-y-3 border-t border-green-200 pt-3">
-                                                {/* Name */}
-                                                <div className="flex justify-between items-start">
-                                                  <span className="text-xs text-muted-foreground">Name</span>
-                                                  <span className="text-sm font-medium text-right">
-                                                    {matchedContact.name || `${matchedContact.first_name || ''} ${matchedContact.last_name || ''}`.trim() || '—'}
-                                                  </span>
-                                                </div>
-
-                                                {/* Title */}
-                                                {matchedContact.title && (
-                                                  <div className="flex justify-between items-start">
-                                                    <span className="text-xs text-muted-foreground">Title</span>
-                                                    <span className="text-sm text-right">{matchedContact.title}</span>
-                                                  </div>
-                                                )}
-
-                                                {/* Email */}
-                                                {matchedContact.email && (
-                                                  <div className="flex justify-between items-start">
-                                                    <span className="text-xs text-muted-foreground">Email</span>
-                                                    <div className="flex items-center gap-2">
-                                                      <a
-                                                        href={`mailto:${matchedContact.email}`}
-                                                        className="text-sm text-primary hover:underline"
-                                                      >
-                                                        {matchedContact.email}
-                                                      </a>
-                                                      {matchedContact.email_status === 'verified' && (
-                                                        <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
-                                                          Verified
-                                                        </Badge>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                {/* Social Profiles */}
-                                                {(matchedContact.linkedin_url || matchedContact.facebook_url || matchedContact.twitter_url || matchedContact.github_url) && (
-                                                  <div className="flex flex-col gap-2">
-                                                    <span className="text-xs text-muted-foreground">Social Profiles</span>
-                                                    <div className="space-y-1.5">
-                                                      {matchedContact.linkedin_url && (
-                                                        <div className="flex items-center justify-between gap-2">
-                                                          <a
-                                                            href={matchedContact.linkedin_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                          >
-                                                            <Linkedin className="h-3 w-3" />
-                                                            {matchedContact.linkedin_url.replace('https://', '').replace('linkedin.com/', '')}
-                                                            <ExternalLink className="h-2.5 w-2.5" />
-                                                          </a>
-                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'linkedin') && (
-                                                            <Badge variant="outline" className={
-                                                              matchedContact.social_search_logs.find(l => l.platform === 'linkedin')?.source === 'apollo'
-                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
-                                                            }>
-                                                              {matchedContact.social_search_logs.find(l => l.platform === 'linkedin')?.source === 'apollo' ? 'Apollo' : 'Google'}
-                                                            </Badge>
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                      {matchedContact.facebook_url && (
-                                                        <div className="flex items-center justify-between gap-2">
-                                                          <a
-                                                            href={matchedContact.facebook_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                          >
-                                                            <Facebook className="h-3 w-3" />
-                                                            {matchedContact.facebook_url.replace('https://', '').replace('facebook.com/', '')}
-                                                            <ExternalLink className="h-2.5 w-2.5" />
-                                                          </a>
-                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'facebook') && (
-                                                            <Badge variant="outline" className={
-                                                              matchedContact.social_search_logs.find(l => l.platform === 'facebook')?.source === 'apollo'
-                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
-                                                            }>
-                                                              {matchedContact.social_search_logs.find(l => l.platform === 'facebook')?.source === 'apollo' ? 'Apollo' : 'Google'}
-                                                            </Badge>
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                      {matchedContact.twitter_url && (
-                                                        <div className="flex items-center justify-between gap-2">
-                                                          <a
-                                                            href={matchedContact.twitter_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                          >
-                                                            <Twitter className="h-3 w-3" />
-                                                            {matchedContact.twitter_url.replace('https://', '').replace('twitter.com/', '')}
-                                                            <ExternalLink className="h-2.5 w-2.5" />
-                                                          </a>
-                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'twitter') && (
-                                                            <Badge variant="outline" className={
-                                                              matchedContact.social_search_logs.find(l => l.platform === 'twitter')?.source === 'apollo'
-                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
-                                                            }>
-                                                              {matchedContact.social_search_logs.find(l => l.platform === 'twitter')?.source === 'apollo' ? 'Apollo' : 'Google'}
-                                                            </Badge>
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                      {matchedContact.github_url && (
-                                                        <div className="flex items-center justify-between gap-2">
-                                                          <a
-                                                            href={matchedContact.github_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                          >
-                                                            <Github className="h-3 w-3" />
-                                                            {matchedContact.github_url.replace('https://', '').replace('github.com/', '')}
-                                                            <ExternalLink className="h-2.5 w-2.5" />
-                                                          </a>
-                                                          {matchedContact.social_search_logs?.find(l => l.platform === 'github') && (
-                                                            <Badge variant="outline" className={
-                                                              matchedContact.social_search_logs.find(l => l.platform === 'github')?.source === 'apollo'
-                                                                ? 'bg-purple-50 text-purple-700 border-purple-200 text-[9px]'
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[9px]'
-                                                            }>
-                                                              {matchedContact.social_search_logs.find(l => l.platform === 'github')?.source === 'apollo' ? 'Apollo' : 'Google'}
-                                                            </Badge>
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                {/* Source */}
-                                                <div className="flex justify-between items-start">
-                                                  <span className="text-xs text-muted-foreground">Source</span>
-                                                  <Badge 
-                                                    variant="outline" 
-                                                    className={matchedContact.source === 'apollo_people_search' 
-                                                      ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                                                      : 'bg-blue-50 text-blue-700 border-blue-200'
-                                                    }
-                                                  >
-                                                    {matchedContact.source === 'apollo_people_search' ? 'Apollo' : 'Scraped'}
-                                                  </Badge>
-                                                </div>
-
-                                                {/* Additional badges */}
-                                                {(matchedContact.is_personal || matchedContact.found_without_role_filter) && (
-                                                  <div className="flex justify-between items-start">
-                                                    <span className="text-xs text-muted-foreground">Status</span>
-                                                    <div className="flex gap-1">
-                                                      {matchedContact.is_personal && (
-                                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px]">
-                                                          Personal Email
-                                                        </Badge>
-                                                      )}
-                                                      {matchedContact.found_without_role_filter && (
-                                                        <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">
-                                                          Name Only
-                                                        </Badge>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-
-                                              {/* Re-search button */}
-                                              <div className="pt-3 border-t border-green-200">
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  className="w-full"
-                                                  disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
-                                                  onClick={() => handleEnrichContact(lead)}
-                                                >
-                                                  {enrichingContact === lead.id ? (
-                                                    <>
-                                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                      Searching...
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Search className="mr-2 h-4 w-4" />
-                                                      Re-search in Apollo
-                                                    </>
-                                                  )}
-                                                </Button>
-                                                <p className="text-xs text-muted-foreground mt-1 text-center">
-                                                  Search for additional social profiles
+                                              {(!lead.email || !lead.full_name) && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  Name and email required to search Apollo.
                                                 </p>
-                                              </div>
+                                              )}
+
+                                              {/* Visual Stepper - Show when enriching or when we have steps */}
+                                              {(enrichingContact === lead.id || enrichContactSteps) && (
+                                                <EnrichContactStepper
+                                                  steps={enrichContactSteps}
+                                                  isLoading={enrichingContact === lead.id}
+                                                />
+                                              )}
                                             </div>
-                                          </div>
-                                        );
-                                      }
-
-                                      // Contact not found in company_contacts
-                                      return (
-                                        <div className="space-y-3">
-                                          {/* Show lead's current data */}
-                                          <div className="border rounded-lg p-3 space-y-2">
-                                            <p className="text-xs font-medium text-muted-foreground">Lead Data</p>
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                              <span className="text-muted-foreground">Name:</span>
-                                              <span>{lead.full_name}</span>
-                                              <span className="text-muted-foreground">Email:</span>
-                                              <span>{lead.email || '—'}</span>
-                                              <span className="text-muted-foreground">Company:</span>
-                                              <span>{lead.company || '—'}</span>
-                                              <span className="text-muted-foreground">Domain:</span>
-                                              <span>{lead.domain || '—'}</span>
-                                            </div>
-                                          </div>
-
-                                          {/* Search Button */}
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full"
-                                            disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
-                                            onClick={() => handleEnrichContact(lead)}
-                                          >
-                                            {enrichingContact === lead.id ? (
-                                              <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Searching...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Search className="mr-2 h-4 w-4" />
-                                                Enrich Contact
-                                              </>
-                                            )}
-                                          </Button>
-                                          {(!lead.email || !lead.full_name) && (
-                                            <p className="text-xs text-muted-foreground">
-                                              Name and email required to search Apollo.
-                                            </p>
-                                          )}
-
-                                          {/* Visual Stepper - Show when enriching or when we have steps */}
-                                          {(enrichingContact === lead.id || enrichContactSteps) && (
-                                            <EnrichContactStepper 
-                                              steps={enrichContactSteps} 
-                                              isLoading={enrichingContact === lead.id} 
-                                            />
-                                          )}
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-
-                              {/* Company News Accordion - After Find Contacts */}
-                              <AccordionItem value="company-news" className="border-border">
-                                <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                    <Newspaper className="h-4 w-4" />
-                                    <span>Company News</span>
-                                    {lead.news && (() => {
-                                      try {
-                                        const newsData = JSON.parse(lead.news);
-                                        if (newsData.news_count > 0) {
-                                          return (
-                                            <Badge variant="secondary" className="ml-2">
-                                              {newsData.news_count} articles
-                                            </Badge>
                                           );
-                                        }
-                                      } catch { }
-                                      return null;
-                                    })()}
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-4">
-                                    {/* Get Company News Button */}
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="w-full"
-                                      disabled={
-                                        fetchingNews === lead.id || 
-                                        !lead.domain ||
-                                        lead.match_score === null ||
-                                        (lead.match_score ?? 0) < 50
-                                      }
-                                      onClick={() => handleGetCompanyNews(lead)}
-                                    >
-                                      {fetchingNews === lead.id ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Fetching News...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Newspaper className="mr-2 h-4 w-4" />
-                                          Get Company News
-                                        </>
-                                      )}
-                                    </Button>
-                                    {!lead.domain ? (
-                                      <p className="text-xs text-muted-foreground">
-                                        Domain required. Run enrichment first.
-                                      </p>
-                                    ) : (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
-                                      <p className="text-xs text-destructive/70">
-                                        {lead.match_score === null 
-                                          ? "Blocked: Match Score not calculated"
-                                          : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
-                                      </p>
-                                    )}
+                                        })()}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
 
-                                    {/* Display News Results with Logs */}
-                                    {lead.news && (() => {
-                                      try {
-                                        const newsData = JSON.parse(lead.news);
-                                        return (
-                                          <div className="space-y-3 pt-2 border-t">
-                                            {/* Search Logs */}
-                                            <Collapsible>
-                                              <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
-                                                <ChevronRight className="h-3 w-3 transition-transform duration-200 data-[state=open]:rotate-90" />
-                                                View Search Logs
-                                              </CollapsibleTrigger>
-                                              <CollapsibleContent className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
-                                                <p><strong>Query:</strong> {newsData.search_query}</p>
-                                                <p><strong>Searched:</strong> {new Date(newsData.searched_at).toLocaleString()}</p>
-                                                <p><strong>Results:</strong> {newsData.news_count} articles found</p>
-                                              </CollapsibleContent>
-                                            </Collapsible>
+                                  {/* Company News Accordion - After Find Contacts */}
+                                  <AccordionItem value="company-news" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <Newspaper className="h-4 w-4" />
+                                        <span>Company News</span>
+                                        {lead.news &&
+                                          (() => {
+                                            try {
+                                              const newsData = JSON.parse(lead.news);
+                                              if (newsData.news_count > 0) {
+                                                return (
+                                                  <Badge variant="secondary" className="ml-2">
+                                                    {newsData.news_count} articles
+                                                  </Badge>
+                                                );
+                                              }
+                                            } catch {}
+                                            return null;
+                                          })()}
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-4">
+                                        {/* Get Company News Button */}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="w-full"
+                                          disabled={
+                                            fetchingNews === lead.id ||
+                                            !lead.domain ||
+                                            lead.match_score === null ||
+                                            (lead.match_score ?? 0) < 50
+                                          }
+                                          onClick={() => handleGetCompanyNews(lead)}
+                                        >
+                                          {fetchingNews === lead.id ? (
+                                            <>
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                              Fetching News...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Newspaper className="mr-2 h-4 w-4" />
+                                              Get Company News
+                                            </>
+                                          )}
+                                        </Button>
+                                        {!lead.domain ? (
+                                          <p className="text-xs text-muted-foreground">
+                                            Domain required. Run enrichment first.
+                                          </p>
+                                        ) : (
+                                          (lead.match_score === null || (lead.match_score ?? 0) < 50) && (
+                                            <p className="text-xs text-destructive/70">
+                                              {lead.match_score === null
+                                                ? "Blocked: Match Score not calculated"
+                                                : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
+                                            </p>
+                                          )
+                                        )}
 
-                                            {/* News Items */}
-                                            {newsData.items?.length > 0 ? (
-                                              <div className="space-y-2">
-                                                <p className="text-xs text-muted-foreground">Latest News:</p>
-                                                {newsData.items.map((item: any, idx: number) => (
-                                                  <div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-2">
-                                                    {/* Title with link */}
-                                                    <a 
-                                                      href={item.link} 
-                                                      target="_blank" 
-                                                      rel="noopener noreferrer"
-                                                      className="font-medium text-sm text-primary hover:underline block"
-                                                    >
-                                                      {item.title}
-                                                    </a>
-                                                    
-                                                    {/* Source and date */}
-                                                    <p className="text-xs text-muted-foreground">
-                                                      {item.source} • {item.date}
-                                                    </p>
-                                                    
-                                                    {/* Snippet as description */}
-                                                    {item.snippet && (
-                                                      <p className="text-xs text-foreground/80 leading-relaxed">
-                                                        {item.snippet}
+                                        {/* Display News Results with Logs */}
+                                        {lead.news &&
+                                          (() => {
+                                            try {
+                                              const newsData = JSON.parse(lead.news);
+                                              return (
+                                                <div className="space-y-3 pt-2 border-t">
+                                                  {/* Search Logs */}
+                                                  <Collapsible>
+                                                    <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+                                                      <ChevronRight className="h-3 w-3 transition-transform duration-200 data-[state=open]:rotate-90" />
+                                                      View Search Logs
+                                                    </CollapsibleTrigger>
+                                                    <CollapsibleContent className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                                                      <p>
+                                                        <strong>Query:</strong> {newsData.search_query}
                                                       </p>
-                                                    )}
-                                                    
-                                                    {/* Explicit link to article */}
-                                                    {item.link && (
-                                                      <a 
-                                                        href={item.link} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                                                      >
-                                                        <ExternalLink className="h-3 w-3" />
-                                                        Read full article
-                                                      </a>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            ) : (
-                                              <p className="text-sm text-muted-foreground">No news articles found.</p>
-                                            )}
-                                          </div>
-                                        );
-                                      } catch {
-                                        // Fallback for old text format
-                                        return (
-                                          <div className="space-y-2 pt-2 border-t">
-                                            <pre className="text-xs whitespace-pre-wrap">{lead.news}</pre>
-                                          </div>
-                                        );
-                                      }
-                                    })()}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            </Accordion>
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-          </Table>
+                                                      <p>
+                                                        <strong>Searched:</strong>{" "}
+                                                        {new Date(newsData.searched_at).toLocaleString()}
+                                                      </p>
+                                                      <p>
+                                                        <strong>Results:</strong> {newsData.news_count} articles found
+                                                      </p>
+                                                    </CollapsibleContent>
+                                                  </Collapsible>
+
+                                                  {/* News Items */}
+                                                  {newsData.items?.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                      <p className="text-xs text-muted-foreground">Latest News:</p>
+                                                      {newsData.items.map((item: any, idx: number) => (
+                                                        <div
+                                                          key={idx}
+                                                          className="p-3 border rounded-lg bg-muted/30 space-y-2"
+                                                        >
+                                                          {/* Title with link */}
+                                                          <a
+                                                            href={item.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="font-medium text-sm text-primary hover:underline block"
+                                                          >
+                                                            {item.title}
+                                                          </a>
+
+                                                          {/* Source and date */}
+                                                          <p className="text-xs text-muted-foreground">
+                                                            {item.source} • {item.date}
+                                                          </p>
+
+                                                          {/* Snippet as description */}
+                                                          {item.snippet && (
+                                                            <p className="text-xs text-foreground/80 leading-relaxed">
+                                                              {item.snippet}
+                                                            </p>
+                                                          )}
+
+                                                          {/* Explicit link to article */}
+                                                          {item.link && (
+                                                            <a
+                                                              href={item.link}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                                            >
+                                                              <ExternalLink className="h-3 w-3" />
+                                                              Read full article
+                                                            </a>
+                                                          )}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  ) : (
+                                                    <p className="text-sm text-muted-foreground">
+                                                      No news articles found.
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              );
+                                            } catch {
+                                              // Fallback for old text format
+                                              return (
+                                                <div className="space-y-2 pt-2 border-t">
+                                                  <pre className="text-xs whitespace-pre-wrap">{lead.news}</pre>
+                                                </div>
+                                              );
+                                            }
+                                          })()}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </Accordion>
+                              </div>
+                            </DrawerContent>
+                          </Drawer>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </StickyScrollTable>
@@ -4040,9 +4495,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Description</DialogTitle>
-            <DialogDescription>
-              {descriptionModalLead?.company || descriptionModalLead?.full_name}
-            </DialogDescription>
+            <DialogDescription>{descriptionModalLead?.company || descriptionModalLead?.full_name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             {/* Company Description */}
@@ -4058,7 +4511,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                 <span className="text-lg">🚗</span>
                 <h4 className="font-semibold text-sm">Vehicle Tracking Interest</h4>
               </div>
-              
+
               {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {descriptionModalLead.vehicle_tracking_interest_explanation}
@@ -4066,10 +4519,13 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               ) : (
                 <div className="space-y-3">
                   {/* Check if we have vehicle data to generate from */}
-                  {descriptionModalLead?.vehicles_count || descriptionModalLead?.truck_types || descriptionModalLead?.features ? (
+                  {descriptionModalLead?.vehicles_count ||
+                  descriptionModalLead?.truck_types ||
+                  descriptionModalLead?.features ? (
                     <>
                       <p className="text-xs text-muted-foreground">
-                        Generate an AI analysis explaining why this lead is interested in vehicle tracking based on their fleet data.
+                        Generate an AI analysis explaining why this lead is interested in vehicle tracking based on
+                        their fleet data.
                       </p>
                       <Button
                         size="sm"
@@ -4118,9 +4574,9 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
             {newsModalData?.items?.length ? (
               newsModalData.items.map((item: any, idx: number) => (
                 <div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-2">
-                  <a 
-                    href={item.link} 
-                    target="_blank" 
+                  <a
+                    href={item.link}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-sm text-primary hover:underline block"
                   >
@@ -4129,15 +4585,11 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                   <p className="text-xs text-muted-foreground">
                     {item.source} • {item.date}
                   </p>
-                  {item.snippet && (
-                    <p className="text-xs text-foreground/80 leading-relaxed">
-                      {item.snippet}
-                    </p>
-                  )}
+                  {item.snippet && <p className="text-xs text-foreground/80 leading-relaxed">{item.snippet}</p>}
                   {item.link && (
-                    <a 
-                      href={item.link} 
-                      target="_blank" 
+                    <a
+                      href={item.link}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                     >
@@ -4208,9 +4660,12 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                   <p className="text-sm">{selectedLead.mics_segment || "—"}</p>
                 </div>
               </div>
-              
+
               {/* Vehicle Details - Collapsible Section */}
-              {(selectedLead.vehicles_count || selectedLead.confirm_vehicles_50_plus || selectedLead.truck_types || selectedLead.features) && (
+              {(selectedLead.vehicles_count ||
+                selectedLead.confirm_vehicles_50_plus ||
+                selectedLead.truck_types ||
+                selectedLead.features) && (
                 <Collapsible className="border-t pt-4">
                   <CollapsibleTrigger className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
@@ -4284,7 +4739,7 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
           <DialogHeader>
             <DialogTitle>Contacts for {contactsModalLead?.company || contactsModalLead?.full_name}</DialogTitle>
           </DialogHeader>
-          
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -4299,11 +4754,13 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
             <TableBody>
               {/* Apollo Contacts */}
               {contactsModalLead?.company_contacts
-                ?.filter(c => c.source === 'apollo_people_search')
+                ?.filter((c) => c.source === "apollo_people_search")
                 .map((contact, idx) => (
                   <TableRow key={`apollo-${idx}`}>
-                    <TableCell className="font-medium">{contact.name || `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || '—'}</TableCell>
-                    <TableCell>{contact.title || '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      {contact.name || `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "—"}
+                    </TableCell>
+                    <TableCell>{contact.title || "—"}</TableCell>
                     <TableCell>
                       {contact.found_without_role_filter ? (
                         <span className="text-muted-foreground text-sm">—</span>
@@ -4311,45 +4768,60 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                         <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
                           {contact.email}
                         </a>
-                      ) : '—'}
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Apollo</Badge>
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                          Apollo
+                        </Badge>
                         {contact.found_without_role_filter && (
-                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px]">Name Only</Badge>
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px]">
+                            Name Only
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {contact.email_status === 'verified' && !contact.found_without_role_filter && (
+                      {contact.email_status === "verified" && !contact.found_without_role_filter && (
                         <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>
                       )}
                     </TableCell>
                     <TableCell>
                       {contact.linkedin_url ? (
-                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        <a
+                          href={contact.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
                           <ExternalLink className="h-4 w-4" />
                         </a>
-                      ) : '—'}
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
-              
+
               {/* Scraped Contacts (from company_contacts with other sources) */}
               {contactsModalLead?.company_contacts
-                ?.filter(c => c.source !== 'apollo_people_search')
+                ?.filter((c) => c.source !== "apollo_people_search")
                 .map((contact, idx) => (
                   <TableRow key={`scraper-${idx}`}>
-                    <TableCell className="font-medium">{contact.name || '—'}</TableCell>
-                    <TableCell>{contact.title || '—'}</TableCell>
+                    <TableCell className="font-medium">{contact.name || "—"}</TableCell>
+                    <TableCell>{contact.title || "—"}</TableCell>
                     <TableCell>
                       <a href={`mailto:${contact.email}`} className="text-primary hover:underline text-sm">
                         {contact.email}
                       </a>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Google</Badge>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        Google
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {contact.is_personal && (
@@ -4359,36 +4831,42 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
                     <TableCell>—</TableCell>
                   </TableRow>
                 ))}
-              
+
               {/* Primary scraped contact_email (if exists and not already in company_contacts) */}
-              {contactsModalLead?.contact_email && !contactsModalLead?.company_contacts?.some(c => c.email === contactsModalLead.contact_email) && (
-                <TableRow>
-                  <TableCell className="font-medium">—</TableCell>
-                  <TableCell>—</TableCell>
-                  <TableCell>
-                    <a href={`mailto:${contactsModalLead.contact_email}`} className="text-primary hover:underline text-sm">
-                      {contactsModalLead.contact_email}
-                    </a>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Google</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {contactsModalLead.contact_email_personal && (
-                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Personal</Badge>
-                    )}
-                    {contactsModalLead.email_domain_validated && (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">Validated</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>—</TableCell>
-                </TableRow>
-              )}
+              {contactsModalLead?.contact_email &&
+                !contactsModalLead?.company_contacts?.some((c) => c.email === contactsModalLead.contact_email) && (
+                  <TableRow>
+                    <TableCell className="font-medium">—</TableCell>
+                    <TableCell>—</TableCell>
+                    <TableCell>
+                      <a
+                        href={`mailto:${contactsModalLead.contact_email}`}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        {contactsModalLead.contact_email}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        Google
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {contactsModalLead.contact_email_personal && (
+                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Personal</Badge>
+                      )}
+                      {contactsModalLead.email_domain_validated && (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">Validated</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>—</TableCell>
+                  </TableRow>
+                )}
             </TableBody>
           </Table>
-          
+
           {/* Empty state */}
-          {(!contactsModalLead?.company_contacts?.length && !contactsModalLead?.contact_email) && (
+          {!contactsModalLead?.company_contacts?.length && !contactsModalLead?.contact_email && (
             <p className="text-muted-foreground text-center py-4">No contacts found</p>
           )}
         </DialogContent>
