@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield, Download } from "lucide-react";
 const CATEGORIES = [{
   name: "Marketing",
   icon: TrendingUp
@@ -125,6 +125,45 @@ const Index = () => {
     if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
     return true;
   });
+
+  const handleExportCSV = () => {
+    if (filteredLeads.length === 0) {
+      toast({
+        title: "No leads to export",
+        description: "There are no leads matching the current filter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredLeads.map((lead) => [
+        `"${lead.full_name || ''}"`,
+        `"${lead.email_address || ''}"`,
+        `"${lead.phone_number || ''}"`,
+        `"${lead.company || ''}"`,
+        `"${lead.city || ''}"`,
+        `"${lead.state || ''}"`,
+        `"${lead.domain || ''}"`,
+        lead.match_score !== null ? lead.match_score : '',
+        `"${lead.category || ''}"`,
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedCategory || 'leads'}_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${filteredLeads.length} leads to CSV.`,
+    });
+  };
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -154,6 +193,10 @@ const Index = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
                 <span className="text-sm text-muted-foreground">
                   Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
                 </span>
