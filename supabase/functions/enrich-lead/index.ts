@@ -1272,25 +1272,52 @@ serve(async (req) => {
           ? await enrichWithEmail(email, company)
           : await enrichWithApollo(company, city, state);
 
-    // Get existing logs
-    const { data: existingLead } = await supabase.from("leads").select("enrichment_logs").eq("id", leadId).single();
+    // Get existing lead data including current domain and confidence
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source")
+      .eq("id", leadId)
+      .single();
 
     const existingLogs = existingLead?.enrichment_logs || [];
     const updatedLogs = [...existingLogs, result.log];
 
-    // Update the lead in the database
-    // Only update domain if we found one (don't overwrite existing with null)
+    // Determine if we should update domain fields
+    // Only overwrite if: new enrichment found a domain AND (no existing domain OR new confidence > existing confidence)
+    const existingConfidence = existingLead?.enrichment_confidence ?? 0;
+    const existingDomain = existingLead?.domain;
+    
+    const shouldUpdateDomain = result.domain && (
+      !existingDomain || 
+      result.confidence > existingConfidence
+    );
+
+    console.log(`Domain update check: existing=${existingDomain} (${existingConfidence}%), new=${result.domain} (${result.confidence}%), shouldUpdate=${shouldUpdateDomain}`);
+
+    // Build update data - always log the enrichment attempt
     const updateData: any = {
-      enrichment_source: result.source,
-      enrichment_confidence: result.confidence,
-      enrichment_status: result.domain ? "enriched" : "failed",
-      enriched_at: new Date().toISOString(),
       enrichment_logs: updatedLogs,
+      enriched_at: new Date().toISOString(),
     };
 
-    // Always update domain field - set to null if no domain found to clear old values
-    updateData.domain = result.domain || null;
-    updateData.source_url = result.sourceUrl || null;
+    // Only update domain fields if new enrichment is better
+    if (shouldUpdateDomain) {
+      updateData.domain = result.domain;
+      updateData.source_url = result.sourceUrl || null;
+      updateData.enrichment_source = result.source;
+      updateData.enrichment_confidence = result.confidence;
+      updateData.enrichment_status = "enriched";
+      console.log(`Updating domain to: ${result.domain} from ${result.source}`);
+    } else if (!existingDomain && !result.domain) {
+      // No existing domain and no new domain found - mark as failed
+      updateData.enrichment_source = result.source;
+      updateData.enrichment_confidence = result.confidence;
+      updateData.enrichment_status = "failed";
+      console.log(`No domain found, marking as failed`);
+    } else {
+      // Preserve existing domain - just log this enrichment attempt
+      console.log(`Preserving existing domain: ${existingDomain} (${existingConfidence}%) - new enrichment (${result.source}: ${result.confidence}%) not better`);
+    }
 
     // Add GPS coordinates if found (only from Google enrichment)
     if (
