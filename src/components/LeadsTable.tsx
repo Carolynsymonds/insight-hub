@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, Users, Mail, Newspaper, ChevronRight, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -275,6 +275,35 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
     return logs.some(
       (log) => log.domain && (log.source === "google_knowledge_graph" || log.source === "google_local_results"),
     );
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Company Name', 'Domain', 'Confidence Score'];
+    const rows = filteredLeads.map(lead => [
+      lead.company || '',
+      lead.domain || '',
+      lead.enrichment_confidence !== null ? `${lead.enrichment_confidence}%` : ''
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => 
+        `"${String(cell).replace(/"/g, '""')}"`
+      ).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leads-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredLeads.length} leads to CSV`,
+    });
   };
 
   const handleFindCoordinates = async (lead: Lead) => {
@@ -1013,6 +1042,15 @@ const LeadsTable = ({ leads, onEnrichComplete, hideFilterBar = false, domainFilt
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
           <span className="text-sm text-muted-foreground">
             Showing {filteredLeads.length} of {leads.length} leads
           </span>
