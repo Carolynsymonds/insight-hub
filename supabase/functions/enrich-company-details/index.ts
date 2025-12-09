@@ -497,6 +497,12 @@ Deno.serve(async (req) => {
 
     console.log(`Normalized Domain: ${normalizedDomain}`);
 
+    // Track Apollo data separately so we can merge with scraping
+    let apolloUpdateData: Record<string, any> = {};
+    let apolloFieldsPopulated: string[] = [];
+    let apolloSuccess = false;
+    let apolloOrg: any = null;
+
     // ============= APOLLO PATH =============
     if (!skipApollo) {
       // Try Apollo first
@@ -554,7 +560,10 @@ Deno.serve(async (req) => {
           const org = data.organization;
 
           if (org) {
-            // Apollo found the organization - use Apollo enrichment
+            apolloSuccess = true;
+            apolloOrg = org;
+            
+            // Apollo found the organization - store data for merging
             if (!isDirectApollo && enrichmentSteps.length > 0) {
               enrichmentSteps[0].status = 'success';
               enrichmentSteps[0].details = {
@@ -575,46 +584,43 @@ Deno.serve(async (req) => {
             console.log('Step 2: Retrieving company details from Apollo...');
 
             // Map Apollo response to database fields
-            const updateData: any = {};
-            const fieldsPopulated: string[] = [];
-
             if (org.estimated_num_employees) {
-              updateData.size = `${org.estimated_num_employees} employees`;
-              fieldsPopulated.push('size');
+              apolloUpdateData.size = `${org.estimated_num_employees} employees`;
+              apolloFieldsPopulated.push('size');
             }
             if (org.organization_revenue_printed) {
-              updateData.annual_revenue = org.organization_revenue_printed;
-              fieldsPopulated.push('annual_revenue');
+              apolloUpdateData.annual_revenue = org.organization_revenue_printed;
+              apolloFieldsPopulated.push('annual_revenue');
             }
             if (org.industries && Array.isArray(org.industries) && org.industries.length > 0) {
-              updateData.company_industry = org.industries.join(', ');
-              fieldsPopulated.push('company_industry');
+              apolloUpdateData.company_industry = org.industries.join(', ');
+              apolloFieldsPopulated.push('company_industry');
             }
             // Only use Apollo's short_description if it's not a generic address placeholder
             const apolloDescriptionIsGeneric = isGenericAddressDescription(org.short_description);
             if (org.short_description && !apolloDescriptionIsGeneric) {
-              updateData.description = org.short_description;
-              fieldsPopulated.push('description');
+              apolloUpdateData.description = org.short_description;
+              apolloFieldsPopulated.push('description');
             }
             if (org.technology_names && Array.isArray(org.technology_names) && org.technology_names.length > 0) {
-              updateData.tech_stack = org.technology_names.join(', ');
-              fieldsPopulated.push('tech_stack');
+              apolloUpdateData.tech_stack = org.technology_names.join(', ');
+              apolloFieldsPopulated.push('tech_stack');
             }
             if (org.linkedin_url) {
-              updateData.linkedin = org.linkedin_url;
-              fieldsPopulated.push('linkedin');
+              apolloUpdateData.linkedin = org.linkedin_url;
+              apolloFieldsPopulated.push('linkedin');
             }
             if (org.facebook_url) {
-              updateData.facebook = org.facebook_url;
-              fieldsPopulated.push('facebook');
+              apolloUpdateData.facebook = org.facebook_url;
+              apolloFieldsPopulated.push('facebook');
             }
             if (org.founded_year) {
-              updateData.founded_date = org.founded_year.toString();
-              fieldsPopulated.push('founded_date');
+              apolloUpdateData.founded_date = org.founded_year.toString();
+              apolloFieldsPopulated.push('founded_date');
             }
             if (org.logo_url) {
-              updateData.logo_url = org.logo_url;
-              fieldsPopulated.push('logo_url');
+              apolloUpdateData.logo_url = org.logo_url;
+              apolloFieldsPopulated.push('logo_url');
             }
 
             // Products/Services: Generate using AI
@@ -677,26 +683,27 @@ Write a comprehensive paragraph describing what products and services this compa
                   
                   if (generatedProductsServices) {
                     console.log('AI generated products/services:', generatedProductsServices);
-                    updateData.products_services = generatedProductsServices;
-                    fieldsPopulated.push('products_services');
+                    apolloUpdateData.products_services = generatedProductsServices;
+                    apolloFieldsPopulated.push('products_services');
                   } else if (companyContext.keywords.length > 0) {
-                    updateData.products_services = companyContext.keywords.join(', ');
-                    fieldsPopulated.push('products_services');
+                    apolloUpdateData.products_services = companyContext.keywords.join(', ');
+                    apolloFieldsPopulated.push('products_services');
                   }
                 } else if (companyContext.keywords.length > 0) {
-                  updateData.products_services = companyContext.keywords.join(', ');
-                  fieldsPopulated.push('products_services');
+                  apolloUpdateData.products_services = companyContext.keywords.join(', ');
+                  apolloFieldsPopulated.push('products_services');
                 }
               } catch (aiError) {
                 console.error('Error calling Lovable AI for products/services:', aiError);
                 if (companyContext.keywords.length > 0) {
-                  updateData.products_services = companyContext.keywords.join(', ');
-                  fieldsPopulated.push('products_services');
+                  apolloUpdateData.products_services = companyContext.keywords.join(', ');
+                  apolloFieldsPopulated.push('products_services');
                 }
               }
 
               // Generate comprehensive company description from all enriched fields
-              if (!updateData.description || apolloDescriptionIsGeneric) {
+              const apolloDescriptionIsGenericCheck = isGenericAddressDescription(org.short_description);
+              if (!apolloUpdateData.description || apolloDescriptionIsGenericCheck) {
                 try {
                   console.log('Generating comprehensive AI description from enriched fields...');
                   const descriptionResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -723,7 +730,7 @@ Annual Revenue: ${org.organization_revenue_printed || 'Unknown'}
 Industry: ${org.industry || 'N/A'}
 Industries: ${org.industries?.join(', ') || 'N/A'}
 Location: ${[org.city, org.state, org.country].filter(Boolean).join(', ') || 'N/A'}
-${updateData.products_services ? `Products/Services: ${updateData.products_services}` : ''}
+${apolloUpdateData.products_services ? `Products/Services: ${apolloUpdateData.products_services}` : ''}
 
 Write a professional paragraph that:
 1. Introduces the company with founding year if known
@@ -743,9 +750,9 @@ Output ONLY the description paragraph.`
                     
                     if (generatedDescription) {
                       console.log('AI generated description:', generatedDescription);
-                      updateData.description = generatedDescription;
-                      if (!fieldsPopulated.includes('description')) {
-                        fieldsPopulated.push('description');
+                      apolloUpdateData.description = generatedDescription;
+                      if (!apolloFieldsPopulated.includes('description')) {
+                        apolloFieldsPopulated.push('description');
                       }
                     }
                   }
@@ -758,9 +765,9 @@ Output ONLY the description paragraph.`
                   if (org.organization_revenue_printed) fallbackParts.push(`(${org.organization_revenue_printed} revenue)`);
                   if (org.industries?.length) fallbackParts.push(`operates in ${org.industries.join(', ')}`);
                   
-                  updateData.description = fallbackParts.join(', ') + '.';
-                  if (!fieldsPopulated.includes('description')) {
-                    fieldsPopulated.push('description');
+                  apolloUpdateData.description = fallbackParts.join(', ') + '.';
+                  if (!apolloFieldsPopulated.includes('description')) {
+                    apolloFieldsPopulated.push('description');
                   }
                 }
               }
@@ -771,76 +778,32 @@ Output ONLY the description paragraph.`
             enrichmentSteps[lastStepIndex].status = 'success';
             enrichmentSteps[lastStepIndex].details = {
               ...enrichmentSteps[lastStepIndex].details,
-              fieldsPopulated,
+              fieldsPopulated: apolloFieldsPopulated,
               organizationName: org.name
             };
 
-            // Contact discovery removed - now handled by separate find-company-contacts function
-
-            // Store Apollo enrichment log for UI display
-            updateData.scraped_data_log = {
-              source: 'apollo',
-              organization_name: org.name,
-              domain: org.primary_domain || normalizedDomain,
-              fields_populated: fieldsPopulated,
-              enrichment_steps: enrichmentSteps,
-              apollo_data: {
-                estimated_employees: org.estimated_num_employees,
-                revenue: org.organization_revenue_printed,
-                industry: org.industry,
-                industries: org.industries,
-                keywords: org.keywords?.slice(0, 10),
-                founded_year: org.founded_year,
-                city: org.city,
-                state: org.state,
-                country: org.country
-              }
-            };
-
-            console.log("=== UPDATE DATA (Apollo) ===");
-            console.log(JSON.stringify(updateData, null, 2));
-
-            // Update the lead record
-            const { error: updateError } = await supabase
-              .from('leads')
-              .update(updateData)
-              .eq('id', leadId);
-
-            if (updateError) {
-              console.error('Error updating lead:', updateError);
-              throw updateError;
-            }
-
-            console.log(`Successfully enriched company details for lead ${leadId} via Apollo`);
-
-            return new Response(
-              JSON.stringify({ 
-                success: true, 
-                message: 'Company details enriched successfully from Apollo',
-                enrichedFields: fieldsPopulated,
-                enrichmentSteps,
-                source: 'apollo'
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+            console.log(`Apollo enrichment successful. Fields populated: ${apolloFieldsPopulated.join(', ')}`);
+            console.log('Continuing to domain scraping to supplement missing fields and collect contacts...');
           }
         }
 
         // Apollo didn't find the org or API error - mark step as failed
-        console.log('Organization not found in Apollo, flagging and proceeding to ScraperAPI...');
-        if (enrichmentSteps.length > 0) {
-          enrichmentSteps[0].status = 'failed';
-          enrichmentSteps[0].details = {
-            ...enrichmentSteps[0].details,
-            error: 'Organization not found in Apollo'
-          };
-        }
+        if (!apolloSuccess) {
+          console.log('Organization not found in Apollo, flagging and proceeding to ScraperAPI...');
+          if (enrichmentSteps.length > 0) {
+            enrichmentSteps[0].status = 'failed';
+            enrichmentSteps[0].details = {
+              ...enrichmentSteps[0].details,
+              error: 'Organization not found in Apollo'
+            };
+          }
 
-        // Set apollo_not_found flag in database
-        await supabase
-          .from('leads')
-          .update({ apollo_not_found: true })
-          .eq('id', leadId);
+          // Set apollo_not_found flag in database
+          await supabase
+            .from('leads')
+            .update({ apollo_not_found: true })
+            .eq('id', leadId);
+        }
       }
     } else {
       // Apollo already flagged as not found
@@ -857,8 +820,67 @@ Output ONLY the description paragraph.`
       console.log('Step 1: Skipping Apollo (previously flagged as not found)');
     }
 
-    // ============= SCRAPER API PATH =============
+    // ============= SCRAPER API PATH (ALWAYS RUN TO SUPPLEMENT) =============
+    // Track fields that are still missing after Apollo
+    const missingFields: string[] = [];
+    if (!apolloUpdateData.contact_email) missingFields.push('contact_email');
+    if (!apolloUpdateData.founded_date) missingFields.push('founded_date');
+    if (!apolloUpdateData.size) missingFields.push('size');
+    if (!apolloUpdateData.linkedin) missingFields.push('linkedin');
+    if (!apolloUpdateData.facebook) missingFields.push('facebook');
+    if (!apolloUpdateData.logo_url) missingFields.push('logo_url');
+    
+    // Always scrape to collect contacts and fill missing fields
+    const shouldScrape = scraperApiKey && (missingFields.length > 0 || true); // Always scrape for contacts
+    
     if (!scraperApiKey) {
+      // No scraper key - return Apollo results only if we have them
+      if (apolloSuccess) {
+        apolloUpdateData.scraped_data_log = {
+          source: 'apollo',
+          organization_name: apolloOrg?.name,
+          domain: apolloOrg?.primary_domain || normalizedDomain,
+          fields_populated: apolloFieldsPopulated,
+          enrichment_steps: enrichmentSteps,
+          apollo_data: {
+            estimated_employees: apolloOrg?.estimated_num_employees,
+            revenue: apolloOrg?.organization_revenue_printed,
+            industry: apolloOrg?.industry,
+            industries: apolloOrg?.industries,
+            keywords: apolloOrg?.keywords?.slice(0, 10),
+            founded_year: apolloOrg?.founded_year,
+            city: apolloOrg?.city,
+            state: apolloOrg?.state,
+            country: apolloOrg?.country
+          },
+          supplemental_scrape: {
+            enabled: false,
+            reason: 'SCRAPER_API_KEY not configured'
+          }
+        };
+
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(apolloUpdateData)
+          .eq('id', leadId);
+
+        if (updateError) {
+          console.error('Error updating lead:', updateError);
+          throw updateError;
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Company details enriched from Apollo (scraping unavailable)',
+            enrichedFields: apolloFieldsPopulated,
+            enrichmentSteps,
+            source: 'apollo'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -870,16 +892,19 @@ Output ONLY the description paragraph.`
       );
     }
 
-    // Step 2 (or continuation): Scrape website
-    const scrapeStepNum = skipApollo ? 2 : enrichmentSteps.length + 1;
+    // Step: Scrape website (supplemental if Apollo succeeded, primary if Apollo failed)
+    const scrapeStepNum = enrichmentSteps.length + 1;
     enrichmentSteps.push({
       step: scrapeStepNum,
-      action: 'scraper_api',
+      action: apolloSuccess ? 'supplemental_scrape' : 'scraper_api',
       status: 'pending',
       timestamp: new Date().toISOString(),
       details: {
-        message: 'Scraping website...',
-        domain: normalizedDomain
+        message: apolloSuccess 
+          ? 'Scraping website to supplement Apollo data and collect contacts...'
+          : 'Scraping website...',
+        domain: normalizedDomain,
+        missingFields: apolloSuccess ? missingFields : undefined
       }
     });
     console.log(`Step ${scrapeStepNum}: Scraping website with ScraperAPI...`);
@@ -896,6 +921,54 @@ Output ONLY the description paragraph.`
         ...enrichmentSteps[enrichmentSteps.length - 1].details,
         error: `ScraperAPI returned ${scrapeResponse.status}`
       };
+
+      // If Apollo succeeded, return those results even if scraping failed
+      if (apolloSuccess) {
+        apolloUpdateData.scraped_data_log = {
+          source: 'apollo',
+          organization_name: apolloOrg?.name,
+          domain: apolloOrg?.primary_domain || normalizedDomain,
+          fields_populated: apolloFieldsPopulated,
+          enrichment_steps: enrichmentSteps,
+          apollo_data: {
+            estimated_employees: apolloOrg?.estimated_num_employees,
+            revenue: apolloOrg?.organization_revenue_printed,
+            industry: apolloOrg?.industry,
+            industries: apolloOrg?.industries,
+            keywords: apolloOrg?.keywords?.slice(0, 10),
+            founded_year: apolloOrg?.founded_year,
+            city: apolloOrg?.city,
+            state: apolloOrg?.state,
+            country: apolloOrg?.country
+          },
+          supplemental_scrape: {
+            enabled: true,
+            failed: true,
+            error: `ScraperAPI returned ${scrapeResponse.status}`
+          }
+        };
+
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(apolloUpdateData)
+          .eq('id', leadId);
+
+        if (updateError) {
+          console.error('Error updating lead:', updateError);
+          throw updateError;
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Company details enriched from Apollo (supplemental scraping failed)',
+            enrichedFields: apolloFieldsPopulated,
+            enrichmentSteps,
+            source: 'apollo'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       return new Response(
         JSON.stringify({ 
@@ -917,19 +990,19 @@ Output ONLY the description paragraph.`
       htmlLength: html.length
     };
 
-    // Step 3: Parse HTML
+    // Parse the HTML
     const parseStepNum = scrapeStepNum + 1;
     enrichmentSteps.push({
       step: parseStepNum,
-      action: 'html_parsing',
+      action: 'parse_html',
       status: 'pending',
       timestamp: new Date().toISOString(),
-      details: { message: 'Parsing HTML content...' }
+      details: { message: 'Parsing scraped HTML...' }
     });
-    console.log(`Step ${parseStepNum}: Parsing HTML...`);
+    console.log(`Step ${parseStepNum}: Parsing scraped HTML...`);
 
     const scrapedData = parseScrapedHtml(html, normalizedDomain);
-    
+
     if (!scrapedData) {
       enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
       enrichmentSteps[enrichmentSteps.length - 1].details = {
@@ -937,10 +1010,44 @@ Output ONLY the description paragraph.`
         error: 'Failed to parse HTML'
       };
 
+      // If Apollo succeeded, return those results
+      if (apolloSuccess) {
+        apolloUpdateData.scraped_data_log = {
+          source: 'apollo',
+          organization_name: apolloOrg?.name,
+          domain: apolloOrg?.primary_domain || normalizedDomain,
+          fields_populated: apolloFieldsPopulated,
+          enrichment_steps: enrichmentSteps,
+          supplemental_scrape: {
+            enabled: true,
+            failed: true,
+            error: 'Failed to parse HTML'
+          }
+        };
+
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(apolloUpdateData)
+          .eq('id', leadId);
+
+        if (updateError) throw updateError;
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Company details enriched from Apollo (HTML parsing failed)',
+            enrichedFields: apolloFieldsPopulated,
+            enrichmentSteps,
+            source: 'apollo'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Failed to parse website HTML',
+          error: 'Failed to parse scraped HTML',
           enrichmentSteps,
           notFound: true
         }),
@@ -948,45 +1055,53 @@ Output ONLY the description paragraph.`
       );
     }
 
-    console.log('=== SCRAPED DATA ===');
-    console.log(JSON.stringify(scrapedData, null, 2));
-
     enrichmentSteps[enrichmentSteps.length - 1].status = 'success';
     enrichmentSteps[enrichmentSteps.length - 1].details = {
       ...enrichmentSteps[enrichmentSteps.length - 1].details,
-      scrapedData
+      parsedData: scrapedData
     };
 
-    // Step 4: AI Generation
+    console.log("=== PARSED SCRAPED DATA ===");
+    console.log(JSON.stringify(scrapedData, null, 2));
+
+    // Start with Apollo data as base, then supplement with scraped data
+    const updateData: Record<string, any> = { ...apolloUpdateData };
+    const fieldsPopulated: string[] = [...apolloFieldsPopulated];
+    const scrapedFieldsAdded: string[] = [];
+
+    // Supplement missing fields from scraped data (only fill gaps)
+    if (!updateData.logo_url && scrapedData.logo_url) {
+      updateData.logo_url = scrapedData.logo_url;
+      fieldsPopulated.push('logo_url');
+      scrapedFieldsAdded.push('logo_url');
+    }
+    if (!updateData.linkedin && scrapedData.linkedin) {
+      updateData.linkedin = scrapedData.linkedin;
+      fieldsPopulated.push('linkedin');
+      scrapedFieldsAdded.push('linkedin');
+    }
+    if (!updateData.facebook && scrapedData.facebook) {
+      updateData.facebook = scrapedData.facebook;
+      fieldsPopulated.push('facebook');
+      scrapedFieldsAdded.push('facebook');
+    }
+
+    // AI generation for description/products_services (only if Apollo didn't provide them)
     const aiStepNum = parseStepNum + 1;
     enrichmentSteps.push({
       step: aiStepNum,
       action: 'ai_generation',
       status: 'pending',
       timestamp: new Date().toISOString(),
-      details: { message: 'Generating description with AI...' }
+      details: { message: 'Generating content with AI...' }
     });
-    console.log(`Step ${aiStepNum}: Generating description with AI...`);
+    console.log(`Step ${aiStepNum}: Generating content with Lovable AI...`);
 
-    const updateData: any = {};
-    const fieldsPopulated: string[] = [];
+    const needsAiDescription = !updateData.description;
+    const needsAiProductsServices = !updateData.products_services;
+    const needsAiIndustry = !updateData.company_industry;
 
-    // Populate fields from scraped data
-    if (scrapedData.logo_url) {
-      updateData.logo_url = scrapedData.logo_url;
-      fieldsPopulated.push('logo_url');
-    }
-    if (scrapedData.linkedin) {
-      updateData.linkedin = scrapedData.linkedin;
-      fieldsPopulated.push('linkedin');
-    }
-    if (scrapedData.facebook) {
-      updateData.facebook = scrapedData.facebook;
-      fieldsPopulated.push('facebook');
-    }
-
-    // Generate description and products_services with AI
-    if (LOVABLE_API_KEY) {
+    if ((needsAiDescription || needsAiProductsServices || needsAiIndustry) && LOVABLE_API_KEY) {
       try {
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -1044,23 +1159,29 @@ Generate professional outputs for all three fields.`
               
               // Try to parse JSON response
               const parsed = JSON.parse(jsonContent);
-              if (parsed.description) {
+              if (needsAiDescription && parsed.description) {
                 updateData.description = parsed.description;
                 fieldsPopulated.push('description');
+                scrapedFieldsAdded.push('description');
               }
-              if (parsed.products_services) {
+              if (needsAiProductsServices && parsed.products_services) {
                 updateData.products_services = parsed.products_services;
                 fieldsPopulated.push('products_services');
+                scrapedFieldsAdded.push('products_services');
               }
-              if (parsed.company_industry) {
+              if (needsAiIndustry && parsed.company_industry) {
                 updateData.company_industry = parsed.company_industry;
                 fieldsPopulated.push('company_industry');
+                scrapedFieldsAdded.push('company_industry');
               }
             } catch (parseError) {
               // If not JSON, use the whole response as description
               console.log('AI response not JSON, using as description:', parseError);
-              updateData.description = aiContent;
-              fieldsPopulated.push('description');
+              if (needsAiDescription) {
+                updateData.description = aiContent;
+                fieldsPopulated.push('description');
+                scrapedFieldsAdded.push('description');
+              }
             }
           }
         } else {
@@ -1075,19 +1196,21 @@ Generate professional outputs for all three fields.`
     if (!updateData.description && scrapedData.meta_description) {
       updateData.description = scrapedData.meta_description;
       fieldsPopulated.push('description');
+      scrapedFieldsAdded.push('description');
     }
     if (!updateData.products_services && scrapedData.services.length > 0) {
       updateData.products_services = scrapedData.services.slice(0, 15).join(', ');
       fieldsPopulated.push('products_services');
+      scrapedFieldsAdded.push('products_services');
     }
 
     enrichmentSteps[enrichmentSteps.length - 1].status = 'success';
     enrichmentSteps[enrichmentSteps.length - 1].details = {
       ...enrichmentSteps[enrichmentSteps.length - 1].details,
-      fieldsPopulated
+      fieldsPopulated: scrapedFieldsAdded
     };
 
-    // Step 5: Deep scrape high-value pages for additional data
+    // Step: Deep scrape high-value pages for additional data
     let deepScrapeResult: DeepScrapeResult | null = null;
 
     if (scrapedData.nav_links.length > 0) {
@@ -1119,19 +1242,25 @@ Generate professional outputs for all three fields.`
         result: deepScrapeResult
       };
       
-      // Add deep scrape results to updateData
+      // Add deep scrape results to updateData (only fill gaps)
       if (deepScrapeResult.founded_year && !updateData.founded_date) {
         updateData.founded_date = deepScrapeResult.founded_year;
         fieldsPopulated.push('founded_date');
+        scrapedFieldsAdded.push('founded_date');
       }
       if (deepScrapeResult.employee_count && !updateData.size) {
         updateData.size = deepScrapeResult.employee_count;
         fieldsPopulated.push('size');
+        scrapedFieldsAdded.push('size');
       }
       if (deepScrapeResult.contact_email) {
+        // Always add contact_email from scraping (Apollo doesn't provide this)
         updateData.contact_email = deepScrapeResult.contact_email;
         updateData.contact_email_personal = deepScrapeResult.contact_email_personal;
-        fieldsPopulated.push('contact_email');
+        if (!fieldsPopulated.includes('contact_email')) {
+          fieldsPopulated.push('contact_email');
+        }
+        scrapedFieldsAdded.push('contact_email');
         
         // Validate email match
         const emailValidation = validateEmailMatch(leadEmail, deepScrapeResult.contact_email);
@@ -1143,7 +1272,7 @@ Generate professional outputs for all three fields.`
           console.log(`✅ Email validated (${emailValidation.matchType} match): ${leadEmail} ↔ ${deepScrapeResult.contact_email}`);
         }
         
-        // Collect company contacts (all emails found except the one matching lead)
+        // Collect company contacts (all emails found)
         if (deepScrapeResult.all_emails_found.length > 0) {
           const contactEmailLower = deepScrapeResult.contact_email?.toLowerCase() || '';
           const companyContacts: CompanyContact[] = deepScrapeResult.all_emails_found
@@ -1158,6 +1287,7 @@ Generate professional outputs for all three fields.`
           if (companyContacts.length > 0) {
             updateData.company_contacts = companyContacts;
             fieldsPopulated.push('company_contacts');
+            scrapedFieldsAdded.push('company_contacts');
             console.log(`Found ${companyContacts.length} additional company contacts`);
           }
         }
@@ -1173,15 +1303,20 @@ Generate professional outputs for all three fields.`
       if (homepageFoundedYear && !updateData.founded_date) {
         updateData.founded_date = homepageFoundedYear;
         fieldsPopulated.push('founded_date');
+        scrapedFieldsAdded.push('founded_date');
       }
       if (homepageEmployeeCount && !updateData.size) {
         updateData.size = homepageEmployeeCount;
         fieldsPopulated.push('size');
+        scrapedFieldsAdded.push('size');
       }
       if (homepageEmail.email) {
         updateData.contact_email = homepageEmail.email;
         updateData.contact_email_personal = homepageEmail.isPersonal;
-        fieldsPopulated.push('contact_email');
+        if (!fieldsPopulated.includes('contact_email')) {
+          fieldsPopulated.push('contact_email');
+        }
+        scrapedFieldsAdded.push('contact_email');
         
         // Validate email match for homepage-only case
         const emailValidation = validateEmailMatch(leadEmail, homepageEmail.email);
@@ -1208,30 +1343,53 @@ Generate professional outputs for all three fields.`
           if (companyContacts.length > 0) {
             updateData.company_contacts = companyContacts;
             fieldsPopulated.push('company_contacts');
+            scrapedFieldsAdded.push('company_contacts');
             console.log(`Found ${companyContacts.length} additional company contacts`);
           }
         }
       }
     }
 
-    // Save the scraped data for transparency/debugging (including deep scrape results)
+    // Build comprehensive scraped_data_log showing both sources
     const highValueUrls = scrapedData.nav_links.length > 0 
       ? filterHighValueUrls(scrapedData.nav_links, normalizedDomain) 
       : [];
     
     updateData.scraped_data_log = {
-      ...scrapedData,
-      deep_scrape: {
-        pages_scraped: highValueUrls,
-        founded_year: deepScrapeResult?.founded_year || null,
-        employee_count: deepScrapeResult?.employee_count || null,
-        contact_email: deepScrapeResult?.contact_email || null,
-        contact_email_personal: deepScrapeResult?.contact_email_personal || false,
-        sources: deepScrapeResult?.sources || null
-      }
+      primary_source: apolloSuccess ? 'apollo' : 'scraper',
+      ...(apolloSuccess && {
+        apollo_data: {
+          organization_name: apolloOrg?.name,
+          estimated_employees: apolloOrg?.estimated_num_employees,
+          revenue: apolloOrg?.organization_revenue_printed,
+          industry: apolloOrg?.industry,
+          industries: apolloOrg?.industries,
+          keywords: apolloOrg?.keywords?.slice(0, 10),
+          founded_year: apolloOrg?.founded_year,
+          city: apolloOrg?.city,
+          state: apolloOrg?.state,
+          country: apolloOrg?.country,
+          fields_populated: apolloFieldsPopulated
+        }
+      }),
+      supplemental_scrape: {
+        enabled: true,
+        fields_added: scrapedFieldsAdded,
+        scraped_data: scrapedData,
+        deep_scrape: {
+          pages_scraped: highValueUrls,
+          founded_year: deepScrapeResult?.founded_year || null,
+          employee_count: deepScrapeResult?.employee_count || null,
+          contact_email: deepScrapeResult?.contact_email || null,
+          contact_email_personal: deepScrapeResult?.contact_email_personal || false,
+          sources: deepScrapeResult?.sources || null,
+          all_emails_found: deepScrapeResult?.all_emails_found || []
+        }
+      },
+      enrichment_steps: enrichmentSteps
     };
 
-    console.log("=== UPDATE DATA (Scraped) ===");
+    console.log("=== UPDATE DATA (Merged Apollo + Scraped) ===");
     console.log(JSON.stringify(updateData, null, 2));
 
     // Update the lead record
@@ -1247,15 +1405,20 @@ Generate professional outputs for all three fields.`
       }
     }
 
-    console.log(`Successfully enriched company details for lead ${leadId} via ScraperAPI`);
+    const source = apolloSuccess ? 'apollo+scraper' : 'scraper';
+    console.log(`Successfully enriched company details for lead ${leadId} via ${source}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Company details enriched successfully from website scraping',
+        message: apolloSuccess 
+          ? 'Company details enriched from Apollo + supplemental website scraping'
+          : 'Company details enriched from website scraping',
         enrichedFields: fieldsPopulated,
+        apolloFields: apolloFieldsPopulated,
+        scrapedFieldsAdded,
         enrichmentSteps,
-        source: 'scraper',
+        source,
         scrapedData,
         deepScrapeResult
       }),
