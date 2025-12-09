@@ -1080,7 +1080,7 @@ const LeadsTable = ({
               </SelectContent>
             </Select>
           </div>
-          <Button variant="" size="sm" onClick={handleExportCSV} className="gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
