@@ -4727,20 +4727,58 @@ const LeadsTable = ({
         </DialogContent>
       </Dialog>
 
-      {/* Description Modal with Vehicle Tracking Interest */}
+      {/* Description Modal */}
       <Dialog open={!!descriptionModalLead} onOpenChange={(open) => !open && setDescriptionModalLead(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Description</DialogTitle>
             <DialogDescription>{descriptionModalLead?.company || descriptionModalLead?.full_name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-6">
-            {/* Must Knows Section - Top Priority for Quick Scanning */}
+          <div className="space-y-4">
+            {/* 1. Short Summary Section - First */}
+            {descriptionModalLead?.short_summary ? (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
+                <p className="text-sm">{descriptionModalLead.short_summary}</p>
+              </div>
+            ) : (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Generate a concise 2-3 line summary of what the business does and where it operates.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)}
+                  disabled={generatingShortSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
+                  className="w-full"
+                >
+                  {generatingShortSummary ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Short Summary
+                    </>
+                  )}
+                </Button>
+                {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
+                  <p className="text-xs text-destructive mt-2">
+                    Company details required. Run "Enrich Company Details" first.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 2. Must Knows Section - Opened by default */}
             <Accordion type="single" collapsible defaultValue="must-knows" className="w-full">
               <AccordionItem value="must-knows" className="border rounded-lg bg-primary/5">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex items-center gap-2">
-                    <span>📋</span>
                     <span className="font-semibold text-sm">Must Knows</span>
                     {descriptionModalLead?.must_knows && (
                       <Badge variant="secondary" className="ml-2">Generated</Badge>
@@ -4786,12 +4824,111 @@ const LeadsTable = ({
               </AccordionItem>
             </Accordion>
 
-            {/* Vehicle Tracking Interest Section - 2nd from top for sales context */}
+            {/* 3. Detailed Company Profile - Closed */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="long-summary" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">Detailed Company Profile</span>
+                    {descriptionModalLead?.long_summary && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.long_summary ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.long_summary}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate a rich 5-8 line company profile including founding history, 
+                        operations, scale, location, and notable achievements.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateLongSummary(descriptionModalLead)}
+                        disabled={generatingLongSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
+                        className="w-full"
+                      >
+                        {generatingLongSummary ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Detailed Profile
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
+                        <p className="text-xs text-destructive">
+                          Company details required. Run "Enrich Company Details" first.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* 4. Products & Services Summary - Closed */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="products-summary" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">Products & Services Summary</span>
+                    {descriptionModalLead?.products_services_summary && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.products_services_summary ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.products_services_summary}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate a professional summary of the company's products and services,
+                        including core offerings, specialties, and customer segments.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateProductsSummary(descriptionModalLead)}
+                        disabled={generatingProductsSummary || (!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry)}
+                        className="w-full"
+                      >
+                        {generatingProductsSummary ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Products Summary
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry && (
+                        <p className="text-xs text-destructive">
+                          Products/services, description, or industry data required. Run "Enrich Company Details" first.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* 5. Vehicle Tracking Interest - Last */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="vehicle-interest" className="border rounded-lg bg-accent/30">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex items-center gap-2">
-                    <span>🚗</span>
                     <span className="font-semibold text-sm">Vehicle Tracking Interest</span>
                     {descriptionModalLead?.vehicle_tracking_interest_explanation && (
                       <Badge variant="secondary" className="ml-2">Generated</Badge>
@@ -4846,159 +4983,6 @@ const LeadsTable = ({
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-
-            {/* Short Summary Section */}
-            {descriptionModalLead?.short_summary ? (
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                  <span>✨</span> Short Summary
-                </h4>
-                <p className="text-sm">{descriptionModalLead.short_summary}</p>
-              </div>
-            ) : (
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                  <span>✨</span> Short Summary
-                </h4>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Generate a concise 2-3 line summary of what the business does and where it operates.
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)}
-                  disabled={generatingShortSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
-                  className="w-full"
-                >
-                  {generatingShortSummary ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Short Summary
-                    </>
-                  )}
-                </Button>
-                {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
-                  <p className="text-xs text-destructive mt-2">
-                    Company details required. Run "Enrich Company Details" first.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Detailed Company Profile - Accordion */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="long-summary" className="border rounded-lg">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span>📖</span>
-                    <span className="font-semibold text-sm">Detailed Company Profile</span>
-                    {descriptionModalLead?.long_summary && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.long_summary ? (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.long_summary}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Generate a rich 5-8 line company profile including founding history, 
-                        operations, scale, location, and notable achievements.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => descriptionModalLead && handleGenerateLongSummary(descriptionModalLead)}
-                        disabled={generatingLongSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
-                        className="w-full"
-                      >
-                        {generatingLongSummary ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Detailed Profile
-                          </>
-                        )}
-                      </Button>
-                      {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
-                        <p className="text-xs text-destructive">
-                          Company details required. Run "Enrich Company Details" first.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Products & Services Summary - Accordion */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="products-summary" className="border rounded-lg">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span>📦</span>
-                    <span className="font-semibold text-sm">Products & Services Summary</span>
-                    {descriptionModalLead?.products_services_summary && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.products_services_summary ? (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.products_services_summary}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Generate a professional summary of the company's products and services,
-                        including core offerings, specialties, and customer segments.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => descriptionModalLead && handleGenerateProductsSummary(descriptionModalLead)}
-                        disabled={generatingProductsSummary || (!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry)}
-                        className="w-full"
-                      >
-                        {generatingProductsSummary ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Products Summary
-                          </>
-                        )}
-                      </Button>
-                      {!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry && (
-                        <p className="text-xs text-destructive">
-                          Products/services, description, or industry data required. Run "Enrich Company Details" first.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Full Company Description */}
-            {descriptionModalLead?.description && (
-              <div>
-                <h4 className="font-semibold text-sm mb-2">Full Description</h4>
-                <p className="text-sm whitespace-pre-wrap">{descriptionModalLead.description}</p>
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>
