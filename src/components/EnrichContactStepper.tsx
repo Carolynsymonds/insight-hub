@@ -177,23 +177,25 @@ export function EnrichContactStepper({ steps, isLoading, enrichedContact }: Enri
     
     return (
       <div className="mt-3 space-y-2">
-        {/* Compact socials-only display */}
-        <div className="space-y-1.5">
+        {/* Contact name */}
+        {contactName && (
+          <p className="text-sm font-medium">{contactName}</p>
+        )}
+        
+        {/* Social profiles only */}
+        <div className="space-y-1">
           {foundSocials.length > 0 ? (
-            foundSocials.map(({ platform, url, source }) => (
+            foundSocials.map(({ platform, url }) => (
               <div key={platform} className="flex items-center gap-2 text-xs">
                 {getSocialIcon(platform)}
                 <a 
                   href={url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline truncate flex-1"
+                  className="text-primary hover:underline truncate"
                 >
                   {extractProfilePath(url)}
                 </a>
-                <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4">
-                  {source === 'google_search' ? 'Google' : 'Apollo'}
-                </Badge>
               </div>
             ))
           ) : (
@@ -201,61 +203,30 @@ export function EnrichContactStepper({ steps, isLoading, enrichedContact }: Enri
           )}
         </div>
         
-        {/* View Details Button */}
+        {/* View More for logs */}
         <Collapsible open={showDetails} onOpenChange={setShowDetails}>
           <CollapsibleTrigger asChild>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+              className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-0"
             >
               {showDetails ? (
                 <>
                   <ChevronUp className="h-3 w-3 mr-1" />
-                  Hide Details
+                  Hide Logs
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-3 w-3 mr-1" />
-                  View Details
+                  View More
                 </>
               )}
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="pt-2 mt-2 border-t border-border space-y-2">
-              {/* Contact details */}
-              <div className="text-xs space-y-1">
-                {contactName && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-12">Name</span>
-                    <span className="font-medium">{contactName}</span>
-                  </div>
-                )}
-                {enrichedContact.email && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-12">Email</span>
-                    <a href={`mailto:${enrichedContact.email}`} className="text-primary hover:underline">
-                      {enrichedContact.email}
-                    </a>
-                  </div>
-                )}
-                {enrichedContact.title && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-12">Title</span>
-                    <span>{enrichedContact.title}</span>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <span className="text-muted-foreground w-12">Source</span>
-                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4">{getSource()}</Badge>
-                </div>
-              </div>
-              
-              {/* Enrichment logs */}
-              <div className="pt-2 border-t border-border">
-                <StepperDetails displaySteps={displaySteps} />
-              </div>
+            <div className="pt-2 mt-2 border-t border-border">
+              <StepperDetails displaySteps={displaySteps} />
             </div>
           </CollapsibleContent>
         </Collapsible>
