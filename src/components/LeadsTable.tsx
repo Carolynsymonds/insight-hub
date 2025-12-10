@@ -1443,6 +1443,9 @@ const LeadsTable = ({
                   <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
                     Description
                   </TableHead>
+                  <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                    Contact LinkedIn
+                  </TableHead>
                   {showEnrichedColumns && (
                     <>
                       <TableHead className="border-t-2 border-lavender">Socials</TableHead>
@@ -1465,7 +1468,7 @@ const LeadsTable = ({
                 {filteredLeads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={showEnrichedColumns ? 18 : 8}
+                      colSpan={showEnrichedColumns ? 19 : 9}
                       className="text-center text-muted-foreground py-8"
                     >
                       {leads.length === 0
@@ -1550,6 +1553,28 @@ const LeadsTable = ({
                         }}
                       >
                         <div className="truncate">{lead.description || "—"}</div>
+                      </TableCell>
+                      <TableCell>
+                        {lead.contact_linkedin ? (
+                          <a
+                            href={lead.contact_linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Linkedin className="h-3.5 w-3.5" />
+                            {(() => {
+                              try {
+                                return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
+                              } catch {
+                                return lead.contact_linkedin;
+                              }
+                            })()}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       {showEnrichedColumns && (
                         <>
