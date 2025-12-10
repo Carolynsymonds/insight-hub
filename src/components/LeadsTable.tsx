@@ -90,6 +90,7 @@ interface Lead {
   company: string | null;
   city: string | null;
   state: string | null;
+  category: string;
   dma: string | null;
   zipcode: string | null;
   domain: string | null;
@@ -1169,10 +1170,15 @@ const LeadsTable = ({
   const handleFindContacts = async (lead: Lead) => {
     setFindingContacts(lead.id);
     try {
+      // Get current user ID for category role lookup
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase.functions.invoke("find-company-contacts", {
         body: {
           leadId: lead.id,
           domain: lead.domain,
+          category: lead.category,
+          userId: user?.id,
         },
       });
       if (error) throw error;
