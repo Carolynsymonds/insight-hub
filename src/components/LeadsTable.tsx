@@ -158,6 +158,13 @@ interface Lead {
   contact_linkedin: string | null;
   contact_facebook: string | null;
   contact_youtube: string | null;
+  contact_details: {
+    location?: string;
+    phone?: string;
+    latest_experience?: string;
+    title?: string;
+    company?: string;
+  } | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -1511,6 +1518,14 @@ const LeadsTable = ({
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
                   {/* View All & Contact: Email */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
+                  {/* Contact only: Phone (Clay) */}
+                  {viewMode === 'contact' && <TableHead>Phone</TableHead>}
+                  {/* Contact only: Location (Clay) */}
+                  {viewMode === 'contact' && <TableHead>Location</TableHead>}
+                  {/* Contact only: Title */}
+                  {viewMode === 'contact' && <TableHead>Title</TableHead>}
+                  {/* Contact only: Latest Experience */}
+                  {viewMode === 'contact' && <TableHead>Latest Experience</TableHead>}
                   {/* View All & Company: Company */}
                   {(viewMode === 'all' || viewMode === 'company') && <TableHead>Company</TableHead>}
                   {/* View All only */}
@@ -1597,6 +1612,27 @@ const LeadsTable = ({
                       {/* View All & Contact: Email */}
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{lead.email || "—"}</TableCell>
+                      )}
+                      {/* Contact only: Phone (Clay) */}
+                      {viewMode === 'contact' && (
+                        <TableCell>{lead.contact_details?.phone || lead.phone || "—"}</TableCell>
+                      )}
+                      {/* Contact only: Location (Clay) */}
+                      {viewMode === 'contact' && (
+                        <TableCell>
+                          {lead.contact_details?.location || 
+                           (lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.city || lead.state || "—")}
+                        </TableCell>
+                      )}
+                      {/* Contact only: Title */}
+                      {viewMode === 'contact' && (
+                        <TableCell>{lead.contact_details?.title || "—"}</TableCell>
+                      )}
+                      {/* Contact only: Latest Experience */}
+                      {viewMode === 'contact' && (
+                        <TableCell className="max-w-[200px]">
+                          <div className="truncate">{lead.contact_details?.latest_experience || "—"}</div>
+                        </TableCell>
                       )}
                       {/* View All & Company: Company */}
                       {(viewMode === 'all' || viewMode === 'company') && (
