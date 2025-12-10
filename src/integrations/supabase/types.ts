@@ -50,6 +50,9 @@ export type Database = {
           confirm_vehicles_50_plus: string | null
           contact_email: string | null
           contact_email_personal: boolean | null
+          contact_facebook: string | null
+          contact_linkedin: string | null
+          contact_youtube: string | null
           created_at: string | null
           description: string | null
           diagnosed_at: string | null
@@ -129,6 +132,9 @@ export type Database = {
           confirm_vehicles_50_plus?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
+          contact_facebook?: string | null
+          contact_linkedin?: string | null
+          contact_youtube?: string | null
           created_at?: string | null
           description?: string | null
           diagnosed_at?: string | null
@@ -208,6 +214,9 @@ export type Database = {
           confirm_vehicles_50_plus?: string | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
+          contact_facebook?: string | null
+          contact_linkedin?: string | null
+          contact_youtube?: string | null
           created_at?: string | null
           description?: string | null
           diagnosed_at?: string | null

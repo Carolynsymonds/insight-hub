@@ -152,6 +152,9 @@ interface Lead {
   long_summary: string | null;
   products_services_summary: string | null;
   must_knows: string | null;
+  contact_linkedin: string | null;
+  contact_facebook: string | null;
+  contact_youtube: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -173,6 +176,7 @@ interface Lead {
     facebook_url?: string;
     twitter_url?: string;
     github_url?: string;
+    youtube_url?: string;
     source: string;
     is_personal?: boolean;
     found_without_role_filter?: boolean;
@@ -4314,26 +4318,31 @@ const LeadsTable = ({
                                                       </div>
                                                     )}
 
-                                                    {/* Social Profiles */}
-                                                    {(matchedContact.linkedin_url ||
+                                                    {/* Social Profiles - from lead's contact enrichment */}
+                                                    {(selectedLead?.contact_linkedin ||
+                                                      selectedLead?.contact_facebook ||
+                                                      selectedLead?.contact_youtube ||
+                                                      matchedContact.linkedin_url ||
                                                       matchedContact.facebook_url ||
                                                       matchedContact.twitter_url ||
-                                                      matchedContact.github_url) && (
+                                                      matchedContact.github_url ||
+                                                      matchedContact.youtube_url) && (
                                                       <div className="flex flex-col gap-2">
                                                         <span className="text-xs text-muted-foreground">
                                                           Social Profiles
                                                         </span>
                                                         <div className="space-y-1.5">
-                                                          {matchedContact.linkedin_url && (
+                                                          {/* LinkedIn */}
+                                                          {(selectedLead?.contact_linkedin || matchedContact.linkedin_url) && (
                                                             <div className="flex items-center justify-between gap-2">
                                                               <a
-                                                                href={matchedContact.linkedin_url}
+                                                                href={selectedLead?.contact_linkedin || matchedContact.linkedin_url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-xs text-primary hover:underline flex items-center gap-1"
                                                               >
                                                                 <Linkedin className="h-3 w-3" />
-                                                                {matchedContact.linkedin_url
+                                                                {(selectedLead?.contact_linkedin || matchedContact.linkedin_url || "")
                                                                   .replace("https://", "")
                                                                   .replace("linkedin.com/", "")}
                                                                 <ExternalLink className="h-2.5 w-2.5" />
@@ -4360,16 +4369,17 @@ const LeadsTable = ({
                                                               )}
                                                             </div>
                                                           )}
-                                                          {matchedContact.facebook_url && (
+                                                          {/* Facebook */}
+                                                          {(selectedLead?.contact_facebook || matchedContact.facebook_url) && (
                                                             <div className="flex items-center justify-between gap-2">
                                                               <a
-                                                                href={matchedContact.facebook_url}
+                                                                href={selectedLead?.contact_facebook || matchedContact.facebook_url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-xs text-primary hover:underline flex items-center gap-1"
                                                               >
                                                                 <Facebook className="h-3 w-3" />
-                                                                {matchedContact.facebook_url
+                                                                {(selectedLead?.contact_facebook || matchedContact.facebook_url || "")
                                                                   .replace("https://", "")
                                                                   .replace("facebook.com/", "")}
                                                                 <ExternalLink className="h-2.5 w-2.5" />
@@ -4466,6 +4476,31 @@ const LeadsTable = ({
                                                                     : "Google"}
                                                                 </Badge>
                                                               )}
+                                                            </div>
+                                                          )}
+                                                          {/* YouTube */}
+                                                          {(selectedLead?.contact_youtube || matchedContact.youtube_url) && (
+                                                            <div className="flex items-center justify-between gap-2">
+                                                              <a
+                                                                href={selectedLead?.contact_youtube || matchedContact.youtube_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                              >
+                                                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                                                                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                                                </svg>
+                                                                {(selectedLead?.contact_youtube || matchedContact.youtube_url || "")
+                                                                  .replace("https://", "")
+                                                                  .replace("youtube.com/", "")}
+                                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                              </a>
+                                                              <Badge
+                                                                variant="outline"
+                                                                className="bg-red-50 text-red-700 border-red-200 text-[9px]"
+                                                              >
+                                                                Google
+                                                              </Badge>
                                                             </div>
                                                           )}
                                                         </div>
