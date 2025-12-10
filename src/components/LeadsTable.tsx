@@ -1071,10 +1071,17 @@ const LeadsTable = ({
           leadId: lead.id,
           company: lead.company,
           description: lead.description,
+          // Vehicle fields
           vehicles_count: lead.vehicles_count,
           confirm_vehicles_50_plus: lead.confirm_vehicles_50_plus,
           truck_types: lead.truck_types,
           features: lead.features,
+          // Additional business context fields
+          company_industry: lead.company_industry,
+          products_services: lead.products_services,
+          size: lead.size,
+          annual_revenue: lead.annual_revenue,
+          mics_sector: lead.mics_sector,
         },
       });
 
@@ -4779,6 +4786,67 @@ const LeadsTable = ({
               </AccordionItem>
             </Accordion>
 
+            {/* Vehicle Tracking Interest Section - 2nd from top for sales context */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="vehicle-interest" className="border rounded-lg bg-accent/30">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span>🚗</span>
+                    <span className="font-semibold text-sm">Vehicle Tracking Interest</span>
+                    {descriptionModalLead?.vehicle_tracking_interest_explanation && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
+                    <p className="text-sm leading-relaxed">{descriptionModalLead.vehicle_tracking_interest_explanation}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {descriptionModalLead?.vehicles_count ||
+                      descriptionModalLead?.truck_types ||
+                      descriptionModalLead?.features ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            Generate a detailed 4-6 sentence analysis explaining why this company needs vehicle tracking,
+                            based on their fleet size, vehicle types, and selected features.
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => descriptionModalLead && handleGenerateVehicleInterest(descriptionModalLead)}
+                            disabled={generatingVehicleInterest || !descriptionModalLead?.description}
+                            className="w-full"
+                          >
+                            {generatingVehicleInterest ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate Interest Analysis
+                              </>
+                            )}
+                          </Button>
+                          {!descriptionModalLead?.description && (
+                            <p className="text-xs text-destructive">
+                              Company description required. Run "Enrich Company Details" first.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No vehicle data available. Add vehicle information during lead import to enable this feature.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
             {/* Short Summary Section */}
             {descriptionModalLead?.short_summary ? (
               <div className="bg-muted/50 p-4 rounded-lg">
@@ -4931,62 +4999,6 @@ const LeadsTable = ({
                 <p className="text-sm whitespace-pre-wrap">{descriptionModalLead.description}</p>
               </div>
             )}
-
-            {/* Vehicle Tracking Interest Section */}
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">🚗</span>
-                <h4 className="font-semibold text-sm">Vehicle Tracking Interest</h4>
-              </div>
-
-              {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {descriptionModalLead.vehicle_tracking_interest_explanation}
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {/* Check if we have vehicle data to generate from */}
-                  {descriptionModalLead?.vehicles_count ||
-                  descriptionModalLead?.truck_types ||
-                  descriptionModalLead?.features ? (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        Generate an AI analysis explaining why this lead is interested in vehicle tracking based on
-                        their fleet data.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => descriptionModalLead && handleGenerateVehicleInterest(descriptionModalLead)}
-                        disabled={generatingVehicleInterest || !descriptionModalLead?.description}
-                        className="w-full"
-                      >
-                        {generatingVehicleInterest ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Interest Analysis
-                          </>
-                        )}
-                      </Button>
-                      {!descriptionModalLead?.description && (
-                        <p className="text-xs text-destructive">
-                          Company description required. Run "Enrich Company Details" first.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      No vehicle data available. Add vehicle information during lead import to enable this feature.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </DialogContent>
       </Dialog>
