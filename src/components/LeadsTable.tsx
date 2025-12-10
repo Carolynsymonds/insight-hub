@@ -281,6 +281,7 @@ const LeadsTable = ({
   const [scoringSocials, setScoringSocials] = useState<string | null>(null);
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
   const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
+  const [generatingShortSummary, setGeneratingShortSummary] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -822,6 +823,58 @@ const LeadsTable = ({
       });
     } finally {
       setScoringSocials(null);
+    }
+  };
+
+  const handleGenerateShortSummary = async (lead: Lead) => {
+    if (!lead.description && !lead.products_services && !lead.company_industry) {
+      toast({
+        title: "Cannot Generate",
+        description: "Company details are required. Run Enrich Company Details first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingShortSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-short-summary", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          description: lead.description,
+          products_services: lead.products_services,
+          company_industry: lead.company_industry,
+          zipcode: lead.zipcode,
+          dma: lead.dma,
+          domain: lead.domain,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Short Summary Generated!",
+        description: "A 2-3 line summary has been created.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          short_summary: data.short_summary,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingShortSummary(false);
     }
   };
 
@@ -4500,12 +4553,45 @@ const LeadsTable = ({
           </DialogHeader>
           <div className="space-y-6">
             {/* Short Summary Section */}
-            {descriptionModalLead?.short_summary && (
+            {descriptionModalLead?.short_summary ? (
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                   <span>📋</span> Short Summary
                 </h4>
                 <p className="text-sm">{descriptionModalLead.short_summary}</p>
+              </div>
+            ) : (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <span>📋</span> Short Summary
+                </h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Generate a concise 2-3 line summary of what the business does and where it operates.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)}
+                  disabled={generatingShortSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
+                  className="w-full"
+                >
+                  {generatingShortSummary ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Short Summary
+                    </>
+                  )}
+                </Button>
+                {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
+                  <p className="text-xs text-destructive mt-2">
+                    Company details required. Run "Enrich Company Details" first.
+                  </p>
+                )}
               </div>
             )}
 
