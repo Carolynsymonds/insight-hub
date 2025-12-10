@@ -117,92 +117,269 @@ export function EnrichContactStepper({ steps, isLoading }: EnrichContactStepperP
                     
                     {/* Step data details */}
                     {stepData.data && stepData.status !== 'pending' && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded text-[10px] space-y-1">
-                        {/* Check Existing step data */}
-                        {config.key === 'check_existing' && stepData.data.lead_name && (
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                            <span className="text-muted-foreground">Lead:</span>
-                            <span>{stepData.data.lead_name}</span>
-                            <span className="text-muted-foreground">Existing contacts:</span>
-                            <span>{stepData.data.existing_contacts_count || 0}</span>
-                          </div>
-                        )}
-                        
-                        {/* Apollo step data */}
-                        {config.key === 'apollo_search' && stepData.status === 'completed' && stepData.data.name && (
+                      <div className="mt-2 p-2 bg-muted/50 rounded text-[10px] space-y-1.5">
+                        {/* Check Existing step data - enhanced */}
+                        {config.key === 'check_existing' && (
                           <div className="space-y-1.5">
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                              <span className="text-muted-foreground">Name:</span>
-                              <span>{stepData.data.name}</span>
-                              {stepData.data.title && (
-                                <>
-                                  <span className="text-muted-foreground">Title:</span>
-                                  <span>{stepData.data.title}</span>
-                                </>
-                              )}
-                              {stepData.data.organization && (
-                                <>
-                                  <span className="text-muted-foreground">Company:</span>
-                                  <span>{stepData.data.organization}</span>
-                                </>
-                              )}
-                            </div>
-                            {stepData.data.socials_found && (
-                              <div className="flex gap-1 mt-1 flex-wrap">
-                                <span className="text-muted-foreground mr-1">Socials:</span>
-                                {stepData.data.socials_found.linkedin && (
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] py-0">LinkedIn</Badge>
+                            {stepData.data.lead_name && (
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                                <span className="text-muted-foreground">Lead:</span>
+                                <span>{stepData.data.lead_name}</span>
+                                <span className="text-muted-foreground">Existing contacts:</span>
+                                <span>{stepData.data.existing_contacts_count || 0}</span>
+                              </div>
+                            )}
+                            {stepData.data.matching_contacts_count !== undefined && (
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                                <span className="text-muted-foreground">Matching contacts:</span>
+                                <span className="font-medium">{stepData.data.matching_contacts_count}</span>
+                                {stepData.data.name && (
+                                  <>
+                                    <span className="text-muted-foreground">Name:</span>
+                                    <span>{stepData.data.name}</span>
+                                  </>
                                 )}
-                                {stepData.data.socials_found.facebook && (
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] py-0">Facebook</Badge>
+                                {stepData.data.email && (
+                                  <>
+                                    <span className="text-muted-foreground">Email:</span>
+                                    <span>{stepData.data.email}</span>
+                                  </>
                                 )}
-                                {stepData.data.socials_found.twitter && (
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] py-0">Twitter</Badge>
+                                {stepData.data.source && (
+                                  <>
+                                    <span className="text-muted-foreground">Source:</span>
+                                    <span>{stepData.data.source}</span>
+                                  </>
                                 )}
-                                {stepData.data.socials_found.github && (
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] py-0">GitHub</Badge>
-                                )}
-                                {stepData.data.socials_found.youtube && (
-                                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[9px] py-0">YouTube</Badge>
-                                )}
-                                {!stepData.data.socials_found.linkedin && !stepData.data.socials_found.facebook && 
-                                 !stepData.data.socials_found.twitter && !stepData.data.socials_found.github && 
-                                 !stepData.data.socials_found.youtube && (
-                                  <span className="text-muted-foreground">None found</span>
-                                )}
+                              </div>
+                            )}
+                            {/* Merged socials from existing contacts */}
+                            {(stepData.data.has_linkedin !== undefined || stepData.data.has_facebook !== undefined) && (
+                              <div className="pt-1 border-t border-border/50">
+                                <span className="text-muted-foreground block mb-1">Merged socials from existing contacts:</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.has_linkedin 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    LinkedIn {stepData.data.has_linkedin ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.has_facebook 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    Facebook {stepData.data.has_facebook ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.has_youtube 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    YouTube {stepData.data.has_youtube ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.has_twitter 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    Twitter {stepData.data.has_twitter ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.has_github 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    GitHub {stepData.data.has_github ? '✓' : '✗'}
+                                  </Badge>
+                                </div>
                               </div>
                             )}
                           </div>
                         )}
                         
-                        {/* Google step data */}
-                        {config.key === 'google_socials' && stepData.data.results && (
-                          <div className="space-y-1">
-                            <div className="text-muted-foreground mb-1">Search: "{stepData.data.search_name}" at "{stepData.data.search_company}"</div>
-                            <div className="flex gap-1 flex-wrap">
-                              {Object.entries(stepData.data.results as Record<string, any>).map(([platform, result]) => {
-                                if (!result.searched) return null;
-                                return (
+                        {/* Apollo step data - enhanced */}
+                        {config.key === 'apollo_search' && (
+                          <div className="space-y-1.5">
+                            {stepData.status === 'completed' && stepData.data.name && (
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                                <span className="text-muted-foreground">Name:</span>
+                                <span>{stepData.data.name}</span>
+                                {stepData.data.title && (
+                                  <>
+                                    <span className="text-muted-foreground">Title:</span>
+                                    <span>{stepData.data.title}</span>
+                                  </>
+                                )}
+                                {stepData.data.organization && (
+                                  <>
+                                    <span className="text-muted-foreground">Company:</span>
+                                    <span>{stepData.data.organization}</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {/* Apollo socials found */}
+                            {stepData.data.socials_found && (
+                              <div className="pt-1 border-t border-border/50">
+                                <span className="text-muted-foreground block mb-1">Socials found in Apollo:</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  {stepData.data.socials_found.linkedin && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] py-0">LinkedIn ✓</Badge>
+                                  )}
+                                  {stepData.data.socials_found.facebook && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] py-0">Facebook ✓</Badge>
+                                  )}
+                                  {stepData.data.socials_found.twitter && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] py-0">Twitter ✓</Badge>
+                                  )}
+                                  {stepData.data.socials_found.github && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] py-0">GitHub ✓</Badge>
+                                  )}
+                                  {stepData.data.socials_found.youtube && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] py-0">YouTube ✓</Badge>
+                                  )}
+                                  {!stepData.data.socials_found.linkedin && !stepData.data.socials_found.facebook && 
+                                   !stepData.data.socials_found.twitter && !stepData.data.socials_found.github && 
+                                   !stepData.data.socials_found.youtube && (
+                                    <span className="text-muted-foreground italic">None found</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {/* Apollo found socials (alternative format) */}
+                            {(stepData.data.found_linkedin !== undefined || stepData.data.found_facebook !== undefined) && (
+                              <div className="pt-1 border-t border-border/50">
+                                <span className="text-muted-foreground block mb-1">Socials found in Apollo:</span>
+                                <div className="flex gap-1 flex-wrap">
                                   <Badge 
-                                    key={platform}
                                     variant="outline" 
                                     className={cn(
                                       "text-[9px] py-0",
-                                      result.found 
+                                      stepData.data.found_linkedin 
                                         ? "bg-green-50 text-green-700 border-green-200" 
                                         : "bg-muted text-muted-foreground border-border"
                                     )}
                                   >
-                                    {platform} {result.found ? '✓' : '✗'}
+                                    LinkedIn {stepData.data.found_linkedin ? '✓' : '✗'}
                                   </Badge>
-                                );
-                              })}
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.found_facebook 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    Facebook {stepData.data.found_facebook ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.found_twitter 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    Twitter {stepData.data.found_twitter ? '✓' : '✗'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[9px] py-0",
+                                      stepData.data.found_github 
+                                        ? "bg-green-50 text-green-700 border-green-200" 
+                                        : "bg-muted text-muted-foreground border-border"
+                                    )}
+                                  >
+                                    GitHub {stepData.data.found_github ? '✓' : '✗'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Google step data - enhanced */}
+                        {config.key === 'google_socials' && stepData.data.results && (
+                          <div className="space-y-1.5">
+                            <div className="text-muted-foreground">
+                              Search query: "<span className="text-foreground">{stepData.data.search_name}</span>" at "<span className="text-foreground">{stepData.data.search_company}</span>"
                             </div>
+                            <div className="pt-1 border-t border-border/50">
+                              <span className="text-muted-foreground block mb-1">Google search results:</span>
+                              <div className="flex gap-1 flex-wrap">
+                                {Object.entries(stepData.data.results as Record<string, any>).map(([platform, result]) => {
+                                  if (!result.searched) return null;
+                                  return (
+                                    <Badge 
+                                      key={platform}
+                                      variant="outline" 
+                                      className={cn(
+                                        "text-[9px] py-0",
+                                        result.found 
+                                          ? "bg-green-50 text-green-700 border-green-200" 
+                                          : "bg-muted text-muted-foreground border-border"
+                                      )}
+                                    >
+                                      {platform.charAt(0).toUpperCase() + platform.slice(1)} {result.found ? '✓' : '✗'}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {/* Show found URLs */}
+                            {Object.entries(stepData.data.results as Record<string, any>).some(([, r]) => r.found && r.url) && (
+                              <div className="pt-1 border-t border-border/50">
+                                <span className="text-muted-foreground block mb-1">URLs found:</span>
+                                <div className="space-y-0.5">
+                                  {Object.entries(stepData.data.results as Record<string, any>).map(([platform, result]) => {
+                                    if (!result.found || !result.url) return null;
+                                    return (
+                                      <div key={platform} className="flex items-center gap-1 text-[9px]">
+                                        <span className="text-muted-foreground capitalize">{platform}:</span>
+                                        <a 
+                                          href={result.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline truncate max-w-[200px]"
+                                        >
+                                          {result.url.replace('https://', '').replace('http://', '')}
+                                        </a>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         
                         {/* Skip reason */}
-                        {stepData.status === 'skipped' && stepData.data.reason && (
+                        {stepData.status === 'skipped' && stepData.data?.reason && (
                           <span className="text-muted-foreground italic">
                             {stepData.data.reason === 'all_socials_found_in_apollo' 
                               ? 'All social profiles found in Apollo' 
