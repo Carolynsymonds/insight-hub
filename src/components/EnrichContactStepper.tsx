@@ -173,99 +173,92 @@ export function EnrichContactStepper({ steps, isLoading, enrichedContact }: Enri
 
   // Show compact view when complete
   if (isComplete && enrichedContact) {
+    const contactName = enrichedContact.name || `${enrichedContact.first_name || ''} ${enrichedContact.last_name || ''}`.trim();
+    
     return (
-      <div className="mt-3 space-y-3">
-        {/* Compact Contact Found Card */}
-        <div className="p-3 rounded-lg border border-green-200 bg-green-50/50">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <User className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-green-800">Contact Found</span>
-                <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px]">{getSource()}</Badge>
+      <div className="mt-3 space-y-2">
+        {/* Compact socials-only display */}
+        <div className="space-y-1.5">
+          {foundSocials.length > 0 ? (
+            foundSocials.map(({ platform, url, source }) => (
+              <div key={platform} className="flex items-center gap-2 text-xs">
+                {getSocialIcon(platform)}
+                <a 
+                  href={url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline truncate flex-1"
+                >
+                  {extractProfilePath(url)}
+                </a>
+                <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4">
+                  {source === 'google_search' ? 'Google' : 'Apollo'}
+                </Badge>
               </div>
-              
-              {/* Contact Info */}
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-[80px_1fr] gap-x-2 text-[11px]">
-                  <span className="text-muted-foreground">Name</span>
-                  <span className="font-medium">{enrichedContact.name || `${enrichedContact.first_name || ''} ${enrichedContact.last_name || ''}`.trim() || '—'}</span>
-                  
-                  {enrichedContact.email && (
-                    <>
-                      <span className="text-muted-foreground">Email</span>
-                      <a href={`mailto:${enrichedContact.email}`} className="text-primary hover:underline truncate">
-                        {enrichedContact.email}
-                      </a>
-                    </>
-                  )}
-                  
-                  {enrichedContact.title && (
-                    <>
-                      <span className="text-muted-foreground">Title</span>
-                      <span>{enrichedContact.title}</span>
-                    </>
-                  )}
-                </div>
-                
-                {/* Social Profiles - Only show if found */}
-                {foundSocials.length > 0 && (
-                  <div className="pt-1.5 border-t border-green-200/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Social Profiles</span>
-                    <div className="space-y-1">
-                      {foundSocials.map(({ platform, url, source }) => (
-                        <div key={platform} className="flex items-center gap-2 text-[11px]">
-                          {getSocialIcon(platform)}
-                          <a 
-                            href={url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline truncate flex-1"
-                          >
-                            {extractProfilePath(url)}
-                          </a>
-                          <Badge variant="outline" className="text-[9px] py-0 px-1">
-                            {source === 'google_search' ? 'Google' : 'Apollo'}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground">No socials found</span>
+          )}
+        </div>
+        
+        {/* View Details Button */}
+        <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+            >
+              {showDetails ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Hide Details
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  View Details
+                </>
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="pt-2 mt-2 border-t border-border space-y-2">
+              {/* Contact details */}
+              <div className="text-xs space-y-1">
+                {contactName && (
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-12">Name</span>
+                    <span className="font-medium">{contactName}</span>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-          
-          {/* View Details Button */}
-          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full mt-2 h-7 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                {showDetails ? (
-                  <>
-                    <ChevronUp className="h-3 w-3 mr-1" />
-                    Hide Details
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    View Details
-                  </>
+                {enrichedContact.email && (
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-12">Email</span>
+                    <a href={`mailto:${enrichedContact.email}`} className="text-primary hover:underline">
+                      {enrichedContact.email}
+                    </a>
+                  </div>
                 )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pt-3 mt-2 border-t border-green-200/50">
+                {enrichedContact.title && (
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-12">Title</span>
+                    <span>{enrichedContact.title}</span>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground w-12">Source</span>
+                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4">{getSource()}</Badge>
+                </div>
+              </div>
+              
+              {/* Enrichment logs */}
+              <div className="pt-2 border-t border-border">
                 <StepperDetails displaySteps={displaySteps} />
               </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     );
   }
