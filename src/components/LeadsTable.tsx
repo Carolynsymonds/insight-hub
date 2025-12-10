@@ -1309,29 +1309,21 @@ const LeadsTable = ({
     setEnrichingWithClay(lead.id);
     
     try {
-      console.log('Sending contact to Clay:', lead.full_name, linkedinUrl);
+      console.log('Sending contact to Clay via edge function:', lead.full_name, linkedinUrl);
       
-      const response = await fetch(
-        "https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-6a4ca2aa-e9e5-474a-995a-aef21088ead6",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fullName: lead.full_name,
-            email: lead.email,
-            linkedin: linkedinUrl,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('send-to-clay', {
+        body: {
+          fullName: lead.full_name,
+          email: lead.email,
+          linkedin: linkedinUrl,
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(`Clay webhook failed: ${response.status}`);
+      if (error) {
+        throw new Error(error.message || 'Failed to send to Clay');
       }
 
-      const data = await response.json();
-      console.log('Clay webhook response:', data);
+      console.log('Clay edge function response:', data);
 
       toast({
         title: "Sent to Clay",
