@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.generate-business-cases]
 verify_jwt = false
+
+[functions.send-to-clay]
+verify_jwt = false
