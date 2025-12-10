@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, domain } = await req.json();
+    const { leadId, domain, category, userId } = await req.json();
 
     if (!leadId || !domain) {
       return new Response(
@@ -59,9 +59,35 @@ Deno.serve(async (req) => {
     console.log(`=== FIND COMPANY CONTACTS ===`);
     console.log(`Lead ID: ${leadId}`);
     console.log(`Domain: ${normalizedDomain}`);
+    console.log(`Category: ${category || 'not specified'}`);
+    console.log(`User ID: ${userId || 'not specified'}`);
+
+    // Base roles that apply to ALL categories
+    const baseRoles = ['ceo', 'cto', 'cfo', 'president', 'owner'];
+
+    // Fetch category-specific roles from database
+    let categoryRoles: string[] = [];
+    if (category && userId) {
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('category_roles')
+        .select('role_name')
+        .eq('user_id', userId)
+        .eq('category', category);
+
+      if (rolesError) {
+        console.error('Error fetching category roles:', rolesError);
+      } else if (rolesData && rolesData.length > 0) {
+        categoryRoles = rolesData.map(r => r.role_name.toLowerCase());
+        console.log(`Found ${categoryRoles.length} category-specific roles:`, categoryRoles);
+      }
+    }
+
+    // Combine base roles + category roles, remove duplicates
+    const allRoles = [...baseRoles, ...categoryRoles];
+    const targetTitles = [...new Set(allRoles)];
+    console.log(`Combined target titles (${targetTitles.length}):`, targetTitles);
 
     const discoveredContacts: DiscoveredContact[] = [];
-    const targetTitles = ['ceo', 'owner', 'president', 'director', 'manager', 'founder', 'vp', 'chief'];
 
     // Step 1: Search for company contacts via Apollo People Search WITH role filters
     console.log('Step 1: Searching for company contacts with role filters...');
