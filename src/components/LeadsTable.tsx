@@ -240,12 +240,15 @@ interface Lead {
     };
   } | null;
 }
+export type ViewMode = 'all' | 'company' | 'contact';
+
 interface LeadsTableProps {
   leads: Lead[];
   onEnrichComplete: () => void;
   hideFilterBar?: boolean;
   domainFilter?: "all" | "valid" | "invalid";
   onDomainFilterChange?: (value: "all" | "valid" | "invalid") => void;
+  viewMode?: ViewMode;
 }
 const LeadsTable = ({
   leads,
@@ -253,6 +256,7 @@ const LeadsTable = ({
   hideFilterBar = false,
   domainFilter: externalDomainFilter,
   onDomainFilterChange,
+  viewMode = 'all',
 }: LeadsTableProps) => {
   const { toast } = useToast();
   const [enrichingSource, setEnrichingSource] = useState<{ leadId: string; source: string } | null>(null);
@@ -1428,27 +1432,46 @@ const LeadsTable = ({
             <Table>
               <TableHeader className="sticky top-0 bg-background z-20">
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>
-                  <TableHead>Zipcode</TableHead>
-                  <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>
-                  <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
-                    <div className="flex items-center gap-2">
-                      <Link2 className="h-4 w-4" />
-                      Company Domain
-                    </div>
-                  </TableHead>
-                  <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
-                    Description
-                  </TableHead>
-                  <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
-                    Contact LinkedIn
-                  </TableHead>
-                  {showEnrichedColumns && (
+                  {/* View All & Contact: Name */}
+                  {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
+                  {/* View All & Contact: Email */}
+                  {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
+                  {/* View All & Company: Company */}
+                  {(viewMode === 'all' || viewMode === 'company') && <TableHead>Company</TableHead>}
+                  {/* View All only */}
+                  {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>}
+                  {viewMode === 'all' && <TableHead>Zipcode</TableHead>}
+                  {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>}
+                  {/* View All & Company: Company Domain */}
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                    <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                      <div className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4" />
+                        Company Domain
+                      </div>
+                    </TableHead>
+                  )}
+                  {/* View All & Company: Description */}
+                  {(viewMode === 'all' || viewMode === 'company') && (
+                    <TableHead className={viewMode === 'all' && showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
+                      Description
+                    </TableHead>
+                  )}
+                  {/* View All & Contact: Contact LinkedIn */}
+                  {(viewMode === 'all' || viewMode === 'contact') && (
+                    <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                      Contact LinkedIn
+                    </TableHead>
+                  )}
+                  {/* View All & Company: Socials */}
+                  {(viewMode === 'all' || viewMode === 'company') && viewMode === 'all' && showEnrichedColumns && (
+                    <TableHead className="border-t-2 border-lavender">Socials</TableHead>
+                  )}
+                  {viewMode === 'company' && <TableHead>Socials</TableHead>}
+                  {/* View All & Company: News */}
+                  {viewMode === 'company' && <TableHead>News</TableHead>}
+                  {viewMode === 'all' && showEnrichedColumns && (
                     <>
-                      <TableHead className="border-t-2 border-lavender">Socials</TableHead>
                       <TableHead className="border-t-2 border-lavender">Size</TableHead>
                       <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
                       <TableHead className="border-t-2 border-lavender">Industry</TableHead>
@@ -1483,100 +1506,120 @@ const LeadsTable = ({
                       className="cursor-pointer hover:bg-muted/50 group"
                       onClick={() => showLeadDetails(lead)}
                     >
-                      <TableCell className="font-medium">{lead.full_name}</TableCell>
-                      <TableCell>{lead.email || "—"}</TableCell>
-                      <TableCell>{lead.company || "—"}</TableCell>
-                      <TableCell>{lead.mics_sector || "—"}</TableCell>
-                      <TableCell>{lead.zipcode || "—"}</TableCell>
-                      <TableCell>{lead.dma || "—"}</TableCell>
-                      <TableCell>
-                        {lead.domain ? (
-                          <div className="flex items-center gap-2">
+                      {/* View All & Contact: Name */}
+                      {(viewMode === 'all' || viewMode === 'contact') && (
+                        <TableCell className="font-medium">{lead.full_name}</TableCell>
+                      )}
+                      {/* View All & Contact: Email */}
+                      {(viewMode === 'all' || viewMode === 'contact') && (
+                        <TableCell>{lead.email || "—"}</TableCell>
+                      )}
+                      {/* View All & Company: Company */}
+                      {(viewMode === 'all' || viewMode === 'company') && (
+                        <TableCell>{lead.company || "—"}</TableCell>
+                      )}
+                      {/* View All only */}
+                      {viewMode === 'all' && <TableCell>{lead.mics_sector || "—"}</TableCell>}
+                      {viewMode === 'all' && <TableCell>{lead.zipcode || "—"}</TableCell>}
+                      {viewMode === 'all' && <TableCell>{lead.dma || "—"}</TableCell>}
+                      {/* All views: Company Domain */}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell>
+                          {lead.domain ? (
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`https://${lead.domain}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {lead.domain}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              {lead.match_score !== null && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-white text-black border-border"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {lead.match_score}%
+                                </Badge>
+                              )}
+                            </div>
+                          ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
+                            (() => {
+                              const checkedSources = new Set<string>();
+                              lead.enrichment_logs.forEach((log) => {
+                                if (log.source.startsWith("email_")) {
+                                  checkedSources.add("Email");
+                                } else if (
+                                  log.source === "google_knowledge_graph" ||
+                                  log.source === "google_local_results"
+                                ) {
+                                  checkedSources.add("Google");
+                                } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
+                                  checkedSources.add("Apollo");
+                                }
+                              });
+                              const sourceList = Array.from(checkedSources).join(", ");
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
+                                  {lead.diagnosis_category && (
+                                    <Badge variant="outline" className="text-xs w-fit">
+                                      {lead.diagnosis_category}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                      )}
+                      {/* View All & Company: Description */}
+                      {(viewMode === 'all' || viewMode === 'company') && (
+                        <TableCell
+                          className="max-w-[250px] cursor-pointer hover:text-primary"
+                          onClick={(e) => {
+                            if (lead.description || lead.vehicle_tracking_interest_explanation) {
+                              e.stopPropagation();
+                              setDescriptionModalLead(lead);
+                            }
+                          }}
+                        >
+                          <div className="truncate">{lead.description || "—"}</div>
+                        </TableCell>
+                      )}
+                      {/* View All & Contact: Contact LinkedIn */}
+                      {(viewMode === 'all' || viewMode === 'contact') && (
+                        <TableCell>
+                          {lead.contact_linkedin ? (
                             <a
-                              href={`https://${lead.domain}`}
+                              href={lead.contact_linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-primary hover:underline flex items-center gap-1"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {lead.domain}
-                              <ExternalLink className="h-3 w-3" />
+                              <Linkedin className="h-3.5 w-3.5" />
+                              {(() => {
+                                try {
+                                  return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
+                                } catch {
+                                  return lead.contact_linkedin;
+                                }
+                              })()}
                             </a>
-                            {lead.match_score !== null && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-white text-black border-border"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {lead.match_score}%
-                              </Badge>
-                            )}
-                          </div>
-                        ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
-                          (() => {
-                            const checkedSources = new Set<string>();
-                            lead.enrichment_logs.forEach((log) => {
-                              if (log.source.startsWith("email_")) {
-                                checkedSources.add("Email");
-                              } else if (
-                                log.source === "google_knowledge_graph" ||
-                                log.source === "google_local_results"
-                              ) {
-                                checkedSources.add("Google");
-                              } else if (log.source === "apollo_api" || log.source === "apollo_api_error") {
-                                checkedSources.add("Apollo");
-                              }
-                            });
-                            const sourceList = Array.from(checkedSources).join(", ");
-                            return (
-                              <div className="flex flex-col gap-1">
-                                <span className="text-muted-foreground text-sm">Not found in {sourceList}</span>
-                                {lead.diagnosis_category && (
-                                  <Badge variant="outline" className="text-xs w-fit">
-                                    {lead.diagnosis_category}
-                                  </Badge>
-                                )}
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell
-                        className="max-w-[250px] cursor-pointer hover:text-primary"
-                        onClick={(e) => {
-                          if (lead.description || lead.vehicle_tracking_interest_explanation) {
-                            e.stopPropagation();
-                            setDescriptionModalLead(lead);
-                          }
-                        }}
-                      >
-                        <div className="truncate">{lead.description || "—"}</div>
-                      </TableCell>
-                      <TableCell>
-                        {lead.contact_linkedin ? (
-                          <a
-                            href={lead.contact_linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Linkedin className="h-3.5 w-3.5" />
-                            {(() => {
-                              try {
-                                return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
-                              } catch {
-                                return lead.contact_linkedin;
-                              }
-                            })()}
-                          </a>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      {showEnrichedColumns && (
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                      )}
+                      {/* View All: Enriched columns (Socials, Size, etc.) */}
+                      {viewMode === 'all' && showEnrichedColumns && (
                         <>
                           <TableCell>
                             <div className="flex flex-col gap-1 text-xs">
@@ -1775,6 +1818,113 @@ const LeadsTable = ({
                             </div>
                           </TableCell>
                         </>
+                      )}
+                      {/* Company View: Socials */}
+                      {viewMode === 'company' && (
+                        <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.linkedin ? (
+                                <a
+                                  href={lead.linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.linkedin;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.instagram ? (
+                                <a
+                                  href={lead.instagram}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.instagram;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.facebook ? (
+                                <a
+                                  href={lead.facebook}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.facebook;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {/* Company View: News */}
+                      {viewMode === 'company' && (
+                        <TableCell
+                          className="max-w-[200px] cursor-pointer hover:text-primary"
+                          onClick={(e) => {
+                            if (lead.news) {
+                              e.stopPropagation();
+                              try {
+                                const newsData = JSON.parse(lead.news);
+                                setNewsModalData(newsData);
+                                setShowNewsModal(true);
+                              } catch {
+                                setModalContent({ title: "News", text: lead.news });
+                                setShowTextModal(true);
+                              }
+                            }
+                          }}
+                        >
+                          <div className="truncate">
+                            {lead.news
+                              ? (() => {
+                                  try {
+                                    const newsData = JSON.parse(lead.news);
+                                    return newsData.news_count > 0
+                                      ? `${newsData.news_count} article${newsData.news_count > 1 ? "s" : ""}`
+                                      : "No news";
+                                  } catch {
+                                    return lead.news;
+                                  }
+                                })()
+                              : "—"}
+                          </div>
+                        </TableCell>
                       )}
                       <TableCell
                         className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
