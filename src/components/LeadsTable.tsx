@@ -281,6 +281,7 @@ const LeadsTable = ({
   const [modalContent, setModalContent] = useState<{ title: string; text: string }>({ title: "", text: "" });
   const [findingContacts, setFindingContacts] = useState<string | null>(null);
   const [enrichingContact, setEnrichingContact] = useState<string | null>(null);
+  const [enrichingWithClay, setEnrichingWithClay] = useState<string | null>(null);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [contactsModalLead, setContactsModalLead] = useState<Lead | null>(null);
   const [showNewsModal, setShowNewsModal] = useState(false);
@@ -1294,6 +1295,50 @@ const LeadsTable = ({
       setEnrichedContactResult(null);
     } finally {
       setEnrichingContact(null);
+    }
+  };
+
+  const handleEnrichWithClay = async (lead: Lead, linkedinUrl: string) => {
+    setEnrichingWithClay(lead.id);
+    
+    try {
+      console.log('Enriching contact with Clay:', lead.full_name, linkedinUrl);
+      
+      const { data, error } = await supabase.functions.invoke("clay-contact-enrichment", {
+        body: {
+          full_name: lead.full_name,
+          email: lead.email,
+          company: lead.company || lead.domain,
+          linkedin_url: linkedinUrl,
+        },
+      });
+
+      if (error) throw error;
+
+      console.log('Clay enrichment result:', data);
+
+      if (data.success) {
+        toast({
+          title: "Contact Enriched",
+          description: "Contact details updated from Clay.",
+        });
+        onEnrichComplete();
+      } else {
+        toast({
+          title: "Enrichment Failed",
+          description: data.error || "Could not enrich contact.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Clay enrichment error:', error);
+      toast({
+        title: "Enrichment Error",
+        description: error instanceof Error ? error.message : "Failed to enrich contact.",
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichingWithClay(null);
     }
   };
 
@@ -4703,7 +4748,7 @@ const LeadsTable = ({
                                                     )}
 
                                                     {/* Re-search button */}
-                                                    <div className="pt-2">
+                                                    <div className="pt-2 space-y-2">
                                                       <Button
                                                         size="sm"
                                                         variant="outline"
@@ -4723,6 +4768,32 @@ const LeadsTable = ({
                                                           </>
                                                         )}
                                                       </Button>
+                                                      
+                                                      {/* Get contact details with Clay - enabled when LinkedIn URL exists */}
+                                                      {(() => {
+                                                        const linkedinUrl = selectedLead?.contact_linkedin || matchedContact.linkedin_url;
+                                                        return (
+                                                          <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="w-full"
+                                                            disabled={!linkedinUrl || enrichingWithClay === lead.id}
+                                                            onClick={() => linkedinUrl && handleEnrichWithClay(lead, linkedinUrl)}
+                                                          >
+                                                            {enrichingWithClay === lead.id ? (
+                                                              <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                Enriching...
+                                                              </>
+                                                            ) : (
+                                                              <>
+                                                                <ExternalLink className="mr-2 h-4 w-4" />
+                                                                Get contact details with Clay
+                                                              </>
+                                                            )}
+                                                          </Button>
+                                                        );
+                                                      })()}
                                                     </div>
                                                   </CollapsibleContent>
                                                 </Collapsible>
