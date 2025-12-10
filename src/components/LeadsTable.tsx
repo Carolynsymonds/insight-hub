@@ -146,6 +146,7 @@ interface Lead {
   truck_types: string | null;
   features: string | null;
   vehicle_tracking_interest_explanation: string | null;
+  likely_business_cases: string | null;
   short_summary: string | null;
   long_summary: string | null;
   products_services_summary: string | null;
@@ -288,6 +289,7 @@ const LeadsTable = ({
   const [generatingLongSummary, setGeneratingLongSummary] = useState(false);
   const [generatingProductsSummary, setGeneratingProductsSummary] = useState(false);
   const [generatingMustKnows, setGeneratingMustKnows] = useState(false);
+  const [generatingBusinessCases, setGeneratingBusinessCases] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -1109,6 +1111,58 @@ const LeadsTable = ({
       });
     } finally {
       setGeneratingVehicleInterest(false);
+    }
+  };
+
+  const handleGenerateBusinessCases = async (lead: Lead) => {
+    if (!lead.vehicles_count && !lead.truck_types && !lead.features) {
+      toast({
+        title: "Cannot Generate",
+        description: "Vehicle data is required. Add vehicle information during lead import.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingBusinessCases(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-business-cases", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          description: lead.description,
+          company_industry: lead.company_industry,
+          products_services: lead.products_services,
+          vehicles_count: lead.vehicles_count,
+          truck_types: lead.truck_types,
+          features: lead.features,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Business Cases Generated!",
+        description: "Likely business cases have been created.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          likely_business_cases: data.businessCases,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingBusinessCases(false);
     }
   };
 
@@ -4952,6 +5006,58 @@ const LeadsTable = ({
                               Company description required. Run "Enrich Company Details" first.
                             </p>
                           )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No vehicle data available. Add vehicle information during lead import to enable this feature.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* 6. Likely Business Cases - Last */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="business-cases" className="border rounded-lg bg-background">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="font-semibold text-sm">Likely Business Cases</span>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.likely_business_cases ? (
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {descriptionModalLead.likely_business_cases}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {descriptionModalLead?.vehicles_count ||
+                      descriptionModalLead?.truck_types ||
+                      descriptionModalLead?.features ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            Generate likely business cases for vehicle tracking based on this company's 
+                            fleet profile, industry, and operational needs.
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => descriptionModalLead && handleGenerateBusinessCases(descriptionModalLead)}
+                            disabled={generatingBusinessCases}
+                            className="w-full"
+                          >
+                            {generatingBusinessCases ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate Likely Business Cases
+                              </>
+                            )}
+                          </Button>
                         </>
                       ) : (
                         <p className="text-xs text-muted-foreground italic">

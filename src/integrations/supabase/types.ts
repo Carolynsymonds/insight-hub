@@ -61,6 +61,7 @@ export type Database = {
           instagram_source_url: string | null
           instagram_validated: boolean | null
           latitude: number | null
+          likely_business_cases: string | null
           linkedin: string | null
           linkedin_confidence: number | null
           linkedin_source_url: string | null
@@ -139,6 +140,7 @@ export type Database = {
           instagram_source_url?: string | null
           instagram_validated?: boolean | null
           latitude?: number | null
+          likely_business_cases?: string | null
           linkedin?: string | null
           linkedin_confidence?: number | null
           linkedin_source_url?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           instagram_source_url?: string | null
           instagram_validated?: boolean | null
           latitude?: number | null
+          likely_business_cases?: string | null
           linkedin?: string | null
           linkedin_confidence?: number | null
           linkedin_source_url?: string | null
