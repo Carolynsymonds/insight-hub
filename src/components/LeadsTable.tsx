@@ -1410,24 +1410,26 @@ const LeadsTable = ({
 
       <StickyScrollTable className="overflow-x-auto">
         <div className="min-w-max">
-          {/* Collapse/Expand button row - scrolls with table, above the table border */}
-          <div className="flex" style={{ paddingBottom: 0, marginBottom: -1 }}>
-            <div style={{ width: "940px" }} className="shrink-0" />
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-3 text-sm font-normal border-border/50 text-muted-foreground hover:bg-muted/50"
-              style={{ backgroundColor: "white", borderRadius: 0 }}
-              onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
-              title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
-            >
-              <ArrowDown className="h-4 w-4 mr-2 text-muted-foreground/70" />
-              <span className="border-r border-border/50 pr-2 mr-2">{showEnrichedColumns ? "Collapse" : "Expand"}</span>
-              <ChevronsRight
-                className={`h-4 w-4 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? "rotate-180" : ""}`}
-              />
-            </Button>
-          </div>
+          {/* Collapse/Expand button row - only show in View All mode */}
+          {viewMode === 'all' && (
+            <div className="flex" style={{ paddingBottom: 0, marginBottom: -1 }}>
+              <div style={{ width: "940px" }} className="shrink-0" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 text-sm font-normal border-border/50 text-muted-foreground hover:bg-muted/50"
+                style={{ backgroundColor: "white", borderRadius: 0 }}
+                onClick={() => setShowEnrichedColumns(!showEnrichedColumns)}
+                title={showEnrichedColumns ? "Collapse enriched details" : "Expand enriched details"}
+              >
+                <ArrowDown className="h-4 w-4 mr-2 text-muted-foreground/70" />
+                <span className="border-r border-border/50 pr-2 mr-2">{showEnrichedColumns ? "Collapse" : "Expand"}</span>
+                <ChevronsRight
+                  className={`h-4 w-4 text-muted-foreground/70 transition-transform ${showEnrichedColumns ? "rotate-180" : ""}`}
+                />
+              </Button>
+            </div>
+          )}
           <div className="rounded-lg border">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-20">
