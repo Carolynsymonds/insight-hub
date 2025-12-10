@@ -17,10 +17,12 @@ import {
   X,
   MapPin,
   CheckCircle,
+  XCircle,
   Users,
   Mail,
   Newspaper,
   ChevronRight,
+  ChevronDown,
   Linkedin,
   Instagram,
   Facebook,
@@ -29,6 +31,7 @@ import {
   Github,
   ArrowDown,
   Download,
+  FileText,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -4560,6 +4563,56 @@ const LeadsTable = ({
                                                       </div>
                                                     )}
                                                   </div>
+
+                                                  {/* Enrichment Logs */}
+                                                  {matchedContact.social_search_logs && matchedContact.social_search_logs.length > 0 && (
+                                                    <Collapsible className="border-t border-green-200 pt-3 mt-3">
+                                                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center">
+                                                        <FileText className="h-3 w-3" />
+                                                        <span>View Enrichment Logs</span>
+                                                        <ChevronDown className="h-3 w-3 ml-1" />
+                                                      </CollapsibleTrigger>
+                                                      <CollapsibleContent className="mt-2 space-y-2">
+                                                        {matchedContact.social_search_logs.map((log: any, idx: number) => (
+                                                          <div key={idx} className="bg-muted/50 rounded p-2 text-xs space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                              <Badge
+                                                                variant="outline"
+                                                                className={
+                                                                  log.source === "apollo"
+                                                                    ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
+                                                                    : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
+                                                                }
+                                                              >
+                                                                {log.source === "apollo" ? "Apollo" : "Google"}
+                                                              </Badge>
+                                                              <span className="font-medium capitalize">{log.platform}</span>
+                                                              {log.found ? (
+                                                                <CheckCircle className="h-3 w-3 text-green-600" />
+                                                              ) : (
+                                                                <XCircle className="h-3 w-3 text-red-500" />
+                                                              )}
+                                                            </div>
+                                                            {log.query && (
+                                                              <p className="text-muted-foreground font-mono text-[10px] break-all">
+                                                                Query: {log.query}
+                                                              </p>
+                                                            )}
+                                                            {log.url && (
+                                                              <p className="text-muted-foreground text-[10px] break-all">
+                                                                URL: {log.url}
+                                                              </p>
+                                                            )}
+                                                            {log.timestamp && (
+                                                              <p className="text-muted-foreground text-[10px]">
+                                                                {new Date(log.timestamp).toLocaleString()}
+                                                              </p>
+                                                            )}
+                                                          </div>
+                                                        ))}
+                                                      </CollapsibleContent>
+                                                    </Collapsible>
+                                                  )}
 
                                                   {/* Re-search button */}
                                                   <div className="pt-3 border-t border-green-200">
