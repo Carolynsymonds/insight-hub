@@ -56,7 +56,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('valid');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('all');
