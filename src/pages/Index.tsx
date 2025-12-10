@@ -59,7 +59,7 @@ const Index = () => {
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('valid');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
-  const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('company');
   useEffect(() => {
     checkAuth();
   }, []);
@@ -225,7 +225,7 @@ const Index = () => {
                   className="rounded-none border-0"
                   onClick={() => setViewMode('company')}
                 >
-                  Company Data
+                  Company
                 </Button>
                 <Button
                   variant={viewMode === 'contact' ? 'default' : 'ghost'}
@@ -233,7 +233,7 @@ const Index = () => {
                   className="rounded-none border-0 border-x"
                   onClick={() => setViewMode('contact')}
                 >
-                  Contact Data
+                  Contact
                 </Button>
                 <Button
                   variant={viewMode === 'all' ? 'default' : 'ghost'}
