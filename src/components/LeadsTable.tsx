@@ -146,6 +146,7 @@ interface Lead {
   truck_types: string | null;
   features: string | null;
   vehicle_tracking_interest_explanation: string | null;
+  short_summary: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -4498,9 +4499,20 @@ const LeadsTable = ({
             <DialogDescription>{descriptionModalLead?.company || descriptionModalLead?.full_name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Company Description */}
+            {/* Short Summary Section */}
+            {descriptionModalLead?.short_summary && (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <span>📋</span> Short Summary
+                </h4>
+                <p className="text-sm">{descriptionModalLead.short_summary}</p>
+              </div>
+            )}
+
+            {/* Full Company Description */}
             {descriptionModalLead?.description && (
               <div>
+                <h4 className="font-semibold text-sm mb-2">Full Description</h4>
                 <p className="text-sm whitespace-pre-wrap">{descriptionModalLead.description}</p>
               </div>
             )}

@@ -468,15 +468,19 @@ Deno.serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch the lead's email for validation
+    // Fetch the lead's essential fields for validation and short summary generation
     const { data: leadData, error: leadFetchError } = await supabase
       .from('leads')
-      .select('email')
+      .select('email, company, zipcode, dma')
       .eq('id', leadId)
       .single();
     
     const leadEmail = leadData?.email || null;
+    const leadCompany = leadData?.company || null;
+    const leadZipcode = leadData?.zipcode || null;
+    const leadDma = leadData?.dma || null;
     console.log(`Lead Email: ${leadEmail}`);
+    console.log(`Lead Company: ${leadCompany}, Zipcode: ${leadZipcode}, DMA: ${leadDma}`);
 
     const enrichmentSteps: EnrichmentStep[] = [];
     const isDirectApollo = enrichmentSource === 'apollo_api';
@@ -1350,6 +1354,98 @@ Generate professional outputs for all three fields.`
       }
     }
 
+    // Generate Short Summary using AI
+    const shortSummaryStepNum = enrichmentSteps.length + 1;
+    enrichmentSteps.push({
+      step: shortSummaryStepNum,
+      action: 'generate_short_summary',
+      status: 'pending',
+      timestamp: new Date().toISOString(),
+      details: { message: 'Generating 2-3 line short summary...' }
+    });
+    console.log(`Step ${shortSummaryStepNum}: Generating short summary...`);
+    
+    if (LOVABLE_API_KEY && (updateData.description || updateData.products_services || updateData.company_industry)) {
+      try {
+        const shortSummaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a professional business writer. Generate a concise 2-3 line summary of what the business does and where it operates. Output ONLY the summary paragraph with no additional text, headers, or labels.'
+              },
+              {
+                role: 'user',
+                content: `Generate a 2-3 line summary for this company:
+
+Company Name: ${leadCompany || 'Unknown'}
+Industry: ${updateData.company_industry || 'Unknown'}
+Description: ${updateData.description || 'N/A'}
+Products/Services: ${updateData.products_services || 'N/A'}
+Zipcode: ${leadZipcode || 'N/A'}
+DMA (Region): ${leadDma || 'N/A'}
+Domain: ${normalizedDomain}
+
+Requirements:
+1. First sentence: What the business does (use industry/description/products info)
+2. Second sentence: Where they operate (use zipcode/DMA)
+3. Be factual and professional, no marketing language
+4. Keep it to 2-3 sentences maximum`
+              }
+            ],
+          }),
+        });
+
+        if (shortSummaryResponse.ok) {
+          const shortSummaryData = await shortSummaryResponse.json();
+          const shortSummary = shortSummaryData.choices?.[0]?.message?.content?.trim();
+          
+          if (shortSummary) {
+            updateData.short_summary = shortSummary;
+            fieldsPopulated.push('short_summary');
+            enrichmentSteps[enrichmentSteps.length - 1].status = 'success';
+            enrichmentSteps[enrichmentSteps.length - 1].details = {
+              ...enrichmentSteps[enrichmentSteps.length - 1].details,
+              short_summary_generated: true,
+              fields_used: ['company', 'company_industry', 'description', 'products_services', 'zipcode', 'dma', 'domain']
+            };
+            console.log(`Short summary generated: ${shortSummary.substring(0, 100)}...`);
+          } else {
+            enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+            enrichmentSteps[enrichmentSteps.length - 1].details = {
+              ...enrichmentSteps[enrichmentSteps.length - 1].details,
+              error: 'Empty response from AI'
+            };
+          }
+        } else {
+          enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+          enrichmentSteps[enrichmentSteps.length - 1].details = {
+            ...enrichmentSteps[enrichmentSteps.length - 1].details,
+            error: `AI request failed: ${shortSummaryResponse.status}`
+          };
+        }
+      } catch (error: any) {
+        console.error('Error generating short summary:', error);
+        enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+        enrichmentSteps[enrichmentSteps.length - 1].details = {
+          ...enrichmentSteps[enrichmentSteps.length - 1].details,
+          error: error?.message || 'Unknown error'
+        };
+      }
+    } else {
+      enrichmentSteps[enrichmentSteps.length - 1].status = 'failed';
+      enrichmentSteps[enrichmentSteps.length - 1].details = {
+        ...enrichmentSteps[enrichmentSteps.length - 1].details,
+        error: 'No LOVABLE_API_KEY or insufficient data for summary generation'
+      };
+    }
+
     // Build comprehensive scraped_data_log showing both sources
     const highValueUrls = scrapedData.nav_links.length > 0 
       ? filterHighValueUrls(scrapedData.nav_links, normalizedDomain) 
@@ -1386,6 +1482,7 @@ Generate professional outputs for all three fields.`
           all_emails_found: deepScrapeResult?.all_emails_found || []
         }
       },
+      short_summary_generated: !!updateData.short_summary,
       enrichment_steps: enrichmentSteps
     };
 
