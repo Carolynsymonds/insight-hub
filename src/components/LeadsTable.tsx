@@ -4776,14 +4776,9 @@ const LeadsTable = ({
 
             {/* 2. Must Knows Section - Opened by default */}
             <Accordion type="single" collapsible defaultValue="must-knows" className="w-full">
-              <AccordionItem value="must-knows" className="border rounded-lg bg-primary/5">
+              <AccordionItem value="must-knows" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">Must Knows</span>
-                    {descriptionModalLead?.must_knows && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
+                  <span className="font-semibold text-sm">Must Knows</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.must_knows ? (
@@ -4826,14 +4821,9 @@ const LeadsTable = ({
 
             {/* 3. Detailed Company Profile - Closed */}
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="long-summary" className="border rounded-lg">
+              <AccordionItem value="long-summary" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">Detailed Company Profile</span>
-                    {descriptionModalLead?.long_summary && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
+                  <span className="font-semibold text-sm">Detailed Company Profile</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.long_summary ? (
@@ -4876,14 +4866,9 @@ const LeadsTable = ({
 
             {/* 4. Products & Services Summary - Closed */}
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="products-summary" className="border rounded-lg">
+              <AccordionItem value="products-summary" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">Products & Services Summary</span>
-                    {descriptionModalLead?.products_services_summary && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
+                  <span className="font-semibold text-sm">Products & Services Summary</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.products_services_summary ? (
@@ -4926,14 +4911,9 @@ const LeadsTable = ({
 
             {/* 5. Vehicle Tracking Interest - Last */}
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="vehicle-interest" className="border rounded-lg bg-accent/30">
+              <AccordionItem value="vehicle-interest" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">Vehicle Tracking Interest</span>
-                    {descriptionModalLead?.vehicle_tracking_interest_explanation && (
-                      <Badge variant="secondary" className="ml-2">Generated</Badge>
-                    )}
-                  </div>
+                  <span className="font-semibold text-sm">Vehicle Tracking Interest</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
