@@ -7,7 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings, DollarSign, Zap, Building2, Car, Shield, Download } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2 } from "lucide-react";
+import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
+
 const CATEGORIES = [{
   name: "Marketing",
   icon: TrendingUp
@@ -25,7 +27,7 @@ const CATEGORIES = [{
   icon: CreditCard
 }, {
   name: "Operations",
-  icon: Settings
+  icon: SettingsIcon
 }, {
   name: "Finance",
   icon: DollarSign
@@ -53,6 +55,8 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   useEffect(() => {
     checkAuth();
   }, []);
@@ -117,6 +121,12 @@ const Index = () => {
   };
   const handleBackToCategories = () => {
     setSelectedCategory(null);
+  };
+
+  const handleOpenRolesDialog = (e: React.MouseEvent, categoryName: string) => {
+    e.stopPropagation();
+    setRolesDialogCategory(categoryName);
+    setRolesDialogOpen(true);
   };
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
   const filteredLeads = categoryFilteredLeads.filter((lead) => {
@@ -212,14 +222,30 @@ const Index = () => {
               {CATEGORIES.map(category => {
           const Icon = category.icon;
           const count = categoryCounts[category.name] || 0;
-          return <Button key={category.name} variant="outline" className="h-auto py-6 flex flex-col gap-3 hover:bg-accent hover:border-primary transition-all" onClick={() => handleCategorySelect(category.name)}>
-                    <Icon className="h-8 w-8 text-primary" />
-                    <span className="font-medium">{category.name}</span>
-                    <span className="text-sm text-muted-foreground">{count} leads</span>
-                  </Button>;
+          return <div key={category.name} className="relative group">
+                    <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-3 hover:bg-accent hover:border-primary transition-all" onClick={() => handleCategorySelect(category.name)}>
+                      <Icon className="h-8 w-8 text-primary" />
+                      <span className="font-medium">{category.name}</span>
+                      <span className="text-sm text-muted-foreground">{count} leads</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleOpenRolesDialog(e, category.name)}
+                    >
+                      <Settings2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>;
         })}
             </div>
           </div> : <LeadUpload onUploadComplete={handleUploadComplete} />}
+
+      <CategoryRolesDialog
+        open={rolesDialogOpen}
+        onOpenChange={setRolesDialogOpen}
+        category={rolesDialogCategory}
+      />
     </DashboardLayout>;
 };
 export default Index;

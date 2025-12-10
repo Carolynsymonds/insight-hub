@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_roles: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          role_name: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          role_name: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          role_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           annual_revenue: string | null
