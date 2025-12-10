@@ -308,6 +308,26 @@ const LeadsTable = ({
     apollo_search: { status: string; message?: string; data?: Record<string, any> };
     google_socials: { status: string; message?: string; data?: Record<string, any> };
   } | null>(null);
+  const [enrichedContactResult, setEnrichedContactResult] = useState<{
+    name?: string;
+    first_name?: string;
+    last_name?: string;
+    title?: string;
+    email?: string;
+    email_status?: string;
+    linkedin_url?: string;
+    facebook_url?: string;
+    twitter_url?: string;
+    github_url?: string;
+    organization_name?: string;
+    source?: string;
+    social_search_logs?: Array<{
+      platform: string;
+      found: boolean;
+      source: string;
+      url?: string;
+    }>;
+  } | null>(null);
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -1227,6 +1247,7 @@ const LeadsTable = ({
   const handleEnrichContact = async (lead: Lead) => {
     setEnrichingContact(lead.id);
     setEnrichContactSteps(null); // Reset steps
+    setEnrichedContactResult(null); // Reset enriched contact
 
     try {
       const { data, error } = await supabase.functions.invoke("enrich-contact", {
@@ -1243,6 +1264,11 @@ const LeadsTable = ({
       // Store steps for display
       if (data.steps) {
         setEnrichContactSteps(data.steps);
+      }
+
+      // Store enriched contact for display
+      if (data.enrichedContact) {
+        setEnrichedContactResult(data.enrichedContact);
       }
 
       if (data.success && data.enrichedContact) {
@@ -1265,6 +1291,7 @@ const LeadsTable = ({
         variant: "destructive",
       });
       setEnrichContactSteps(null);
+      setEnrichedContactResult(null);
     } finally {
       setEnrichingContact(null);
     }
@@ -4971,6 +4998,7 @@ const LeadsTable = ({
                                                 <EnrichContactStepper
                                                   steps={enrichContactSteps}
                                                   isLoading={enrichingContact === lead.id}
+                                                  enrichedContact={enrichedContactResult}
                                                 />
                                               )}
                                             </div>
