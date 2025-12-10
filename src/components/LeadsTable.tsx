@@ -1466,12 +1466,21 @@ const LeadsTable = ({
                     </TableHead>
                   )}
                   {/* View All & Company: Socials */}
-                  {(viewMode === 'all' || viewMode === 'company') && viewMode === 'all' && showEnrichedColumns && (
+                  {viewMode === 'all' && showEnrichedColumns && (
                     <TableHead className="border-t-2 border-lavender">Socials</TableHead>
                   )}
                   {viewMode === 'company' && <TableHead>Socials</TableHead>}
-                  {/* View All & Company: News */}
-                  {viewMode === 'company' && <TableHead>News</TableHead>}
+                  {/* Company View: Additional columns */}
+                  {viewMode === 'company' && (
+                    <>
+                      <TableHead>Industry</TableHead>
+                      <TableHead>Founded</TableHead>
+                      <TableHead>Contacts</TableHead>
+                      <TableHead>Logo</TableHead>
+                      <TableHead className="min-w-[200px]">Products/Services</TableHead>
+                      <TableHead>News</TableHead>
+                    </>
+                  )}
                   {viewMode === 'all' && showEnrichedColumns && (
                     <>
                       <TableHead className="border-t-2 border-lavender">Size</TableHead>
@@ -1894,39 +1903,99 @@ const LeadsTable = ({
                           </div>
                         </TableCell>
                       )}
-                      {/* Company View: News */}
+                      {/* Company View: Industry, Founded, Contacts, Logo, Products/Services, News */}
                       {viewMode === 'company' && (
-                        <TableCell
-                          className="max-w-[200px] cursor-pointer hover:text-primary"
-                          onClick={(e) => {
-                            if (lead.news) {
-                              e.stopPropagation();
-                              try {
-                                const newsData = JSON.parse(lead.news);
-                                setNewsModalData(newsData);
-                                setShowNewsModal(true);
-                              } catch {
-                                setModalContent({ title: "News", text: lead.news });
+                        <>
+                          <TableCell>{lead.company_industry || "—"}</TableCell>
+                          <TableCell>{lead.founded_date || "—"}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const apolloContacts =
+                                lead.company_contacts?.filter((c) => c.source === "apollo_people_search") || [];
+                              const scraperContacts =
+                                lead.company_contacts?.filter((c) => c.source !== "apollo_people_search") || [];
+                              const totalContacts =
+                                apolloContacts.length + scraperContacts.length + (lead.contact_email ? 1 : 0);
+
+                              if (totalContacts === 0) return "—";
+
+                              return (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-1 text-primary hover:underline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setContactsModalLead(lead);
+                                    setShowContactsModal(true);
+                                  }}
+                                >
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {totalContacts} contact{totalContacts > 1 ? "s" : ""}
+                                </Button>
+                              );
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            {lead.logo_url ? (
+                              <a
+                                href={lead.logo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell
+                            className="max-w-[200px] cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              if (lead.products_services) {
+                                e.stopPropagation();
+                                setModalContent({ title: "Products/Services", text: lead.products_services });
                                 setShowTextModal(true);
                               }
-                            }
-                          }}
-                        >
-                          <div className="truncate">
-                            {lead.news
-                              ? (() => {
-                                  try {
-                                    const newsData = JSON.parse(lead.news);
-                                    return newsData.news_count > 0
-                                      ? `${newsData.news_count} article${newsData.news_count > 1 ? "s" : ""}`
-                                      : "No news";
-                                  } catch {
-                                    return lead.news;
-                                  }
-                                })()
-                              : "—"}
-                          </div>
-                        </TableCell>
+                            }}
+                          >
+                            <div className="truncate">{lead.products_services || "—"}</div>
+                          </TableCell>
+                          <TableCell
+                            className="max-w-[200px] cursor-pointer hover:text-primary"
+                            onClick={(e) => {
+                              if (lead.news) {
+                                e.stopPropagation();
+                                try {
+                                  const newsData = JSON.parse(lead.news);
+                                  setNewsModalData(newsData);
+                                  setShowNewsModal(true);
+                                } catch {
+                                  setModalContent({ title: "News", text: lead.news });
+                                  setShowTextModal(true);
+                                }
+                              }
+                            }}
+                          >
+                            <div className="truncate">
+                              {lead.news
+                                ? (() => {
+                                    try {
+                                      const newsData = JSON.parse(lead.news);
+                                      return newsData.news_count > 0
+                                        ? `${newsData.news_count} article${newsData.news_count > 1 ? "s" : ""}`
+                                        : "No news";
+                                    } catch {
+                                      return lead.news;
+                                    }
+                                  })()
+                                : "—"}
+                            </div>
+                          </TableCell>
+                        </>
                       )}
                       <TableCell
                         className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]"
