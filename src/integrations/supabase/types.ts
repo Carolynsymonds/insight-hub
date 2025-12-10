@@ -66,6 +66,7 @@ export type Database = {
           linkedin_source_url: string | null
           linkedin_validated: boolean | null
           logo_url: string | null
+          long_summary: string | null
           longitude: number | null
           match_score: number | null
           match_score_source: string | null
@@ -141,6 +142,7 @@ export type Database = {
           linkedin_source_url?: string | null
           linkedin_validated?: boolean | null
           logo_url?: string | null
+          long_summary?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
@@ -216,6 +218,7 @@ export type Database = {
           linkedin_source_url?: string | null
           linkedin_validated?: boolean | null
           logo_url?: string | null
+          long_summary?: string | null
           longitude?: number | null
           match_score?: number | null
           match_score_source?: string | null
