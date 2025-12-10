@@ -9,10 +9,13 @@ const corsHeaders = {
 interface ContactEnrichmentRequest {
   full_name: string;
   email?: string;
+  title?: string;
   company?: string;
-  domain?: string;
-  city?: string;
-  state?: string;
+  linkedin_url?: string;
+  facebook_url?: string;
+  location?: string;
+  phone?: string;
+  latest_experience?: string;
 }
 
 interface EnrichedContact {
@@ -23,23 +26,23 @@ interface EnrichedContact {
   linkedin_url: string | null;
   facebook_url: string | null;
   twitter_url: string | null;
+  phone: string | null;
+  location: string | null;
+  latest_experience: string | null;
   organization_name: string | null;
   organization_website: string | null;
   organization_industry: string | null;
   email_status: string | null;
-  source: string;
-  enrichment_logs: any[];
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const requestData: ContactEnrichmentRequest = await req.json();
-    const { full_name, email, company, domain, city, state } = requestData;
+    const { full_name, email, title, company, linkedin_url, facebook_url, location, phone, latest_experience } = requestData;
 
     console.log('Clay Contact Enrichment Request:', JSON.stringify(requestData));
 
@@ -53,26 +56,40 @@ serve(async (req) => {
     const apolloApiKey = Deno.env.get('APOLLO_API_KEY');
     const serpapiKey = Deno.env.get('SERPAPI_KEY');
 
-    const enrichmentLogs: any[] = [];
+    // Initialize with provided data
     let enrichedContact: EnrichedContact = {
       full_name,
       email: email || null,
-      title: null,
+      title: title || null,
       company: company || null,
-      linkedin_url: null,
-      facebook_url: null,
+      linkedin_url: linkedin_url || null,
+      facebook_url: facebook_url || null,
       twitter_url: null,
+      phone: phone || null,
+      location: location || null,
+      latest_experience: latest_experience || null,
       organization_name: null,
       organization_website: null,
       organization_industry: null,
-      email_status: null,
-      source: 'clay_api',
-      enrichment_logs: []
+      email_status: null
     };
 
-    // Step 1: Search Apollo for contact details
-    if (apolloApiKey) {
-      console.log('Step 1: Searching Apollo for contact...');
+    // Parse location into city/state for Apollo search
+    let city: string | undefined;
+    let state: string | undefined;
+    if (location) {
+      const parts = location.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        city = parts[0];
+        state = parts[1];
+      } else {
+        city = parts[0];
+      }
+    }
+
+    // Step 1: Search Apollo for organization details and email verification
+    if (apolloApiKey && (email || company)) {
+      console.log('Searching Apollo for contact/organization details...');
       
       const apolloPayload: any = {
         first_name: full_name.split(' ')[0],
@@ -80,7 +97,6 @@ serve(async (req) => {
       };
 
       if (email) apolloPayload.email = email;
-      if (domain) apolloPayload.organization_domain = domain;
       if (company) apolloPayload.organization_name = company;
 
       try {
@@ -97,115 +113,55 @@ serve(async (req) => {
         const apolloData = await apolloResponse.json();
         console.log('Apollo response:', JSON.stringify(apolloData));
 
-        const apolloLog = {
-          step: 'apollo_people_match',
-          timestamp: new Date().toISOString(),
-          query: apolloPayload,
-          found: !!apolloData.person,
-          response_summary: apolloData.person ? {
-            name: apolloData.person.name,
-            title: apolloData.person.title,
-            email: apolloData.person.email,
-            linkedin_url: apolloData.person.linkedin_url
-          } : null
-        };
-        enrichmentLogs.push(apolloLog);
-
         if (apolloData.person) {
           const person = apolloData.person;
-          enrichedContact.email = person.email || enrichedContact.email;
-          enrichedContact.title = person.title;
-          enrichedContact.linkedin_url = person.linkedin_url;
-          enrichedContact.facebook_url = person.facebook_url;
-          enrichedContact.twitter_url = person.twitter_url;
+          
+          // Only fill in missing data, don't overwrite provided data
+          if (!enrichedContact.email) enrichedContact.email = person.email;
+          if (!enrichedContact.title) enrichedContact.title = person.title;
+          if (!enrichedContact.linkedin_url) enrichedContact.linkedin_url = person.linkedin_url;
+          if (!enrichedContact.facebook_url) enrichedContact.facebook_url = person.facebook_url;
+          if (!enrichedContact.twitter_url) enrichedContact.twitter_url = person.twitter_url;
+          
           enrichedContact.email_status = person.email_status;
           
           if (person.organization) {
             enrichedContact.organization_name = person.organization.name;
             enrichedContact.organization_website = person.organization.website_url;
             enrichedContact.organization_industry = person.organization.industry;
-            enrichedContact.company = person.organization.name || enrichedContact.company;
+            if (!enrichedContact.company) enrichedContact.company = person.organization.name;
           }
         }
       } catch (apolloError: unknown) {
         console.error('Apollo API error:', apolloError);
-        enrichmentLogs.push({
-          step: 'apollo_people_match',
-          timestamp: new Date().toISOString(),
-          error: apolloError instanceof Error ? apolloError.message : String(apolloError),
-          found: false
-        });
       }
     }
 
-    // Step 2: Search Google for missing social profiles
-    if (serpapiKey && enrichedContact.company) {
-      const missingSocials: string[] = [];
-      if (!enrichedContact.linkedin_url) missingSocials.push('linkedin');
-      if (!enrichedContact.facebook_url) missingSocials.push('facebook');
-      if (!enrichedContact.twitter_url) missingSocials.push('twitter');
+    // Step 2: Search Google for missing Twitter profile only
+    if (serpapiKey && !enrichedContact.twitter_url && enrichedContact.company) {
+      console.log('Searching Google for Twitter profile...');
 
-      if (missingSocials.length > 0) {
-        console.log('Step 2: Searching Google for missing socials:', missingSocials);
+      const query = `"${full_name}" "${enrichedContact.company}" site:twitter.com`;
+      
+      try {
+        const searchUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=3&api_key=${serpapiKey}`;
+        const searchResponse = await fetch(searchUrl);
+        const searchData = await searchResponse.json();
 
-        for (const platform of missingSocials) {
-          const siteMap: Record<string, string> = {
-            linkedin: 'linkedin.com/in',
-            facebook: 'facebook.com',
-            twitter: 'twitter.com'
-          };
+        console.log('Twitter search results:', JSON.stringify(searchData.organic_results?.slice(0, 2)));
 
-          const query = `"${full_name}" "${enrichedContact.company}" site:${siteMap[platform]}`;
-          
-          try {
-            const searchUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&num=3&api_key=${serpapiKey}`;
-            const searchResponse = await fetch(searchUrl);
-            const searchData = await searchResponse.json();
+        if (searchData.organic_results && searchData.organic_results.length > 0) {
+          const result = searchData.organic_results[0];
+          const url = result.link;
 
-            console.log(`${platform} search results:`, JSON.stringify(searchData.organic_results?.slice(0, 2)));
-
-            const searchLog: any = {
-              step: `google_search_${platform}`,
-              timestamp: new Date().toISOString(),
-              query,
-              found: false,
-              url: null
-            };
-
-            if (searchData.organic_results && searchData.organic_results.length > 0) {
-              const result = searchData.organic_results[0];
-              const url = result.link;
-
-              if (url && url.includes(siteMap[platform])) {
-                searchLog.found = true;
-                searchLog.url = url;
-
-                if (platform === 'linkedin') {
-                  enrichedContact.linkedin_url = url;
-                } else if (platform === 'facebook') {
-                  enrichedContact.facebook_url = url;
-                } else if (platform === 'twitter') {
-                  enrichedContact.twitter_url = url;
-                }
-              }
-            }
-
-            enrichmentLogs.push(searchLog);
-          } catch (searchError: unknown) {
-            console.error(`${platform} search error:`, searchError);
-            enrichmentLogs.push({
-              step: `google_search_${platform}`,
-              timestamp: new Date().toISOString(),
-              query,
-              error: searchError instanceof Error ? searchError.message : String(searchError),
-              found: false
-            });
+          if (url && url.includes('twitter.com')) {
+            enrichedContact.twitter_url = url;
           }
         }
+      } catch (searchError: unknown) {
+        console.error('Twitter search error:', searchError);
       }
     }
-
-    enrichedContact.enrichment_logs = enrichmentLogs;
 
     console.log('Final enriched contact:', JSON.stringify(enrichedContact));
 
