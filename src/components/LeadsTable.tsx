@@ -1520,6 +1520,8 @@ const LeadsTable = ({
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
                   {/* Contact only: Phone (Clay) */}
                   {viewMode === 'contact' && <TableHead>Phone</TableHead>}
+                  {/* Contact only: Contact Socials (after Phone) */}
+                  {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
                   {/* Contact only: Location (Clay) */}
                   {viewMode === 'contact' && <TableHead>Location</TableHead>}
                   {/* Contact only: Title */}
@@ -1547,9 +1549,9 @@ const LeadsTable = ({
                       Description
                     </TableHead>
                   )}
-                  {/* View All & Contact: Contact Socials */}
-                  {(viewMode === 'all' || viewMode === 'contact') && (
-                    <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                  {/* View All: Contact Socials */}
+                  {viewMode === 'all' && (
+                    <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
                       Contact Socials
                     </TableHead>
                   )}
@@ -1616,6 +1618,59 @@ const LeadsTable = ({
                       {/* Contact only: Phone (Clay) */}
                       {viewMode === 'contact' && (
                         <TableCell>{lead.contact_details?.phone || lead.phone || "—"}</TableCell>
+                      )}
+                      {/* Contact only: Contact Socials (after Phone) */}
+                      {viewMode === 'contact' && (
+                        <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            {/* LinkedIn */}
+                            <div className="flex items-center gap-1.5">
+                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.contact_linkedin ? (
+                                <a
+                                  href={lead.contact_linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.contact_linkedin;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            {/* Facebook */}
+                            <div className="flex items-center gap-1.5">
+                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.contact_facebook ? (
+                                <a
+                                  href={lead.contact_facebook}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.contact_facebook).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.contact_facebook;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
                       )}
                       {/* Contact only: Location (Clay) */}
                       {viewMode === 'contact' && (
@@ -1713,8 +1768,8 @@ const LeadsTable = ({
                           <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
                         </TableCell>
                       )}
-                      {/* View All & Contact: Contact Socials */}
-                      {(viewMode === 'all' || viewMode === 'contact') && (
+                      {/* View All: Contact Socials */}
+                      {viewMode === 'all' && (
                         <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
                             {/* LinkedIn */}
