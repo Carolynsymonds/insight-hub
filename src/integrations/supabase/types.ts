@@ -73,6 +73,7 @@ export type Database = {
           mics_sector: string | null
           mics_segment: string | null
           mics_subsector: string | null
+          must_knows: string | null
           news: string | null
           phone: string | null
           products_services: string | null
@@ -150,6 +151,7 @@ export type Database = {
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
+          must_knows?: string | null
           news?: string | null
           phone?: string | null
           products_services?: string | null
@@ -227,6 +229,7 @@ export type Database = {
           mics_sector?: string | null
           mics_segment?: string | null
           mics_subsector?: string | null
+          must_knows?: string | null
           news?: string | null
           phone?: string | null
           products_services?: string | null
