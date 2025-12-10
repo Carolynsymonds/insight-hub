@@ -218,6 +218,8 @@ serve(async (req) => {
     );
 
     if (existingContact) {
+      const hasMissingSocials = !existingContact.linkedin_url || !existingContact.facebook_url || !existingContact.youtube_url;
+      
       steps.check_existing = { 
         status: 'completed', 
         message: 'Contact already exists in company contacts',
@@ -228,20 +230,115 @@ serve(async (req) => {
           has_linkedin: !!existingContact.linkedin_url,
           has_facebook: !!existingContact.facebook_url,
           has_twitter: !!existingContact.twitter_url,
-          has_github: !!existingContact.github_url
+          has_github: !!existingContact.github_url,
+          has_youtube: !!existingContact.youtube_url
         }
       };
       steps.apollo_search = { status: 'skipped', message: 'Skipped - contact already exists' };
-      steps.google_socials = { status: 'skipped', message: 'Skipped - contact already exists' };
 
-      console.log('[enrich-contact] Contact already exists, returning existing data');
+      // If contact has missing socials, search Google for them
+      if (hasMissingSocials && serpApiKey) {
+        console.log('[enrich-contact] Contact exists but missing socials, searching Google...');
+        steps.google_socials = { status: 'running', message: 'Searching Google for missing social profiles...' };
+        
+        const personName = existingContact.name || full_name;
+        const companyName = existingContact.organization_name || company || '';
+
+        const googleResults: Record<string, { searched: boolean; found: boolean; url?: string; query?: string }> = {
+          linkedin: { searched: false, found: false },
+          facebook: { searched: false, found: false },
+          youtube: { searched: false, found: false }
+        };
+
+        if (companyName) {
+          // Search for missing LinkedIn
+          if (!existingContact.linkedin_url) {
+            const result = await searchPersonSocial(serpApiKey, personName, companyName, 'linkedin');
+            googleResults.linkedin = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
+            if (result.url) {
+              existingContact.linkedin_url = result.url;
+            }
+          }
+
+          // Search for missing Facebook
+          if (!existingContact.facebook_url) {
+            const result = await searchPersonSocial(serpApiKey, personName, companyName, 'facebook');
+            googleResults.facebook = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
+            if (result.url) {
+              existingContact.facebook_url = result.url;
+            }
+          }
+
+          // Search for YouTube
+          if (!existingContact.youtube_url) {
+            const result = await searchPersonSocial(serpApiKey, personName, companyName, 'youtube');
+            googleResults.youtube = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
+            if (result.url) {
+              existingContact.youtube_url = result.url;
+            }
+          }
+
+          const foundAny = Object.values(googleResults).some(r => r.found);
+          steps.google_socials = { 
+            status: foundAny ? 'completed' : 'not_found', 
+            message: foundAny ? 'Found additional social profiles via Google' : 'No additional social profiles found',
+            data: {
+              search_name: personName,
+              search_company: companyName,
+              results: googleResults
+            }
+          };
+
+          // Update the contact in company_contacts array with new socials
+          const updatedContacts = existingContacts.map(c => 
+            (c.email?.toLowerCase() === email?.toLowerCase() || c.name?.toLowerCase() === full_name?.toLowerCase())
+              ? existingContact
+              : c
+          );
+
+          // Update lead with enriched contact AND personal social profiles
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update({ 
+              company_contacts: updatedContacts,
+              contact_linkedin: existingContact.linkedin_url || null,
+              contact_facebook: existingContact.facebook_url || null,
+              contact_youtube: existingContact.youtube_url || null
+            })
+            .eq('id', leadId);
+
+          if (updateError) {
+            console.error('[enrich-contact] Error updating lead with new socials:', updateError);
+          }
+        } else {
+          steps.google_socials = { 
+            status: 'skipped', 
+            message: 'No company name available for Google search',
+            data: { reason: 'missing_company_name' }
+          };
+        }
+      } else {
+        steps.google_socials = { status: 'skipped', message: hasMissingSocials ? 'Google search skipped - API key not configured' : 'All socials already found' };
+        
+        // Still update the lead's contact fields with existing socials
+        await supabase
+          .from('leads')
+          .update({ 
+            contact_linkedin: existingContact.linkedin_url || null,
+            contact_facebook: existingContact.facebook_url || null,
+            contact_youtube: existingContact.youtube_url || null
+          })
+          .eq('id', leadId);
+      }
+
+      console.log('[enrich-contact] Returning existing contact data (with any new socials)');
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           enrichedContact: existingContact,
           steps,
-          message: 'Contact already exists in company contacts'
+          message: 'Contact found in company contacts'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
