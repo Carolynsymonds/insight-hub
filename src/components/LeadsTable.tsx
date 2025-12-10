@@ -1302,39 +1302,40 @@ const LeadsTable = ({
     setEnrichingWithClay(lead.id);
     
     try {
-      console.log('Enriching contact with Clay:', lead.full_name, linkedinUrl);
+      console.log('Sending contact to Clay:', lead.full_name, linkedinUrl);
       
-      const { data, error } = await supabase.functions.invoke("clay-contact-enrichment", {
-        body: {
-          full_name: lead.full_name,
-          email: lead.email,
-          company: lead.company || lead.domain,
-          linkedin_url: linkedinUrl,
-        },
-      });
+      const response = await fetch(
+        "https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-6a4ca2aa-e9e5-474a-995a-aef21088ead6",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: lead.full_name,
+            email: lead.email,
+            linkedin: linkedinUrl,
+          }),
+        }
+      );
 
-      if (error) throw error;
-
-      console.log('Clay enrichment result:', data);
-
-      if (data.success) {
-        toast({
-          title: "Contact Enriched",
-          description: "Contact details updated from Clay.",
-        });
-        onEnrichComplete();
-      } else {
-        toast({
-          title: "Enrichment Failed",
-          description: data.error || "Could not enrich contact.",
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        throw new Error(`Clay webhook failed: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Clay enrichment error:', error);
+
+      const data = await response.json();
+      console.log('Clay webhook response:', data);
+
       toast({
-        title: "Enrichment Error",
-        description: error instanceof Error ? error.message : "Failed to enrich contact.",
+        title: "Sent to Clay",
+        description: "Contact details sent to Clay for enrichment.",
+      });
+      
+    } catch (error) {
+      console.error('Clay webhook error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send to Clay.",
         variant: "destructive",
       });
     } finally {
