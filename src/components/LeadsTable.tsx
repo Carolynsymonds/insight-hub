@@ -1592,7 +1592,7 @@ const LeadsTable = ({
                             }
                           }}
                         >
-                          <div className="truncate">{lead.description || "—"}</div>
+                          <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
                         </TableCell>
                       )}
                       {/* View All & Contact: Contact LinkedIn */}
