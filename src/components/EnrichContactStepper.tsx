@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import { Check, Circle, Loader2, Search, AlertCircle, SkipForward } from "lucide-react";
+import { Check, Circle, Loader2, Search, AlertCircle, SkipForward, Linkedin, Facebook, Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalLink } from "lucide-react";
 
 interface StepResult {
   status: string;
@@ -161,8 +162,12 @@ export function EnrichContactStepper({ steps, isLoading }: EnrichContactStepperP
                                 {stepData.data.socials_found.github && (
                                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] py-0">GitHub</Badge>
                                 )}
+                                {stepData.data.socials_found.youtube && (
+                                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[9px] py-0">YouTube</Badge>
+                                )}
                                 {!stepData.data.socials_found.linkedin && !stepData.data.socials_found.facebook && 
-                                 !stepData.data.socials_found.twitter && !stepData.data.socials_found.github && (
+                                 !stepData.data.socials_found.twitter && !stepData.data.socials_found.github && 
+                                 !stepData.data.socials_found.youtube && (
                                   <span className="text-muted-foreground">None found</span>
                                 )}
                               </div>

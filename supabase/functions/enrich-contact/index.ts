@@ -39,6 +39,7 @@ interface EnrichedContact {
   facebook_url?: string;
   twitter_url?: string;
   github_url?: string;
+  youtube_url?: string;
   organization_name?: string;
   organization_website?: string;
   organization_linkedin?: string;
@@ -80,6 +81,18 @@ function extractCleanProfileUrl(url: string, platform: string): string {
           return `https://github.com/${githubMatch[1]}`;
         }
         return url;
+      case 'youtube':
+        // Extract channel or user URL
+        const ytChannelMatch = cleanPath.match(/\/(channel|c|user|@)\/([^\/]+)/);
+        if (ytChannelMatch) {
+          return `https://youtube.com/${ytChannelMatch[1]}/${ytChannelMatch[2]}`;
+        }
+        // Handle @username format
+        const ytAtMatch = cleanPath.match(/\/(@[^\/]+)/);
+        if (ytAtMatch) {
+          return `https://youtube.com/${ytAtMatch[1]}`;
+        }
+        return url;
       default:
         return url;
     }
@@ -93,13 +106,14 @@ async function searchPersonSocial(
   apiKey: string,
   personName: string,
   companyName: string,
-  platform: 'linkedin' | 'facebook' | 'twitter' | 'github'
+  platform: 'linkedin' | 'facebook' | 'twitter' | 'github' | 'youtube'
 ): Promise<{ url: string | null; query: string }> {
   const siteDomains: Record<string, string> = {
     linkedin: 'linkedin.com/in',  // Personal profiles
     facebook: 'facebook.com',
     twitter: 'twitter.com',
-    github: 'github.com'
+    github: 'github.com',
+    youtube: 'youtube.com'
   };
 
   // Query: "Person Name" "Company Name" site:platform.com
@@ -382,7 +396,8 @@ serve(async (req) => {
       linkedin: !enrichedContact.linkedin_url,
       facebook: !enrichedContact.facebook_url,
       twitter: !enrichedContact.twitter_url,
-      github: !enrichedContact.github_url
+      github: !enrichedContact.github_url,
+      youtube: true  // Always search for YouTube as Apollo doesn't provide it
     };
 
     const hasMissingSocials = Object.values(missingSocials).some(v => v);
@@ -398,7 +413,8 @@ serve(async (req) => {
         linkedin: { searched: false, found: false },
         facebook: { searched: false, found: false },
         twitter: { searched: false, found: false },
-        github: { searched: false, found: false }
+        github: { searched: false, found: false },
+        youtube: { searched: false, found: false }
       };
 
       if (companyName) {
@@ -466,6 +482,22 @@ serve(async (req) => {
           }
         }
 
+        // Always search for YouTube (Apollo doesn't provide it)
+        if (missingSocials.youtube) {
+          const result = await searchPersonSocial(serpApiKey, personName, companyName, 'youtube');
+          googleResults.youtube = { searched: true, found: !!result.url, url: result.url || undefined, query: result.query };
+          socialSearchLogs.push({ 
+            platform: 'youtube', 
+            query: result.query, 
+            found: !!result.url, 
+            source: 'google_search',
+            url: result.url || undefined
+          });
+          if (result.url) {
+            enrichedContact.youtube_url = result.url;
+          }
+        }
+
         const foundAny = Object.values(googleResults).some(r => r.found);
         steps.google_socials = { 
           status: foundAny ? 'completed' : 'not_found', 
@@ -508,10 +540,15 @@ serve(async (req) => {
     // Add enriched contact to company_contacts array
     const updatedContacts = [...existingContacts, enrichedContact];
 
-    // Update lead with enriched contact
+    // Update lead with enriched contact AND personal social profiles
     const { error: updateError } = await supabase
       .from('leads')
-      .update({ company_contacts: updatedContacts })
+      .update({ 
+        company_contacts: updatedContacts,
+        contact_linkedin: enrichedContact.linkedin_url || null,
+        contact_facebook: enrichedContact.facebook_url || null,
+        contact_youtube: enrichedContact.youtube_url || null
+      })
       .eq('id', leadId);
 
     if (updateError) {
