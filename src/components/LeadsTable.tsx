@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -305,6 +305,16 @@ const LeadsTable = ({
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
   const setDomainFilter = onDomainFilterChange ?? setInternalDomainFilter;
+
+  // Sync selectedLead with latest leads data when leads are refreshed
+  useEffect(() => {
+    if (selectedLead) {
+      const updatedLead = leads.find(l => l.id === selectedLead.id);
+      if (updatedLead && JSON.stringify(updatedLead) !== JSON.stringify(selectedLead)) {
+        setSelectedLead(updatedLead);
+      }
+    }
+  }, [leads, selectedLead]);
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
