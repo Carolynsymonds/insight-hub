@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.generate-products-services-summary]
 verify_jwt = false
+
+[functions.generate-must-knows]
+verify_jwt = false

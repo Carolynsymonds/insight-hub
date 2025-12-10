@@ -149,6 +149,7 @@ interface Lead {
   short_summary: string | null;
   long_summary: string | null;
   products_services_summary: string | null;
+  must_knows: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -286,6 +287,7 @@ const LeadsTable = ({
   const [generatingShortSummary, setGeneratingShortSummary] = useState(false);
   const [generatingLongSummary, setGeneratingLongSummary] = useState(false);
   const [generatingProductsSummary, setGeneratingProductsSummary] = useState(false);
+  const [generatingMustKnows, setGeneratingMustKnows] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -990,6 +992,65 @@ const LeadsTable = ({
       });
     } finally {
       setGeneratingProductsSummary(false);
+    }
+  };
+
+  const handleGenerateMustKnows = async (lead: Lead) => {
+    if (!lead.company) {
+      toast({
+        title: "Cannot Generate",
+        description: "Company name is required for Must Knows generation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingMustKnows(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-must-knows", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          company_industry: lead.company_industry,
+          mics_sector: lead.mics_sector,
+          products_services: lead.products_services,
+          size: lead.size,
+          annual_revenue: lead.annual_revenue,
+          founded_date: lead.founded_date,
+          zipcode: lead.zipcode,
+          dma: lead.dma,
+          domain: lead.domain,
+          linkedin: lead.linkedin,
+          facebook: lead.facebook,
+          instagram: lead.instagram,
+          news: lead.news,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Must Knows Generated!",
+        description: "Key facts summary has been created for SDR briefing.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          must_knows: data.must_knows,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingMustKnows(false);
     }
   };
 
@@ -4667,18 +4728,69 @@ const LeadsTable = ({
             <DialogDescription>{descriptionModalLead?.company || descriptionModalLead?.full_name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
+            {/* Must Knows Section - Top Priority for Quick Scanning */}
+            <Accordion type="single" collapsible defaultValue="must-knows" className="w-full">
+              <AccordionItem value="must-knows" className="border rounded-lg bg-primary/5">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span>📋</span>
+                    <span className="font-semibold text-sm">Must Knows</span>
+                    {descriptionModalLead?.must_knows && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.must_knows ? (
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.must_knows}</div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate 4-6 quick bullet points summarizing key company facts for SDR briefings:
+                        who they are, what they do, how big they are, where they operate, and anything notable.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateMustKnows(descriptionModalLead)}
+                        disabled={generatingMustKnows || !descriptionModalLead?.company}
+                        className="w-full"
+                      >
+                        {generatingMustKnows ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Must Knows
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.company && (
+                        <p className="text-xs text-destructive">
+                          Company name is required for Must Knows generation.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
             {/* Short Summary Section */}
             {descriptionModalLead?.short_summary ? (
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                  <span>📋</span> Short Summary
+                  <span>✨</span> Short Summary
                 </h4>
                 <p className="text-sm">{descriptionModalLead.short_summary}</p>
               </div>
             ) : (
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                  <span>📋</span> Short Summary
+                  <span>✨</span> Short Summary
                 </h4>
                 <p className="text-xs text-muted-foreground mb-3">
                   Generate a concise 2-3 line summary of what the business does and where it operates.
