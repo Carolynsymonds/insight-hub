@@ -1391,7 +1391,7 @@ const LeadsTable = ({
         <div className="min-w-max">
           {/* Collapse/Expand button row - scrolls with table, above the table border */}
           <div className="flex" style={{ paddingBottom: 0, marginBottom: -1 }}>
-            <div style={{ width: "1383px" }} className="shrink-0" />
+            <div style={{ width: "940px" }} className="shrink-0" />
             <Button
               variant="outline"
               size="sm"
@@ -1423,11 +1423,13 @@ const LeadsTable = ({
                       Company Domain
                     </div>
                   </TableHead>
+                  <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
+                    Description
+                  </TableHead>
                   {showEnrichedColumns && (
                     <>
                       <TableHead className="border-t-2 border-lavender">Socials</TableHead>
                       <TableHead className="border-t-2 border-lavender">Size</TableHead>
-                      <TableHead className="min-w-[250px] border-t-2 border-lavender">Description</TableHead>
                       <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
                       <TableHead className="border-t-2 border-lavender">Industry</TableHead>
                       <TableHead className="border-t-2 border-lavender">Founded</TableHead>
@@ -1446,7 +1448,7 @@ const LeadsTable = ({
                 {filteredLeads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={showEnrichedColumns ? 17 : 7}
+                      colSpan={showEnrichedColumns ? 18 : 8}
                       className="text-center text-muted-foreground py-8"
                     >
                       {leads.length === 0
@@ -1520,6 +1522,17 @@ const LeadsTable = ({
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                      <TableCell
+                        className="max-w-[250px] cursor-pointer hover:text-primary"
+                        onClick={(e) => {
+                          if (lead.description || lead.vehicle_tracking_interest_explanation) {
+                            e.stopPropagation();
+                            setDescriptionModalLead(lead);
+                          }
+                        }}
+                      >
+                        <div className="truncate">{lead.description || "—"}</div>
                       </TableCell>
                       {showEnrichedColumns && (
                         <>
@@ -1629,17 +1642,6 @@ const LeadsTable = ({
                             </div>
                           </TableCell>
                           <TableCell>{lead.size || "—"}</TableCell>
-                          <TableCell
-                            className="max-w-[250px] cursor-pointer hover:text-primary"
-                            onClick={(e) => {
-                              if (lead.description || lead.vehicle_tracking_interest_explanation) {
-                                e.stopPropagation();
-                                setDescriptionModalLead(lead);
-                              }
-                            }}
-                          >
-                            <div className="truncate">{lead.description || "—"}</div>
-                          </TableCell>
                           <TableCell>{lead.annual_revenue || "—"}</TableCell>
                           <TableCell>{lead.company_industry || "—"}</TableCell>
                           <TableCell>{lead.founded_date || "—"}</TableCell>
