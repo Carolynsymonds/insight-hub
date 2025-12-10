@@ -1459,10 +1459,10 @@ const LeadsTable = ({
                       Description
                     </TableHead>
                   )}
-                  {/* View All & Contact: Contact LinkedIn */}
+                  {/* View All & Contact: Contact Socials */}
                   {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
-                      Contact LinkedIn
+                      Contact Socials
                     </TableHead>
                   )}
                   {/* View All & Company: Socials */}
@@ -1604,29 +1604,57 @@ const LeadsTable = ({
                           <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
                         </TableCell>
                       )}
-                      {/* View All & Contact: Contact LinkedIn */}
+                      {/* View All & Contact: Contact Socials */}
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>
-                          {lead.contact_linkedin ? (
-                            <a
-                              href={lead.contact_linkedin}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Linkedin className="h-3.5 w-3.5" />
-                              {(() => {
-                                try {
-                                  return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
-                                } catch {
-                                  return lead.contact_linkedin;
-                                }
-                              })()}
-                            </a>
-                          ) : (
-                            "—"
-                          )}
+                          <div className="flex flex-col gap-1 text-xs">
+                            {/* LinkedIn */}
+                            <div className="flex items-center gap-1.5">
+                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.contact_linkedin ? (
+                                <a
+                                  href={lead.contact_linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.contact_linkedin;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                            {/* Facebook */}
+                            <div className="flex items-center gap-1.5">
+                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              {lead.contact_facebook ? (
+                                <a
+                                  href={lead.contact_facebook}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline truncate max-w-[120px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {(() => {
+                                    try {
+                                      return new URL(lead.contact_facebook).pathname.replace(/\/$/, "") || "/";
+                                    } catch {
+                                      return lead.contact_facebook;
+                                    }
+                                  })()}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                       )}
                       {/* View All: Enriched columns (Socials, Size, etc.) */}
