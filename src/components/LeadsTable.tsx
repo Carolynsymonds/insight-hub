@@ -4574,375 +4574,158 @@ const LeadsTable = ({
                                           );
 
                                           if (matchedContact) {
+                                            const contactName = matchedContact.name ||
+                                              `${matchedContact.first_name || ""} ${matchedContact.last_name || ""}`.trim();
+                                            
+                                            // Collect found social profiles
+                                            const foundSocials: Array<{ platform: string; url: string; icon: React.ReactNode }> = [];
+                                            if (selectedLead?.contact_linkedin || matchedContact.linkedin_url) {
+                                              foundSocials.push({
+                                                platform: 'linkedin',
+                                                url: selectedLead?.contact_linkedin || matchedContact.linkedin_url || '',
+                                                icon: <Linkedin className="h-3 w-3" />
+                                              });
+                                            }
+                                            if (selectedLead?.contact_facebook || matchedContact.facebook_url) {
+                                              foundSocials.push({
+                                                platform: 'facebook',
+                                                url: selectedLead?.contact_facebook || matchedContact.facebook_url || '',
+                                                icon: <Facebook className="h-3 w-3" />
+                                              });
+                                            }
+                                            if (selectedLead?.contact_youtube || matchedContact.youtube_url) {
+                                              foundSocials.push({
+                                                platform: 'youtube',
+                                                url: selectedLead?.contact_youtube || matchedContact.youtube_url || '',
+                                                icon: <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                              });
+                                            }
+                                            if (matchedContact.twitter_url) {
+                                              foundSocials.push({
+                                                platform: 'twitter',
+                                                url: matchedContact.twitter_url,
+                                                icon: <Twitter className="h-3 w-3" />
+                                              });
+                                            }
+                                            if (matchedContact.github_url) {
+                                              foundSocials.push({
+                                                platform: 'github',
+                                                url: matchedContact.github_url,
+                                                icon: <Github className="h-3 w-3" />
+                                              });
+                                            }
+
                                             return (
                                               <div className="space-y-3">
-                                                <div className="p-4 border rounded-lg bg-green-50/50 border-green-200">
-                                                  <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                      <div className="flex items-center gap-2">
-                                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                                        <p className="font-semibold text-sm text-green-800">
-                                                          Contact Found in Company
-                                                        </p>
-                                                      </div>
-                                                      <p className="text-xs text-muted-foreground mt-1">
-                                                        This lead matches a discovered company contact
-                                                      </p>
-                                                    </div>
-                                                  </div>
-
-                                                  <div className="space-y-3 border-t border-green-200 pt-3">
-                                                    {/* Name */}
-                                                    <div className="flex justify-between items-start">
-                                                      <span className="text-xs text-muted-foreground">Name</span>
-                                                      <span className="text-sm font-medium text-right">
-                                                        {matchedContact.name ||
-                                                          `${matchedContact.first_name || ""} ${matchedContact.last_name || ""}`.trim() ||
-                                                          "—"}
-                                                      </span>
-                                                    </div>
-
-                                                    {/* Title */}
-                                                    {matchedContact.title && (
-                                                      <div className="flex justify-between items-start">
-                                                        <span className="text-xs text-muted-foreground">Title</span>
-                                                        <span className="text-sm text-right">
-                                                          {matchedContact.title}
-                                                        </span>
-                                                      </div>
-                                                    )}
-
-                                                    {/* Email */}
-                                                    {matchedContact.email && (
-                                                      <div className="flex justify-between items-start">
-                                                        <span className="text-xs text-muted-foreground">Email</span>
-                                                        <div className="flex items-center gap-2">
+                                                {/* Compact display: Name + Social profiles only */}
+                                                <div className="space-y-2">
+                                                  {/* Contact name */}
+                                                  {contactName && (
+                                                    <p className="text-sm font-medium">{contactName}</p>
+                                                  )}
+                                                  
+                                                  {/* Social profiles only */}
+                                                  <div className="space-y-1">
+                                                    {foundSocials.length > 0 ? (
+                                                      foundSocials.map(({ platform, url, icon }) => (
+                                                        <div key={platform} className="flex items-center gap-2 text-xs">
+                                                          {icon}
                                                           <a
-                                                            href={`mailto:${matchedContact.email}`}
-                                                            className="text-sm text-primary hover:underline"
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-primary hover:underline truncate"
                                                           >
+                                                            {url.replace("https://", "").replace("www.", "").replace("linkedin.com/", "").replace("facebook.com/", "").replace("youtube.com/", "").replace("twitter.com/", "").replace("github.com/", "")}
+                                                          </a>
+                                                        </div>
+                                                      ))
+                                                    ) : (
+                                                      <span className="text-xs text-muted-foreground">No socials found</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+
+                                                {/* View More collapsible */}
+                                                <Collapsible>
+                                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                                    <ChevronDown className="h-3 w-3" />
+                                                    <span>View More</span>
+                                                  </CollapsibleTrigger>
+                                                  <CollapsibleContent className="mt-3 space-y-3">
+                                                    {/* Contact details */}
+                                                    <div className="space-y-2 text-xs border-t border-border pt-3">
+                                                      {matchedContact.title && (
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">Title</span>
+                                                          <span>{matchedContact.title}</span>
+                                                        </div>
+                                                      )}
+                                                      {matchedContact.email && (
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">Email</span>
+                                                          <a href={`mailto:${matchedContact.email}`} className="text-primary hover:underline">
                                                             {matchedContact.email}
                                                           </a>
-                                                          {matchedContact.email_status === "verified" && (
-                                                            <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
-                                                              Verified
-                                                            </Badge>
-                                                          )}
                                                         </div>
+                                                      )}
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Source</span>
+                                                        <span>{matchedContact.source === "apollo_people_search" ? "Apollo" : "Scraped"}</span>
                                                       </div>
-                                                    )}
-
-                                                    {/* Social Profiles - from lead's contact enrichment */}
-                                                    {(selectedLead?.contact_linkedin ||
-                                                      selectedLead?.contact_facebook ||
-                                                      selectedLead?.contact_youtube ||
-                                                      matchedContact.linkedin_url ||
-                                                      matchedContact.facebook_url ||
-                                                      matchedContact.twitter_url ||
-                                                      matchedContact.github_url ||
-                                                      matchedContact.youtube_url) && (
-                                                      <div className="flex flex-col gap-2">
-                                                        <span className="text-xs text-muted-foreground">
-                                                          Social Profiles
-                                                        </span>
-                                                        <div className="space-y-1.5">
-                                                          {/* LinkedIn */}
-                                                          {(selectedLead?.contact_linkedin || matchedContact.linkedin_url) && (
-                                                            <div className="flex items-center justify-between gap-2">
-                                                              <a
-                                                                href={selectedLead?.contact_linkedin || matchedContact.linkedin_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                              >
-                                                                <Linkedin className="h-3 w-3" />
-                                                                {(selectedLead?.contact_linkedin || matchedContact.linkedin_url || "")
-                                                                  .replace("https://", "")
-                                                                  .replace("linkedin.com/", "")}
-                                                                <ExternalLink className="h-2.5 w-2.5" />
-                                                              </a>
-                                                              {matchedContact.social_search_logs?.find(
-                                                                (l) => l.platform === "linkedin",
-                                                              ) && (
-                                                                <Badge
-                                                                  variant="outline"
-                                                                  className={
-                                                                    matchedContact.social_search_logs.find(
-                                                                      (l) => l.platform === "linkedin",
-                                                                    )?.source === "apollo"
-                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
-                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
-                                                                  }
-                                                                >
-                                                                  {matchedContact.social_search_logs.find(
-                                                                    (l) => l.platform === "linkedin",
-                                                                  )?.source === "apollo"
-                                                                    ? "Apollo"
-                                                                    : "Google"}
-                                                                </Badge>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {/* Facebook */}
-                                                          {(selectedLead?.contact_facebook || matchedContact.facebook_url) && (
-                                                            <div className="flex items-center justify-between gap-2">
-                                                              <a
-                                                                href={selectedLead?.contact_facebook || matchedContact.facebook_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                              >
-                                                                <Facebook className="h-3 w-3" />
-                                                                {(selectedLead?.contact_facebook || matchedContact.facebook_url || "")
-                                                                  .replace("https://", "")
-                                                                  .replace("facebook.com/", "")}
-                                                                <ExternalLink className="h-2.5 w-2.5" />
-                                                              </a>
-                                                              {matchedContact.social_search_logs?.find(
-                                                                (l) => l.platform === "facebook",
-                                                              ) && (
-                                                                <Badge
-                                                                  variant="outline"
-                                                                  className={
-                                                                    matchedContact.social_search_logs.find(
-                                                                      (l) => l.platform === "facebook",
-                                                                    )?.source === "apollo"
-                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
-                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
-                                                                  }
-                                                                >
-                                                                  {matchedContact.social_search_logs.find(
-                                                                    (l) => l.platform === "facebook",
-                                                                  )?.source === "apollo"
-                                                                    ? "Apollo"
-                                                                    : "Google"}
-                                                                </Badge>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {matchedContact.twitter_url && (
-                                                            <div className="flex items-center justify-between gap-2">
-                                                              <a
-                                                                href={matchedContact.twitter_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                              >
-                                                                <Twitter className="h-3 w-3" />
-                                                                {matchedContact.twitter_url
-                                                                  .replace("https://", "")
-                                                                  .replace("twitter.com/", "")}
-                                                                <ExternalLink className="h-2.5 w-2.5" />
-                                                              </a>
-                                                              {matchedContact.social_search_logs?.find(
-                                                                (l) => l.platform === "twitter",
-                                                              ) && (
-                                                                <Badge
-                                                                  variant="outline"
-                                                                  className={
-                                                                    matchedContact.social_search_logs.find(
-                                                                      (l) => l.platform === "twitter",
-                                                                    )?.source === "apollo"
-                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
-                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
-                                                                  }
-                                                                >
-                                                                  {matchedContact.social_search_logs.find(
-                                                                    (l) => l.platform === "twitter",
-                                                                  )?.source === "apollo"
-                                                                    ? "Apollo"
-                                                                    : "Google"}
-                                                                </Badge>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {matchedContact.github_url && (
-                                                            <div className="flex items-center justify-between gap-2">
-                                                              <a
-                                                                href={matchedContact.github_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                              >
-                                                                <Github className="h-3 w-3" />
-                                                                {matchedContact.github_url
-                                                                  .replace("https://", "")
-                                                                  .replace("github.com/", "")}
-                                                                <ExternalLink className="h-2.5 w-2.5" />
-                                                              </a>
-                                                              {matchedContact.social_search_logs?.find(
-                                                                (l) => l.platform === "github",
-                                                              ) && (
-                                                                <Badge
-                                                                  variant="outline"
-                                                                  className={
-                                                                    matchedContact.social_search_logs.find(
-                                                                      (l) => l.platform === "github",
-                                                                    )?.source === "apollo"
-                                                                      ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
-                                                                      : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
-                                                                  }
-                                                                >
-                                                                  {matchedContact.social_search_logs.find(
-                                                                    (l) => l.platform === "github",
-                                                                  )?.source === "apollo"
-                                                                    ? "Apollo"
-                                                                    : "Google"}
-                                                                </Badge>
-                                                              )}
-                                                            </div>
-                                                          )}
-                                                          {/* YouTube */}
-                                                          {(selectedLead?.contact_youtube || matchedContact.youtube_url) && (
-                                                            <div className="flex items-center justify-between gap-2">
-                                                              <a
-                                                                href={selectedLead?.contact_youtube || matchedContact.youtube_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                                                              >
-                                                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
-                                                                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                                                                </svg>
-                                                                {(selectedLead?.contact_youtube || matchedContact.youtube_url || "")
-                                                                  .replace("https://", "")
-                                                                  .replace("youtube.com/", "")}
-                                                                <ExternalLink className="h-2.5 w-2.5" />
-                                                              </a>
-                                                              <Badge
-                                                                variant="outline"
-                                                                className="bg-red-50 text-red-700 border-red-200 text-[9px]"
-                                                              >
-                                                                Google
-                                                              </Badge>
-                                                            </div>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    )}
-
-                                                    {/* Source */}
-                                                    <div className="flex justify-between items-start">
-                                                      <span className="text-xs text-muted-foreground">Source</span>
-                                                      <Badge
-                                                        variant="outline"
-                                                        className={
-                                                          matchedContact.source === "apollo_people_search"
-                                                            ? "bg-purple-50 text-purple-700 border-purple-200"
-                                                            : "bg-blue-50 text-blue-700 border-blue-200"
-                                                        }
-                                                      >
-                                                        {matchedContact.source === "apollo_people_search"
-                                                          ? "Apollo"
-                                                          : "Scraped"}
-                                                      </Badge>
                                                     </div>
 
-                                                    {/* Additional badges */}
-                                                    {(matchedContact.is_personal ||
-                                                      matchedContact.found_without_role_filter) && (
-                                                      <div className="flex justify-between items-start">
-                                                        <span className="text-xs text-muted-foreground">Status</span>
-                                                        <div className="flex gap-1">
-                                                          {matchedContact.is_personal && (
-                                                            <Badge
-                                                              variant="outline"
-                                                              className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px]"
-                                                            >
-                                                              Personal Email
-                                                            </Badge>
-                                                          )}
-                                                          {matchedContact.found_without_role_filter && (
-                                                            <Badge
-                                                              variant="outline"
-                                                              className="bg-muted text-muted-foreground text-[10px]"
-                                                            >
-                                                              Name Only
-                                                            </Badge>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                  </div>
-
-                                                  {/* Enrichment Logs */}
-                                                  {matchedContact.social_search_logs && matchedContact.social_search_logs.length > 0 && (
-                                                    <Collapsible className="border-t border-green-200 pt-3 mt-3">
-                                                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center">
-                                                        <FileText className="h-3 w-3" />
-                                                        <span>View Enrichment Logs</span>
-                                                        <ChevronDown className="h-3 w-3 ml-1" />
-                                                      </CollapsibleTrigger>
-                                                      <CollapsibleContent className="mt-2 space-y-2">
+                                                    {/* Enrichment logs */}
+                                                    {matchedContact.social_search_logs && matchedContact.social_search_logs.length > 0 && (
+                                                      <div className="border-t border-border pt-3 space-y-2">
+                                                        <p className="text-xs text-muted-foreground font-medium">Enrichment Logs</p>
                                                         {matchedContact.social_search_logs.map((log: any, idx: number) => (
                                                           <div key={idx} className="bg-muted/50 rounded p-2 text-xs space-y-1">
                                                             <div className="flex items-center gap-2">
-                                                              <Badge
-                                                                variant="outline"
-                                                                className={
-                                                                  log.source === "apollo"
-                                                                    ? "bg-purple-50 text-purple-700 border-purple-200 text-[9px]"
-                                                                    : "bg-blue-50 text-blue-700 border-blue-200 text-[9px]"
-                                                                }
-                                                              >
-                                                                {log.source === "apollo" ? "Apollo" : "Google"}
-                                                              </Badge>
                                                               <span className="font-medium capitalize">{log.platform}</span>
                                                               {log.found ? (
                                                                 <CheckCircle className="h-3 w-3 text-green-600" />
                                                               ) : (
                                                                 <XCircle className="h-3 w-3 text-red-500" />
                                                               )}
+                                                              <span className="text-muted-foreground">
+                                                                via {log.source === "apollo" ? "Apollo" : "Google"}
+                                                              </span>
                                                             </div>
                                                             {log.query && (
                                                               <p className="text-muted-foreground font-mono text-[10px] break-all">
                                                                 Query: {log.query}
                                                               </p>
                                                             )}
-                                                            {log.url && (
-                                                              <p className="text-muted-foreground text-[10px] break-all">
-                                                                URL: {log.url}
-                                                              </p>
-                                                            )}
-                                                            {log.timestamp && (
-                                                              <p className="text-muted-foreground text-[10px]">
-                                                                {new Date(log.timestamp).toLocaleString()}
-                                                              </p>
-                                                            )}
                                                           </div>
                                                         ))}
-                                                      </CollapsibleContent>
-                                                    </Collapsible>
-                                                  )}
+                                                      </div>
+                                                    )}
 
-                                                  {/* Re-search button */}
-                                                  <div className="pt-3 border-t border-green-200">
-                                                    <Button
-                                                      size="sm"
-                                                      variant="outline"
-                                                      className="w-full"
-                                                      disabled={
-                                                        enrichingContact === lead.id || !lead.email || !lead.full_name
-                                                      }
-                                                      onClick={() => handleEnrichContact(lead)}
-                                                    >
-                                                      {enrichingContact === lead.id ? (
-                                                        <>
-                                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                          Searching...
-                                                        </>
-                                                      ) : (
-                                                        <>
-                                                          <Search className="mr-2 h-4 w-4" />
-                                                          Re-search in Apollo
-                                                        </>
-                                                      )}
-                                                    </Button>
-                                                    <p className="text-xs text-muted-foreground mt-1 text-center">
-                                                      Search for additional social profiles
-                                                    </p>
-                                                  </div>
-                                                </div>
+                                                    {/* Re-search button */}
+                                                    <div className="pt-2">
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full"
+                                                        disabled={enrichingContact === lead.id || !lead.email || !lead.full_name}
+                                                        onClick={() => handleEnrichContact(lead)}
+                                                      >
+                                                        {enrichingContact === lead.id ? (
+                                                          <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Searching...
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <Search className="mr-2 h-4 w-4" />
+                                                            Re-search in Apollo
+                                                          </>
+                                                        )}
+                                                      </Button>
+                                                    </div>
+                                                  </CollapsibleContent>
+                                                </Collapsible>
                                               </div>
                                             );
                                           }
