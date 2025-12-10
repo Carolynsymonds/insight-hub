@@ -12,7 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, description, vehicles_count, confirm_vehicles_50_plus, truck_types, features, company } = await req.json();
+    const { 
+      leadId, 
+      company,
+      description, 
+      vehicles_count, 
+      confirm_vehicles_50_plus, 
+      truck_types, 
+      features,
+      // New fields for richer context
+      company_industry,
+      products_services,
+      size,
+      annual_revenue,
+      mics_sector
+    } = await req.json();
 
     if (!leadId) {
       throw new Error("leadId is required");
@@ -23,35 +37,44 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build the prompt with lead data
-    const prompt = `You are an AI enrichment system.
-You will receive:
-- A company description
-- The lead's selected form inputs (vehicle count, vehicle type, features, confirm vehicles)
+    // Build the enhanced prompt with all available context
+    const prompt = `You are a sales intelligence AI creating personalized lead insights for SDRs.
 
-Task:
-Generate a concise paragraph explaining why this company is likely interested in vehicle tracking, grounding your reasoning in the company's industry, operations, and the selected options.
-Your explanation should clearly connect the operational challenges implied by the company description with the features chosen.
+Task: Generate a compelling 4-6 sentence paragraph explaining why this company is likely interested in vehicle tracking. This will be used by sales development representatives for lead qualification and outreach.
 
-Instructions:
-- Explicitly reference the fleet size and vehicle type.
-- Use the selected feature(s) to infer the company's operational needs.
-- Tie the reasoning back to their day-to-day workflows.
-- Write in a confident, professional tone.
-- Do not mention the form or that the user submitted these answers — infer naturally.
-- Keep the paragraph concise (2-4 sentences).
+Structure your response to cover:
+1. FLEET CONTEXT: Start with their fleet size and vehicle types as the opening hook
+2. OPERATIONAL CHALLENGES: Connect their industry and operations to specific fleet management pain points (scheduling, costs, coordination, deliveries, compliance)
+3. FEATURE FIT: Explain how their selected features address their specific operational needs
+4. BUSINESS IMPACT: Tie back to real-world benefits (efficiency gains, cost savings, safety improvements, regulatory compliance)
 
-Data:
+Writing guidelines:
+- Start with the fleet size and vehicle types as the first sentence
+- Use confident, professional tone throughout
+- Be specific about operational challenges relevant to their industry
+- Reference their industry context naturally
+- Connect fleet complexity to their business scale when size/revenue data is available
+- Do NOT mention forms, submissions, surveys, or that this is AI-generated
+- Infer needs naturally as if you understand their business
+
+Company Data:
 Company: ${company || "Unknown Company"}
-Company Description: ${description || "No description available"}
-Vehicle Count: ${vehicles_count || "Not specified"}
+Industry: ${company_industry || "Not specified"}
+MICS Sector: ${mics_sector || "Not specified"}
+Products/Services: ${products_services || "Not specified"}
+Company Size: ${size || "Not specified"}
+Annual Revenue: ${annual_revenue || "Not specified"}
+Description: ${description || "No description available"}
+
+Fleet Data:
+Fleet Size: ${vehicles_count || "Not specified"}
 Confirmed 50+ Vehicles: ${confirm_vehicles_50_plus || "Not specified"}
 Vehicle Types: ${truck_types || "Not specified"}
 Features of Interest: ${features || "Not specified"}
 
-Generate only the paragraph, no headers or labels.`;
+Generate only the paragraph, no headers, labels, or quotes.`;
 
-    console.log("Generating vehicle tracking interest explanation for lead:", leadId);
+    console.log("Generating enhanced vehicle tracking interest for lead:", leadId);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
