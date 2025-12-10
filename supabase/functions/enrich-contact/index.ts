@@ -211,22 +211,41 @@ serve(async (req) => {
 
     const existingContacts = (leadData?.company_contacts as any[]) || [];
     
-    // Check if contact already exists by email or name
-    const existingContact = existingContacts.find(c => 
+    // Find ALL matching contacts by email or name and merge their social data
+    const matchingContacts = existingContacts.filter(c => 
       (email && c.email && c.email.toLowerCase() === email.toLowerCase()) ||
       (full_name && c.name && c.name.toLowerCase() === full_name.toLowerCase())
     );
 
+    // Merge social data from all matching contacts (take first non-null value for each)
+    const mergedContact = matchingContacts.length > 0 ? {
+      ...matchingContacts[0],
+      linkedin_url: matchingContacts.find(c => c.linkedin_url)?.linkedin_url || null,
+      facebook_url: matchingContacts.find(c => c.facebook_url)?.facebook_url || null,
+      twitter_url: matchingContacts.find(c => c.twitter_url)?.twitter_url || null,
+      github_url: matchingContacts.find(c => c.github_url)?.github_url || null,
+      youtube_url: matchingContacts.find(c => c.youtube_url)?.youtube_url || null,
+    } : null;
+
+    const existingContact = mergedContact;
+
     if (existingContact) {
+      console.log('[enrich-contact] Found existing contact(s), merged socials:', {
+        linkedin: existingContact.linkedin_url,
+        facebook: existingContact.facebook_url,
+        youtube: existingContact.youtube_url
+      });
+
       const hasMissingSocials = !existingContact.linkedin_url || !existingContact.facebook_url || !existingContact.youtube_url;
       
       steps.check_existing = { 
         status: 'completed', 
-        message: 'Contact already exists in company contacts',
+        message: `Found ${matchingContacts.length} matching contact(s) in company contacts`,
         data: {
           name: existingContact.name,
           email: existingContact.email,
           source: existingContact.source,
+          matching_contacts_count: matchingContacts.length,
           has_linkedin: !!existingContact.linkedin_url,
           has_facebook: !!existingContact.facebook_url,
           has_twitter: !!existingContact.twitter_url,
@@ -234,11 +253,87 @@ serve(async (req) => {
           has_youtube: !!existingContact.youtube_url
         }
       };
-      steps.apollo_search = { status: 'skipped', message: 'Skipped - contact already exists' };
 
-      // If contact has missing socials, search Google for them
-      if (hasMissingSocials && serpApiKey) {
-        console.log('[enrich-contact] Contact exists but missing socials, searching Google...');
+      // If still missing socials after merge, search Apollo first
+      if (hasMissingSocials && apolloApiKey) {
+        console.log('[enrich-contact] Still missing socials after merge, searching Apollo...');
+        steps.apollo_search = { status: 'running', message: 'Searching Apollo for additional social profiles...' };
+
+        // Search Apollo for this person
+        const params = new URLSearchParams({
+          name: full_name,
+          email: email,
+          reveal_personal_emails: 'false',
+          reveal_phone_number: 'false'
+        });
+        if (domain) {
+          params.append('organization_domains', domain);
+        }
+
+        try {
+          const apolloUrl = `https://api.apollo.io/api/v1/people/match?${params.toString()}`;
+          const apolloResponse = await fetch(apolloUrl, {
+            method: 'POST',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Content-Type': 'application/json',
+              'accept': 'application/json',
+              'x-api-key': apolloApiKey
+            }
+          });
+
+          const apolloData = await apolloResponse.json();
+          const person = apolloData.person;
+
+          if (person) {
+            // Merge Apollo socials with existing (Apollo takes priority for missing ones)
+            if (!existingContact.linkedin_url && person.linkedin_url) {
+              existingContact.linkedin_url = person.linkedin_url;
+            }
+            if (!existingContact.facebook_url && person.facebook_url) {
+              existingContact.facebook_url = person.facebook_url;
+            }
+            if (!existingContact.twitter_url && person.twitter_url) {
+              existingContact.twitter_url = person.twitter_url;
+            }
+            if (!existingContact.github_url && person.github_url) {
+              existingContact.github_url = person.github_url;
+            }
+
+            steps.apollo_search = { 
+              status: 'completed', 
+              message: 'Found person in Apollo',
+              data: {
+                name: person.name,
+                found_linkedin: !!person.linkedin_url,
+                found_facebook: !!person.facebook_url,
+                found_twitter: !!person.twitter_url,
+                found_github: !!person.github_url
+              }
+            };
+          } else {
+            steps.apollo_search = { 
+              status: 'not_found', 
+              message: 'No additional data found in Apollo'
+            };
+          }
+        } catch (apolloError) {
+          console.error('[enrich-contact] Apollo search error:', apolloError);
+          steps.apollo_search = { 
+            status: 'not_found', 
+            message: 'Apollo search failed'
+          };
+        }
+      } else {
+        steps.apollo_search = { status: 'skipped', message: hasMissingSocials ? 'Apollo API key not configured' : 'All socials already found' };
+      }
+
+      // Check again if still missing socials after Apollo
+      const stillMissingSocials = !existingContact.linkedin_url || !existingContact.facebook_url || !existingContact.youtube_url;
+
+      // If still missing socials after Apollo, search Google
+      if (stillMissingSocials && serpApiKey) {
+        console.log('[enrich-contact] Still missing socials after Apollo, searching Google...');
         steps.google_socials = { status: 'running', message: 'Searching Google for missing social profiles...' };
         
         const personName = existingContact.name || full_name;
@@ -318,7 +413,7 @@ serve(async (req) => {
           };
         }
       } else {
-        steps.google_socials = { status: 'skipped', message: hasMissingSocials ? 'Google search skipped - API key not configured' : 'All socials already found' };
+        steps.google_socials = { status: 'skipped', message: stillMissingSocials ? 'Google search skipped - API key not configured' : 'All socials already found' };
         
         // Still update the lead's contact fields with existing socials
         await supabase
