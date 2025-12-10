@@ -48,6 +48,7 @@ export type Database = {
           company_contacts: Json | null
           company_industry: string | null
           confirm_vehicles_50_plus: string | null
+          contact_details: Json | null
           contact_email: string | null
           contact_email_personal: boolean | null
           contact_facebook: string | null
@@ -130,6 +131,7 @@ export type Database = {
           company_contacts?: Json | null
           company_industry?: string | null
           confirm_vehicles_50_plus?: string | null
+          contact_details?: Json | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
           contact_facebook?: string | null
@@ -212,6 +214,7 @@ export type Database = {
           company_contacts?: Json | null
           company_industry?: string | null
           confirm_vehicles_50_plus?: string | null
+          contact_details?: Json | null
           contact_email?: string | null
           contact_email_personal?: boolean | null
           contact_facebook?: string | null

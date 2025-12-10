@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +34,8 @@ interface EnrichedContact {
   organization_website: string | null;
   organization_industry: string | null;
   email_status: string | null;
+  lead_updated: boolean;
+  lead_id: string | null;
 }
 
 serve(async (req) => {
@@ -53,8 +56,17 @@ serve(async (req) => {
       );
     }
 
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: 'email is required to match lead' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const apolloApiKey = Deno.env.get('APOLLO_API_KEY');
     const serpapiKey = Deno.env.get('SERPAPI_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     // Initialize with provided data
     let enrichedContact: EnrichedContact = {
@@ -71,21 +83,10 @@ serve(async (req) => {
       organization_name: null,
       organization_website: null,
       organization_industry: null,
-      email_status: null
+      email_status: null,
+      lead_updated: false,
+      lead_id: null
     };
-
-    // Parse location into city/state for Apollo search
-    let city: string | undefined;
-    let state: string | undefined;
-    if (location) {
-      const parts = location.split(',').map(p => p.trim());
-      if (parts.length >= 2) {
-        city = parts[0];
-        state = parts[1];
-      } else {
-        city = parts[0];
-      }
-    }
 
     // Step 1: Search Apollo for organization details and email verification
     if (apolloApiKey && (email || company)) {
@@ -160,6 +161,56 @@ serve(async (req) => {
         }
       } catch (searchError: unknown) {
         console.error('Twitter search error:', searchError);
+      }
+    }
+
+    // Step 3: Update lead in database by matching email
+    if (supabaseUrl && supabaseServiceKey) {
+      console.log('Matching lead by email:', email);
+      
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Find lead by email
+      const { data: leads, error: findError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('email', email)
+        .limit(1);
+
+      if (findError) {
+        console.error('Error finding lead:', findError);
+      } else if (leads && leads.length > 0) {
+        const leadId = leads[0].id;
+        enrichedContact.lead_id = leadId;
+
+        // Build contact_details JSON
+        const contactDetails: Record<string, string> = {};
+        if (latest_experience) contactDetails.latest_experience = latest_experience;
+        if (location) contactDetails.location = location;
+        if (phone) contactDetails.phone = phone;
+        if (company) contactDetails.company = company;
+
+        // Update lead with enriched data
+        const updatePayload: Record<string, any> = {};
+        if (linkedin_url) updatePayload.contact_linkedin = linkedin_url;
+        if (facebook_url) updatePayload.contact_facebook = facebook_url;
+        if (Object.keys(contactDetails).length > 0) updatePayload.contact_details = contactDetails;
+
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update(updatePayload)
+            .eq('id', leadId);
+
+          if (updateError) {
+            console.error('Error updating lead:', updateError);
+          } else {
+            enrichedContact.lead_updated = true;
+            console.log('Lead updated successfully:', leadId);
+          }
+        }
+      } else {
+        console.log('No lead found with email:', email);
       }
     }
 
