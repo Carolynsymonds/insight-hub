@@ -44,6 +44,8 @@ const CATEGORIES = [{
   name: "Security",
   icon: Shield
 }] as const;
+export type ViewMode = 'all' | 'company' | 'contact';
+
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -57,6 +59,7 @@ const Index = () => {
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
   useEffect(() => {
     checkAuth();
   }, []);
@@ -212,7 +215,37 @@ const Index = () => {
                 </span>
               </div>
             </div>
-            <LeadsTable leads={categoryFilteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} />
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">View:</span>
+              <div className="flex border rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === 'company' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-none border-0"
+                  onClick={() => setViewMode('company')}
+                >
+                  Company Data
+                </Button>
+                <Button
+                  variant={viewMode === 'contact' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-none border-0 border-x"
+                  onClick={() => setViewMode('contact')}
+                >
+                  Contact Data
+                </Button>
+                <Button
+                  variant={viewMode === 'all' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-none border-0"
+                  onClick={() => setViewMode('all')}
+                >
+                  View All
+                </Button>
+              </div>
+            </div>
+            <LeadsTable leads={categoryFilteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-2">Select a Category</h2>
