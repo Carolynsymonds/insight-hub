@@ -71,7 +71,7 @@ STRUCTURE YOUR RESPONSE TO COVER:
 
 RULES:
 - Write a single cohesive paragraph (3-5 sentences)
-- Start with "Products & Services:" followed by the paragraph
+- Do NOT start with any prefix like "Products & Services:" - just write the paragraph directly
 - Be specific and factual based on the provided data
 - If the company offers multiple services, organize them logically
 - Mention any specializations or unique offerings
@@ -79,7 +79,7 @@ RULES:
 - Write in third person, professional tone
 
 Example format:
-Products & Services: [Company] provides [core offerings], specializing in [specialties]. Their services include [specific offerings]. They serve [customer segment] with [notable capabilities/technology if applicable].`;
+[Company] provides [core offerings], specializing in [specialties]. Their services include [specific offerings]. They serve [customer segment] with [notable capabilities/technology if applicable].`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
