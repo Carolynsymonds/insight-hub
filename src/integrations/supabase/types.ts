@@ -76,6 +76,7 @@ export type Database = {
           news: string | null
           phone: string | null
           products_services: string | null
+          products_services_summary: string | null
           scraped_data_log: Json | null
           short_summary: string | null
           size: string | null
@@ -152,6 +153,7 @@ export type Database = {
           news?: string | null
           phone?: string | null
           products_services?: string | null
+          products_services_summary?: string | null
           scraped_data_log?: Json | null
           short_summary?: string | null
           size?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           news?: string | null
           phone?: string | null
           products_services?: string | null
+          products_services_summary?: string | null
           scraped_data_log?: Json | null
           short_summary?: string | null
           size?: string | null

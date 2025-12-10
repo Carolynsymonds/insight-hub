@@ -148,6 +148,7 @@ interface Lead {
   vehicle_tracking_interest_explanation: string | null;
   short_summary: string | null;
   long_summary: string | null;
+  products_services_summary: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -284,6 +285,7 @@ const LeadsTable = ({
   const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
   const [generatingShortSummary, setGeneratingShortSummary] = useState(false);
   const [generatingLongSummary, setGeneratingLongSummary] = useState(false);
+  const [generatingProductsSummary, setGeneratingProductsSummary] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -937,6 +939,57 @@ const LeadsTable = ({
       });
     } finally {
       setGeneratingLongSummary(false);
+    }
+  };
+
+  const handleGenerateProductsSummary = async (lead: Lead) => {
+    if (!lead.products_services && !lead.description && !lead.company_industry) {
+      toast({
+        title: "Cannot Generate",
+        description: "Products/services, description, or industry data is required. Run Enrich Company Details first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingProductsSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-products-services-summary", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          products_services: lead.products_services,
+          description: lead.description,
+          company_industry: lead.company_industry,
+          mics_sector: lead.mics_sector,
+          news: lead.news,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Products & Services Summary Generated!",
+        description: "A professional summary of company offerings has been created.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          products_services_summary: data.products_services_summary,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingProductsSummary(false);
     }
   };
 
@@ -4700,6 +4753,57 @@ const LeadsTable = ({
                       {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
                         <p className="text-xs text-destructive">
                           Company details required. Run "Enrich Company Details" first.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* Products & Services Summary - Accordion */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="products-summary" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span>📦</span>
+                    <span className="font-semibold text-sm">Products & Services Summary</span>
+                    {descriptionModalLead?.products_services_summary && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.products_services_summary ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.products_services_summary}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate a professional summary of the company's products and services,
+                        including core offerings, specialties, and customer segments.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateProductsSummary(descriptionModalLead)}
+                        disabled={generatingProductsSummary || (!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry)}
+                        className="w-full"
+                      >
+                        {generatingProductsSummary ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Products Summary
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry && (
+                        <p className="text-xs text-destructive">
+                          Products/services, description, or industry data required. Run "Enrich Company Details" first.
                         </p>
                       )}
                     </div>
