@@ -4737,12 +4737,12 @@ const LeadsTable = ({
           <div className="space-y-4">
             {/* 1. Short Summary Section - First */}
             {descriptionModalLead?.short_summary ? (
-              <div className="bg-muted/50 p-4 rounded-lg">
+              <div className="bg-muted/50 py-4 px-0 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
                 <p className="text-sm">{descriptionModalLead.short_summary}</p>
               </div>
             ) : (
-              <div className="bg-muted/50 p-4 rounded-lg">
+              <div className="bg-muted/50 py-4 px-0 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
                 <p className="text-xs text-muted-foreground mb-3">
                   Generate a concise 2-3 line summary of what the business does and where it operates.
