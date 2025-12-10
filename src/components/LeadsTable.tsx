@@ -4832,7 +4832,7 @@ const LeadsTable = ({
             <Accordion type="single" collapsible defaultValue="must-knows" className="w-full">
               <AccordionItem value="must-knows" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Must Knows</span>
+                  <span className="font-semibold text-sm">Key Insights</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.must_knows ? (
@@ -4877,7 +4877,7 @@ const LeadsTable = ({
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="long-summary" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Detailed Company Profile</span>
+                  <span className="font-semibold text-sm">Company Overview</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.long_summary ? (
@@ -4922,7 +4922,7 @@ const LeadsTable = ({
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="products-summary" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Products & Services Summary</span>
+                  <span className="font-semibold text-sm">Products & Services</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.products_services_summary ? (
@@ -4967,7 +4967,7 @@ const LeadsTable = ({
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="vehicle-interest" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Vehicle Tracking Interest</span>
+                  <span className="font-semibold text-sm">Why They Need Vehicle Tracking</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
@@ -5022,7 +5022,7 @@ const LeadsTable = ({
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="business-cases" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Likely Business Cases</span>
+                  <span className="font-semibold text-sm">Business Use Cases</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.likely_business_cases ? (
