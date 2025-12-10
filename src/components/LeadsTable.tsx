@@ -147,6 +147,7 @@ interface Lead {
   features: string | null;
   vehicle_tracking_interest_explanation: string | null;
   short_summary: string | null;
+  long_summary: string | null;
   social_validation_log: {
     timestamp: string;
     lead_info: Record<string, string | null>;
@@ -282,6 +283,7 @@ const LeadsTable = ({
   const [showEnrichedColumns, setShowEnrichedColumns] = useState(true);
   const [generatingVehicleInterest, setGeneratingVehicleInterest] = useState(false);
   const [generatingShortSummary, setGeneratingShortSummary] = useState(false);
+  const [generatingLongSummary, setGeneratingLongSummary] = useState(false);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -875,6 +877,66 @@ const LeadsTable = ({
       });
     } finally {
       setGeneratingShortSummary(false);
+    }
+  };
+
+  const handleGenerateLongSummary = async (lead: Lead) => {
+    if (!lead.description && !lead.products_services && !lead.company_industry) {
+      toast({
+        title: "Cannot Generate",
+        description: "Company details are required. Run Enrich Company Details first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingLongSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-long-summary", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          company_industry: lead.company_industry,
+          mics_sector: lead.mics_sector,
+          founded_date: lead.founded_date,
+          description: lead.description,
+          products_services: lead.products_services,
+          annual_revenue: lead.annual_revenue,
+          size: lead.size,
+          zipcode: lead.zipcode,
+          dma: lead.dma,
+          domain: lead.domain,
+          linkedin: lead.linkedin,
+          facebook: lead.facebook,
+          instagram: lead.instagram,
+          news: lead.news,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Detailed Profile Generated!",
+        description: "A rich 5-8 line company profile has been created.",
+      });
+
+      // Update the local lead state in the modal
+      if (descriptionModalLead && descriptionModalLead.id === lead.id) {
+        setDescriptionModalLead({
+          ...descriptionModalLead,
+          long_summary: data.long_summary,
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingLongSummary(false);
     }
   };
 
@@ -4594,6 +4656,57 @@ const LeadsTable = ({
                 )}
               </div>
             )}
+
+            {/* Detailed Company Profile - Accordion */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="long-summary" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span>📖</span>
+                    <span className="font-semibold text-sm">Detailed Company Profile</span>
+                    {descriptionModalLead?.long_summary && (
+                      <Badge variant="secondary" className="ml-2">Generated</Badge>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.long_summary ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.long_summary}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate a rich 5-8 line company profile including founding history, 
+                        operations, scale, location, and notable achievements.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => descriptionModalLead && handleGenerateLongSummary(descriptionModalLead)}
+                        disabled={generatingLongSummary || (!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry)}
+                        className="w-full"
+                      >
+                        {generatingLongSummary ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Detailed Profile
+                          </>
+                        )}
+                      </Button>
+                      {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && (
+                        <p className="text-xs text-destructive">
+                          Company details required. Run "Enrich Company Details" first.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             {/* Full Company Description */}
             {descriptionModalLead?.description && (
