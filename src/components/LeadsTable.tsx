@@ -356,6 +356,7 @@ const LeadsTable = ({
     title_clay: string | null;
     company_clay: string | null;
     location_clay: string | null;
+    phone_clay: string | null;
   }>>({});
 
   // Use external filter if provided, otherwise use internal state
@@ -408,7 +409,7 @@ const LeadsTable = ({
       const leadIds = leads.map(l => l.id);
       const { data, error } = await supabase
         .from('clay_enrichments')
-        .select('lead_id, title_clay, company_clay, location_clay')
+        .select('lead_id, title_clay, company_clay, location_clay, phone_clay')
         .in('lead_id', leadIds);
 
       if (error) {
@@ -417,13 +418,14 @@ const LeadsTable = ({
       }
 
       // Create a map of lead_id -> enrichment data (use the most recent one per lead)
-      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null }> = {};
+      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null }> = {};
       data?.forEach(enrichment => {
         if (!enrichmentMap[enrichment.lead_id]) {
           enrichmentMap[enrichment.lead_id] = {
             title_clay: enrichment.title_clay,
             company_clay: enrichment.company_clay,
             location_clay: enrichment.location_clay,
+            phone_clay: enrichment.phone_clay,
           };
         }
       });
@@ -1619,6 +1621,9 @@ const LeadsTable = ({
                   {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                     <TableHead>Location Clay</TableHead>
                   )}
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                    <TableHead>Phone Clay</TableHead>
+                  )}
                   {/* View All & Company: Description */}
                   {(viewMode === 'all' || viewMode === 'company') && (
                     <TableHead className={viewMode === 'all' && showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
@@ -1818,6 +1823,9 @@ const LeadsTable = ({
                       )}
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.location_clay || "—"}</TableCell>
+                      )}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell>{allClayEnrichments[lead.id]?.phone_clay || "—"}</TableCell>
                       )}
                       {/* View All & Company: Description */}
                       {(viewMode === 'all' || viewMode === 'company') && (
