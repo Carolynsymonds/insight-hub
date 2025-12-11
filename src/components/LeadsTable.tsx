@@ -5538,62 +5538,7 @@ const LeadsTable = ({
               </AccordionItem>
             </Accordion>
 
-            {/* 5. Vehicle Tracking Interest - Last */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="vehicle-interest" className="border rounded-lg bg-background">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Why They Need Vehicle Tracking</span>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.vehicle_tracking_interest_explanation ? (
-                    <p className="text-sm leading-relaxed">{descriptionModalLead.vehicle_tracking_interest_explanation}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {descriptionModalLead?.vehicles_count ||
-                      descriptionModalLead?.truck_types ||
-                      descriptionModalLead?.features ? (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            Generate a detailed 4-6 sentence analysis explaining why this company needs vehicle tracking,
-                            based on their fleet size, vehicle types, and selected features.
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => descriptionModalLead && handleGenerateVehicleInterest(descriptionModalLead)}
-                            disabled={generatingVehicleInterest || !descriptionModalLead?.description}
-                            className="w-full"
-                          >
-                            {generatingVehicleInterest ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generating...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Generate Interest Analysis
-                              </>
-                            )}
-                          </Button>
-                          {!descriptionModalLead?.description && (
-                            <p className="text-xs text-destructive">
-                              Company description required. Run "Enrich Company Details" first.
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">
-                          No vehicle data available. Add vehicle information during lead import to enable this feature.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* 6. Likely Business Cases - Last */}
+            {/* 5. Likely Business Cases - Last */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="business-cases" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
