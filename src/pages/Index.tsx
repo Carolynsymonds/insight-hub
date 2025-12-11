@@ -56,7 +56,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid'>('valid');
+  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid' | 'not_enriched'>('valid');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -136,6 +136,7 @@ const Index = () => {
     if (domainFilter === 'all') return true;
     if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
     if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
+    if (domainFilter === 'not_enriched') return lead.enriched_at === null;
     return true;
   });
 
@@ -195,7 +196,7 @@ const Index = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Filter by:</span>
-                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid') => setDomainFilter(value)}>
+                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid' | 'not_enriched') => setDomainFilter(value)}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Domain Status" />
                     </SelectTrigger>
@@ -203,6 +204,7 @@ const Index = () => {
                       <SelectItem value="all">All Domains</SelectItem>
                       <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
                       <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
+                      <SelectItem value="not_enriched">Not Enriched</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

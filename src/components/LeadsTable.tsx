@@ -253,8 +253,8 @@ interface LeadsTableProps {
   leads: Lead[];
   onEnrichComplete: () => void;
   hideFilterBar?: boolean;
-  domainFilter?: "all" | "valid" | "invalid";
-  onDomainFilterChange?: (value: "all" | "valid" | "invalid") => void;
+  domainFilter?: "all" | "valid" | "invalid" | "not_enriched";
+  onDomainFilterChange?: (value: "all" | "valid" | "invalid" | "not_enriched") => void;
   viewMode?: ViewMode;
 }
 const LeadsTable = ({
