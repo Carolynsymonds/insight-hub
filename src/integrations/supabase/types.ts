@@ -40,7 +40,6 @@ export type Database = {
       }
       clay_enrichments: {
         Row: {
-          apollo_searched: boolean | null
           company: string | null
           created_at: string | null
           email: string | null
@@ -58,12 +57,10 @@ export type Database = {
           phone: string | null
           raw_response: Json | null
           title: string | null
-          twitter_searched: boolean | null
           twitter_url: string | null
           user_id: string
         }
         Insert: {
-          apollo_searched?: boolean | null
           company?: string | null
           created_at?: string | null
           email?: string | null
@@ -81,12 +78,10 @@ export type Database = {
           phone?: string | null
           raw_response?: Json | null
           title?: string | null
-          twitter_searched?: boolean | null
           twitter_url?: string | null
           user_id: string
         }
         Update: {
-          apollo_searched?: boolean | null
           company?: string | null
           created_at?: string | null
           email?: string | null
@@ -104,7 +99,6 @@ export type Database = {
           phone?: string | null
           raw_response?: Json | null
           title?: string | null
-          twitter_searched?: boolean | null
           twitter_url?: string | null
           user_id?: string
         }
