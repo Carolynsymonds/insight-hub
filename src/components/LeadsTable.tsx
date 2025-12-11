@@ -352,6 +352,11 @@ const LeadsTable = ({
     created_at: string | null;
     raw_response: any;
   }>>([]);
+  const [allClayEnrichments, setAllClayEnrichments] = useState<Record<string, {
+    title_clay: string | null;
+    company_clay: string | null;
+    location_clay: string | null;
+  }>>({});
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -391,6 +396,42 @@ const LeadsTable = ({
 
     fetchClayEnrichments();
   }, [selectedLead]);
+
+  // Fetch clay enrichments for all leads to display in table columns
+  useEffect(() => {
+    const fetchAllClayEnrichments = async () => {
+      if (leads.length === 0) {
+        setAllClayEnrichments({});
+        return;
+      }
+
+      const leadIds = leads.map(l => l.id);
+      const { data, error } = await supabase
+        .from('clay_enrichments')
+        .select('lead_id, title_clay, company_clay, location_clay')
+        .in('lead_id', leadIds);
+
+      if (error) {
+        console.error('Error fetching all clay enrichments:', error);
+        return;
+      }
+
+      // Create a map of lead_id -> enrichment data (use the most recent one per lead)
+      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null }> = {};
+      data?.forEach(enrichment => {
+        if (!enrichmentMap[enrichment.lead_id]) {
+          enrichmentMap[enrichment.lead_id] = {
+            title_clay: enrichment.title_clay,
+            company_clay: enrichment.company_clay,
+            location_clay: enrichment.location_clay,
+          };
+        }
+      });
+      setAllClayEnrichments(enrichmentMap);
+    };
+
+    fetchAllClayEnrichments();
+  }, [leads]);
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -1568,6 +1609,16 @@ const LeadsTable = ({
                       </div>
                     </TableHead>
                   )}
+                  {/* Clay Enrichment Columns */}
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                    <TableHead>Role Clay</TableHead>
+                  )}
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                    <TableHead>Company Clay</TableHead>
+                  )}
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                    <TableHead>Location Clay</TableHead>
+                  )}
                   {/* View All & Company: Description */}
                   {(viewMode === 'all' || viewMode === 'company') && (
                     <TableHead className={viewMode === 'all' && showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
@@ -1757,6 +1808,16 @@ const LeadsTable = ({
                             "—"
                           )}
                         </TableCell>
+                      )}
+                      {/* Clay Enrichment Cells */}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell>{allClayEnrichments[lead.id]?.title_clay || "—"}</TableCell>
+                      )}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell>{allClayEnrichments[lead.id]?.company_clay || "—"}</TableCell>
+                      )}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell>{allClayEnrichments[lead.id]?.location_clay || "—"}</TableCell>
                       )}
                       {/* View All & Company: Description */}
                       {(viewMode === 'all' || viewMode === 'company') && (
