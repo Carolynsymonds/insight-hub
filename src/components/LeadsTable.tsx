@@ -1615,7 +1615,7 @@ const LeadsTable = ({
                   {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Role Clay</TableHead>
                   )}
-                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                  {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Company Clay</TableHead>
                   )}
                   {(viewMode === 'all' || viewMode === 'contact') && (
@@ -1818,7 +1818,7 @@ const LeadsTable = ({
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.title_clay || "—"}</TableCell>
                       )}
-                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                      {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.company_clay || "—"}</TableCell>
                       )}
                       {(viewMode === 'all' || viewMode === 'contact') && (
