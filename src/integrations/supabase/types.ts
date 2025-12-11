@@ -40,67 +40,52 @@ export type Database = {
       }
       clay_enrichments: {
         Row: {
-          company: string | null
+          company_clay: string | null
           created_at: string | null
           email: string | null
-          email_status: string | null
-          facebook_url: string | null
+          facebook_url_clay: string | null
           full_name: string | null
           id: string
-          latest_experience: string | null
+          latest_experience_clay: string | null
           lead_id: string
-          linkedin_url: string | null
-          location: string | null
-          organization_industry: string | null
-          organization_name: string | null
-          organization_website: string | null
-          phone: string | null
+          linkedin: string | null
+          location_clay: string | null
+          phone_clay: string | null
           raw_response: Json | null
-          title: string | null
-          twitter_url: string | null
-          user_id: string
+          title_clay: string | null
+          twitter_url_clay: string | null
         }
         Insert: {
-          company?: string | null
+          company_clay?: string | null
           created_at?: string | null
           email?: string | null
-          email_status?: string | null
-          facebook_url?: string | null
+          facebook_url_clay?: string | null
           full_name?: string | null
           id?: string
-          latest_experience?: string | null
+          latest_experience_clay?: string | null
           lead_id: string
-          linkedin_url?: string | null
-          location?: string | null
-          organization_industry?: string | null
-          organization_name?: string | null
-          organization_website?: string | null
-          phone?: string | null
+          linkedin?: string | null
+          location_clay?: string | null
+          phone_clay?: string | null
           raw_response?: Json | null
-          title?: string | null
-          twitter_url?: string | null
-          user_id: string
+          title_clay?: string | null
+          twitter_url_clay?: string | null
         }
         Update: {
-          company?: string | null
+          company_clay?: string | null
           created_at?: string | null
           email?: string | null
-          email_status?: string | null
-          facebook_url?: string | null
+          facebook_url_clay?: string | null
           full_name?: string | null
           id?: string
-          latest_experience?: string | null
+          latest_experience_clay?: string | null
           lead_id?: string
-          linkedin_url?: string | null
-          location?: string | null
-          organization_industry?: string | null
-          organization_name?: string | null
-          organization_website?: string | null
-          phone?: string | null
+          linkedin?: string | null
+          location_clay?: string | null
+          phone_clay?: string | null
           raw_response?: Json | null
-          title?: string | null
-          twitter_url?: string | null
-          user_id?: string
+          title_clay?: string | null
+          twitter_url_clay?: string | null
         }
         Relationships: [
           {

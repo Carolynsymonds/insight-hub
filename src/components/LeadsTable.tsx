@@ -338,21 +338,18 @@ const LeadsTable = ({
   } | null>(null);
   const [clayEnrichments, setClayEnrichments] = useState<Array<{
     id: string;
-    created_at: string;
+    lead_id: string;
     full_name: string | null;
     email: string | null;
-    company: string | null;
-    title: string | null;
-    phone: string | null;
-    location: string | null;
-    linkedin_url: string | null;
-    facebook_url: string | null;
-    twitter_url: string | null;
-    latest_experience: string | null;
-    email_status: string | null;
-    organization_name: string | null;
-    organization_website: string | null;
-    organization_industry: string | null;
+    linkedin: string | null;
+    title_clay: string | null;
+    company_clay: string | null;
+    twitter_url_clay: string | null;
+    facebook_url_clay: string | null;
+    latest_experience_clay: string | null;
+    location_clay: string | null;
+    phone_clay: string | null;
+    created_at: string | null;
     raw_response: any;
   }>>([]);
 
@@ -5151,10 +5148,16 @@ const LeadsTable = ({
                                                     <span className="font-medium">{enrichment.full_name}</span>
                                                   </div>
                                                 )}
-                                                {enrichment.title && (
+                                                {enrichment.title_clay && (
                                                   <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Title:</span>
-                                                    <span>{enrichment.title}</span>
+                                                    <span>{enrichment.title_clay}</span>
+                                                  </div>
+                                                )}
+                                                {enrichment.company_clay && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Company:</span>
+                                                    <span>{enrichment.company_clay}</span>
                                                   </div>
                                                 )}
                                                 {enrichment.email && (
@@ -5165,97 +5168,69 @@ const LeadsTable = ({
                                                     </a>
                                                   </div>
                                                 )}
-                                                {enrichment.phone && (
+                                                {enrichment.phone_clay && (
                                                   <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Phone:</span>
-                                                    <span>{enrichment.phone}</span>
+                                                    <span>{enrichment.phone_clay}</span>
                                                   </div>
                                                 )}
-                                                {enrichment.location && (
+                                                {enrichment.location_clay && (
                                                   <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Location:</span>
-                                                    <span>{enrichment.location}</span>
+                                                    <span>{enrichment.location_clay}</span>
+                                                  </div>
+                                                )}
+                                                {enrichment.latest_experience_clay && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Latest Experience:</span>
+                                                    <span>{enrichment.latest_experience_clay}</span>
                                                   </div>
                                                 )}
                                               </div>
 
                                               {/* Social Profiles */}
-                                              {(enrichment.linkedin_url || enrichment.facebook_url || enrichment.twitter_url) && (
+                                              {(enrichment.linkedin || enrichment.facebook_url_clay || enrichment.twitter_url_clay) && (
                                                 <div className="pt-2 border-t space-y-1">
                                                   <p className="text-xs text-muted-foreground font-medium">Social Profiles:</p>
-                                                  {enrichment.linkedin_url && (
+                                                  {enrichment.linkedin && (
                                                     <div className="flex items-center gap-2 text-xs">
                                                       <Linkedin className="h-3 w-3" />
                                                       <a
-                                                        href={enrichment.linkedin_url}
+                                                        href={enrichment.linkedin}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-primary hover:underline truncate"
                                                       >
-                                                        {enrichment.linkedin_url.replace("https://", "").replace("www.", "")}
+                                                        {enrichment.linkedin.replace("https://", "").replace("www.", "")}
                                                       </a>
                                                     </div>
                                                   )}
-                                                  {enrichment.facebook_url && (
+                                                  {enrichment.facebook_url_clay && (
                                                     <div className="flex items-center gap-2 text-xs">
                                                       <Facebook className="h-3 w-3" />
                                                       <a
-                                                        href={enrichment.facebook_url}
+                                                        href={enrichment.facebook_url_clay}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-primary hover:underline truncate"
                                                       >
-                                                        {enrichment.facebook_url.replace("https://", "").replace("www.", "")}
+                                                        {enrichment.facebook_url_clay.replace("https://", "").replace("www.", "")}
                                                       </a>
                                                     </div>
                                                   )}
-                                                  {enrichment.twitter_url && (
+                                                  {enrichment.twitter_url_clay && (
                                                     <div className="flex items-center gap-2 text-xs">
                                                       <Twitter className="h-3 w-3" />
                                                       <a
-                                                        href={enrichment.twitter_url}
+                                                        href={enrichment.twitter_url_clay}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-primary hover:underline truncate"
                                                       >
-                                                        {enrichment.twitter_url.replace("https://", "").replace("www.", "")}
+                                                        {enrichment.twitter_url_clay.replace("https://", "").replace("www.", "")}
                                                       </a>
                                                     </div>
                                                   )}
-                                                </div>
-                                              )}
-
-                                              {/* Organization Info */}
-                                              {(enrichment.organization_name || enrichment.organization_website || enrichment.organization_industry) && (
-                                                <div className="pt-2 border-t space-y-1">
-                                                  <p className="text-xs text-muted-foreground font-medium">Organization:</p>
-                                                  <div className="grid gap-1 text-xs">
-                                                    {enrichment.organization_name && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Name:</span>
-                                                        <span>{enrichment.organization_name}</span>
-                                                      </div>
-                                                    )}
-                                                    {enrichment.organization_website && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Website:</span>
-                                                        <a
-                                                          href={enrichment.organization_website.startsWith('http') ? enrichment.organization_website : `https://${enrichment.organization_website}`}
-                                                          target="_blank"
-                                                          rel="noopener noreferrer"
-                                                          className="text-primary hover:underline"
-                                                        >
-                                                          {enrichment.organization_website}
-                                                        </a>
-                                                      </div>
-                                                    )}
-                                                    {enrichment.organization_industry && (
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Industry:</span>
-                                                        <span>{enrichment.organization_industry}</span>
-                                                      </div>
-                                                    )}
-                                                  </div>
                                                 </div>
                                               )}
 
