@@ -310,6 +310,8 @@ const LeadsTable = ({
   const [generatingProductsSummary, setGeneratingProductsSummary] = useState(false);
   const [generatingMustKnows, setGeneratingMustKnows] = useState(false);
   const [generatingBusinessCases, setGeneratingBusinessCases] = useState(false);
+  const [findingDomain, setFindingDomain] = useState<string | null>(null);
+  const [findDomainStep, setFindDomainStep] = useState<string | null>(null);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
@@ -620,6 +622,109 @@ const LeadsTable = ({
       setEnrichingSource(null);
     }
   };
+
+  const handleFindDomain = async (lead: Lead) => {
+    setFindingDomain(lead.id);
+    let domainFound = false;
+
+    try {
+      // Step 1: Apollo (always run)
+      setFindDomainStep('Searching Apollo (1/3)...');
+      const apolloResult = await supabase.functions.invoke("enrich-lead", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          email: lead.email,
+          source: "apollo",
+        },
+      });
+      if (apolloResult.data?.domain) domainFound = true;
+
+      // Step 2: Google (always run)
+      setFindDomainStep('Searching Google (2/3)...');
+      const googleResult = await supabase.functions.invoke("enrich-lead", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          email: lead.email,
+          source: "google",
+        },
+      });
+      if (googleResult.data?.domain) domainFound = true;
+
+      // Step 3: Email (always run if email exists)
+      if (lead.email) {
+        setFindDomainStep('Checking Email (3/3)...');
+        const emailResult = await supabase.functions.invoke("enrich-lead", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            mics_sector: lead.mics_sector,
+            email: lead.email,
+            source: "email",
+          },
+        });
+        if (emailResult.data?.domain) domainFound = true;
+      }
+
+      // Step 4: Diagnose ONLY if no domain found from any source
+      if (!domainFound) {
+        setFindDomainStep('Diagnosing...');
+        // Refetch lead to get updated enrichment_logs
+        const { data: updatedLead } = await supabase
+          .from("leads")
+          .select("enrichment_logs")
+          .eq("id", lead.id)
+          .single();
+
+        await supabase.functions.invoke("diagnose-enrichment", {
+          body: {
+            leadId: lead.id,
+            leadData: {
+              company: lead.company,
+              city: lead.city,
+              state: lead.state,
+              zipcode: lead.zipcode,
+              email: lead.email,
+              mics_sector: lead.mics_sector,
+              full_name: lead.full_name,
+            },
+            enrichmentLogs: updatedLead?.enrichment_logs || [],
+          },
+        });
+
+        toast({
+          title: "No Domain Found",
+          description: "All 3 sources checked. AI diagnosis generated.",
+        });
+      } else {
+        toast({
+          title: "Search Complete",
+          description: "All sources checked. Domain(s) found - check enrichment logs to compare.",
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Find Domain Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFindingDomain(null);
+      setFindDomainStep(null);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase.from("leads").delete().eq("id", id);
@@ -2824,12 +2929,35 @@ const LeadsTable = ({
                                           </div>
                                         )}
 
+                                        {/* Find Domain - Combined Action */}
+                                        <div className="mb-4">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleFindDomain(lead)}
+                                            disabled={findingDomain === lead.id || !lead.company}
+                                            className="w-full"
+                                            variant="default"
+                                          >
+                                            {findingDomain === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                {findDomainStep || "Finding Domain..."}
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Search className="mr-2 h-4 w-4" />
+                                                Find Domain
+                                              </>
+                                            )}
+                                          </Button>
+                                        </div>
+
                                         {/* Enrich Buttons */}
                                         <div className="space-y-2 mt-4">
                                           <Button
                                             size="sm"
                                             onClick={() => handleEnrich(lead, "apollo")}
-                                            disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                            disabled={enrichingSource?.leadId === lead.id || findingDomain === lead.id || !lead.company}
                                             className="w-full"
                                             variant="outline"
                                           >
@@ -2849,7 +2977,7 @@ const LeadsTable = ({
                                           <Button
                                             size="sm"
                                             onClick={() => handleEnrich(lead, "google")}
-                                            disabled={enrichingSource?.leadId === lead.id || !lead.company}
+                                            disabled={enrichingSource?.leadId === lead.id || findingDomain === lead.id || !lead.company}
                                             className="w-full"
                                             variant="outline"
                                           >
@@ -2869,7 +2997,7 @@ const LeadsTable = ({
                                           <Button
                                             size="sm"
                                             onClick={() => handleEnrich(lead, "email")}
-                                            disabled={enrichingSource?.leadId === lead.id || !lead.email}
+                                            disabled={enrichingSource?.leadId === lead.id || findingDomain === lead.id || !lead.email}
                                             className="w-full"
                                             variant="outline"
                                           >
