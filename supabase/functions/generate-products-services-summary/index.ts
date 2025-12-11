@@ -59,27 +59,31 @@ serve(async (req) => {
       contextParts.push(`Recent News (look for product/service mentions): ${news}`);
     }
 
-    const prompt = `Based on the following company information, generate a professional Products & Services summary paragraph.
+const prompt = `Based on the following company information, generate a Products & Services summary as bullet points.
 
 ${contextParts.join("\n\n")}
 
-STRUCTURE YOUR RESPONSE TO COVER:
-1. Core Offerings - What the company sells or delivers (primary focus)
-2. Specialties/Expertise - What differentiates them from competitors
-3. Customer Segment (if apparent) - Who they serve (businesses, consumers, government, specific industries)
-4. Notable Capabilities or Technology (if mentioned) - Any special capabilities, methods, or technologies
+STRUCTURE YOUR RESPONSE AS BULLET POINTS COVERING:
+• Core Offerings - What the company sells or delivers (primary focus)
+• Specialties/Expertise - What differentiates them from competitors
+• Customer Segment - Who they serve (if apparent from data)
+• Notable Capabilities - Any special capabilities, methods, or technologies (if mentioned)
 
 RULES:
-- Write a single cohesive paragraph (3-5 sentences)
-- Do NOT start with any prefix like "Products & Services:" - just write the paragraph directly
-- Be specific and factual based on the provided data
-- If the company offers multiple services, organize them logically
-- Mention any specializations or unique offerings
+- Use bullet points with the • character
+- Each bullet should be concise (under 15 words per bullet)
+- Format: "• [Category]: [specific details]"
+- Include 3-5 bullets total
+- Only include categories where you have actual data
+- Do NOT write paragraphs or full sentences
 - Do NOT invent or assume services not mentioned in the source data
-- Write in third person, professional tone
+- Do NOT include any introductory text, just the bullets
 
-Example format:
-[Company] provides [core offerings], specializing in [specialties]. Their services include [specific offerings]. They serve [customer segment] with [notable capabilities/technology if applicable].`;
+Example output:
+• Core Offerings: Commercial and residential roofing installation, repairs, maintenance
+• Specialties: Emergency repairs, storm damage restoration, metal roofing systems
+• Customer Segment: Homeowners, commercial property managers, contractors
+• Notable Capabilities: 24/7 emergency response, certified installers`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
