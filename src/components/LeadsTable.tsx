@@ -1612,16 +1612,16 @@ const LeadsTable = ({
                     </TableHead>
                   )}
                   {/* Clay Enrichment Columns */}
-                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                  {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Role Clay</TableHead>
                   )}
                   {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                     <TableHead>Company Clay</TableHead>
                   )}
-                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                  {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Location Clay</TableHead>
                   )}
-                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                  {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Phone Clay</TableHead>
                   )}
                   {/* View All & Company: Description */}
@@ -1815,16 +1815,16 @@ const LeadsTable = ({
                         </TableCell>
                       )}
                       {/* Clay Enrichment Cells */}
-                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                      {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.title_clay || "—"}</TableCell>
                       )}
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.company_clay || "—"}</TableCell>
                       )}
-                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                      {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.location_clay || "—"}</TableCell>
                       )}
-                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                      {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.phone_clay || "—"}</TableCell>
                       )}
                       {/* View All & Company: Description */}
