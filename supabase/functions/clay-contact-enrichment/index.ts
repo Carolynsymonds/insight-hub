@@ -18,10 +18,6 @@ interface ClayContactData {
   phone?: string;
   location?: string;
   latest_experience?: string;
-  organization_name?: string;
-  organization_website?: string;
-  organization_industry?: string;
-  email_status?: string;
 }
 
 serve(async (req) => {
@@ -33,8 +29,7 @@ serve(async (req) => {
     const clayData: ClayContactData = await req.json();
     const { 
       full_name, email, title, company, linkedin_url, facebook_url, twitter_url,
-      phone, location, latest_experience, organization_name, organization_website, 
-      organization_industry, email_status 
+      phone, location, latest_experience
     } = clayData;
 
     console.log('Clay Contact Data Received:', JSON.stringify(clayData));
@@ -75,9 +70,8 @@ serve(async (req) => {
         console.error('Error finding lead:', findError);
       } else if (leads && leads.length > 0) {
         leadId = leads[0].id;
-        const userId = leads[0].user_id;
 
-        // Build contact_details JSON
+        // Build contact_details JSON for leads table update
         const contactDetails: Record<string, string> = {};
         if (latest_experience) contactDetails.latest_experience = latest_experience;
         if (location) contactDetails.location = location;
@@ -105,33 +99,28 @@ serve(async (req) => {
           }
         }
 
-        // Insert into clay_enrichments table - store exactly what Clay sent
+        // Insert into clay_enrichments table with simplified schema
         const { error: insertError } = await supabase
           .from('clay_enrichments')
           .insert({
             lead_id: leadId,
-            user_id: userId,
             full_name,
             email,
-            company,
-            title,
-            phone,
-            location,
-            linkedin_url,
-            facebook_url,
-            twitter_url,
-            latest_experience,
-            email_status,
-            organization_name,
-            organization_website,
-            organization_industry,
+            linkedin: linkedin_url,
+            title_clay: title,
+            company_clay: company,
+            twitter_url_clay: twitter_url,
+            facebook_url_clay: facebook_url,
+            latest_experience_clay: latest_experience,
+            location_clay: location,
+            phone_clay: phone,
             raw_response: clayData
           });
 
         if (insertError) {
-          console.error('Error inserting clay enrichment log:', insertError);
+          console.error('Error inserting clay enrichment:', insertError);
         } else {
-          console.log('Clay enrichment log inserted successfully');
+          console.log('Clay enrichment inserted successfully');
         }
       } else {
         console.log('No lead found with email:', email);
