@@ -1510,9 +1510,7 @@ const LeadsTable = ({
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
                   {/* View All & Contact: Email */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
-                  {/* Contact only: Phone (Clay) */}
-                  {viewMode === 'contact' && <TableHead>Phone</TableHead>}
-                  {/* Contact only: Contact Socials (after Phone) */}
+                  {/* Contact only: Contact Socials (after Email) */}
                   {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
                   {/* View All & Company: Company */}
                   {(viewMode === 'all' || viewMode === 'company') && <TableHead>Company</TableHead>}
@@ -1601,11 +1599,7 @@ const LeadsTable = ({
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{lead.email || "—"}</TableCell>
                       )}
-                      {/* Contact only: Phone (Clay) */}
-                      {viewMode === 'contact' && (
-                        <TableCell>{lead.contact_details?.phone || lead.phone || "—"}</TableCell>
-                      )}
-                      {/* Contact only: Contact Socials (after Phone) */}
+                      {/* Contact only: Contact Socials (after Email) */}
                       {viewMode === 'contact' && (
                         <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
