@@ -1549,12 +1549,12 @@ const LeadsTable = ({
                 <TableRow>
                   {/* View All & Contact: Name */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
-                  {/* View All & Contact: Email */}
+{/* View All & Contact: Email */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
-                  {/* Contact only: Contact Socials (after Email) */}
-                  {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
-                  {/* View All & Company: Company */}
+                  {/* View All & Company & Contact: Company */}
                   {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableHead className={viewMode === 'company' || viewMode === 'contact' ? "border-r border-border" : ""}>Company</TableHead>}
+                  {/* Contact only: Contact Socials (after Company) */}
+                  {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
                   {/* View All only */}
                   {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>}
                   {viewMode === 'all' && <TableHead>Zipcode</TableHead>}
@@ -1640,7 +1640,11 @@ const LeadsTable = ({
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{lead.email || "—"}</TableCell>
                       )}
-                      {/* Contact only: Contact Socials (after Email) */}
+                      {/* View All & Company & Contact: Company */}
+                      {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
+                        <TableCell className={viewMode === 'company' || viewMode === 'contact' ? "border-r border-border" : ""}>{lead.company || "—"}</TableCell>
+                      )}
+                      {/* Contact only: Contact Socials (after Company) */}
                       {viewMode === 'contact' && (
                         <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
@@ -1692,10 +1696,6 @@ const LeadsTable = ({
                             </div>
                           </div>
                         </TableCell>
-                      )}
-                      {/* View All & Company: Company */}
-{(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
-                        <TableCell className={viewMode === 'company' || viewMode === 'contact' ? "border-r border-border" : ""}>{lead.company || "—"}</TableCell>
                       )}
                       {/* View All only */}
                       {viewMode === 'all' && <TableCell>{lead.mics_sector || "—"}</TableCell>}
