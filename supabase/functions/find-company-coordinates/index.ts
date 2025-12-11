@@ -35,6 +35,7 @@ serve(async (req) => {
 
     // Call SerpAPI Google Maps engine
     const serpApiUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(searchQuery)}&api_key=${serpApiKey}`;
+    console.log('serpApiUrl:', serpApiUrl);
     
     const response = await fetch(serpApiUrl);
     
