@@ -1554,7 +1554,7 @@ const LeadsTable = ({
                   {/* Contact only: Contact Socials (after Email) */}
                   {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
                   {/* View All & Company: Company */}
-                  {(viewMode === 'all' || viewMode === 'company') && <TableHead>Company</TableHead>}
+                  {(viewMode === 'all' || viewMode === 'company') && <TableHead className={viewMode === 'company' ? "border-r border-border" : ""}>Company</TableHead>}
                   {/* View All only */}
                   {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>}
                   {viewMode === 'all' && <TableHead>Zipcode</TableHead>}
@@ -1695,7 +1695,7 @@ const LeadsTable = ({
                       )}
                       {/* View All & Company: Company */}
                       {(viewMode === 'all' || viewMode === 'company') && (
-                        <TableCell>{lead.company || "—"}</TableCell>
+                        <TableCell className={viewMode === 'company' ? "border-r border-border" : ""}>{lead.company || "—"}</TableCell>
                       )}
                       {/* View All only */}
                       {viewMode === 'all' && <TableCell>{lead.mics_sector || "—"}</TableCell>}
