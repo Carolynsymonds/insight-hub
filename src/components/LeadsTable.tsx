@@ -353,8 +353,6 @@ const LeadsTable = ({
     organization_name: string | null;
     organization_website: string | null;
     organization_industry: string | null;
-    apollo_searched: boolean | null;
-    twitter_searched: boolean | null;
     raw_response: any;
   }>>([]);
 
