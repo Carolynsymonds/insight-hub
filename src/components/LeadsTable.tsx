@@ -1514,12 +1514,6 @@ const LeadsTable = ({
                   {viewMode === 'contact' && <TableHead>Phone</TableHead>}
                   {/* Contact only: Contact Socials (after Phone) */}
                   {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
-                  {/* Contact only: Location (Clay) */}
-                  {viewMode === 'contact' && <TableHead>Location</TableHead>}
-                  {/* Contact only: Title */}
-                  {viewMode === 'contact' && <TableHead>Title</TableHead>}
-                  {/* Contact only: Latest Experience */}
-                  {viewMode === 'contact' && <TableHead>Latest Experience</TableHead>}
                   {/* View All & Company: Company */}
                   {(viewMode === 'all' || viewMode === 'company') && <TableHead>Company</TableHead>}
                   {/* View All only */}
@@ -1662,23 +1656,6 @@ const LeadsTable = ({
                               )}
                             </div>
                           </div>
-                        </TableCell>
-                      )}
-                      {/* Contact only: Location (Clay) */}
-                      {viewMode === 'contact' && (
-                        <TableCell>
-                          {lead.contact_details?.location || 
-                           (lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.city || lead.state || "—")}
-                        </TableCell>
-                      )}
-                      {/* Contact only: Title */}
-                      {viewMode === 'contact' && (
-                        <TableCell>{lead.contact_details?.title || "—"}</TableCell>
-                      )}
-                      {/* Contact only: Latest Experience */}
-                      {viewMode === 'contact' && (
-                        <TableCell className="max-w-[200px]">
-                          <div className="truncate">{lead.contact_details?.latest_experience || "—"}</div>
                         </TableCell>
                       )}
                       {/* View All & Company: Company */}
