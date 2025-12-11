@@ -68,6 +68,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+    // Track which searches were performed
+    let apolloSearched = false;
+    let twitterSearched = false;
+
     // Initialize with provided data
     let enrichedContact: EnrichedContact = {
       full_name,
@@ -91,6 +95,7 @@ serve(async (req) => {
     // Step 1: Search Apollo for organization details and email verification
     if (apolloApiKey && (email || company)) {
       console.log('Searching Apollo for contact/organization details...');
+      apolloSearched = true;
       
       const apolloPayload: any = {
         first_name: full_name.split(' ')[0],
@@ -141,6 +146,7 @@ serve(async (req) => {
     // Step 2: Search Google for missing Twitter profile only
     if (serpapiKey && !enrichedContact.twitter_url && enrichedContact.company) {
       console.log('Searching Google for Twitter profile...');
+      twitterSearched = true;
 
       const query = `"${full_name}" "${enrichedContact.company}" site:twitter.com`;
       
@@ -173,7 +179,7 @@ serve(async (req) => {
       // Find lead by email
       const { data: leads, error: findError } = await supabase
         .from('leads')
-        .select('id')
+        .select('id, user_id')
         .eq('email', email)
         .limit(1);
 
@@ -181,6 +187,7 @@ serve(async (req) => {
         console.error('Error finding lead:', findError);
       } else if (leads && leads.length > 0) {
         const leadId = leads[0].id;
+        const userId = leads[0].user_id;
         enrichedContact.lead_id = leadId;
 
         // Build contact_details JSON
@@ -208,6 +215,41 @@ serve(async (req) => {
             enrichedContact.lead_updated = true;
             console.log('Lead updated successfully:', leadId);
           }
+        }
+
+        // Insert into clay_enrichments table for audit trail
+        const { error: insertError } = await supabase
+          .from('clay_enrichments')
+          .insert({
+            lead_id: leadId,
+            user_id: userId,
+            full_name: enrichedContact.full_name,
+            email: enrichedContact.email,
+            company: enrichedContact.company,
+            title: enrichedContact.title,
+            phone: enrichedContact.phone,
+            location: enrichedContact.location,
+            linkedin_url: enrichedContact.linkedin_url,
+            facebook_url: enrichedContact.facebook_url,
+            twitter_url: enrichedContact.twitter_url,
+            latest_experience: enrichedContact.latest_experience,
+            email_status: enrichedContact.email_status,
+            organization_name: enrichedContact.organization_name,
+            organization_website: enrichedContact.organization_website,
+            organization_industry: enrichedContact.organization_industry,
+            apollo_searched: apolloSearched,
+            twitter_searched: twitterSearched,
+            raw_response: {
+              request: requestData,
+              enriched: enrichedContact,
+              timestamp: new Date().toISOString()
+            }
+          });
+
+        if (insertError) {
+          console.error('Error inserting clay enrichment log:', insertError);
+        } else {
+          console.log('Clay enrichment log inserted successfully');
         }
       } else {
         console.log('No lead found with email:', email);

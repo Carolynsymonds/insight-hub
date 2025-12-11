@@ -38,6 +38,86 @@ export type Database = {
         }
         Relationships: []
       }
+      clay_enrichments: {
+        Row: {
+          apollo_searched: boolean | null
+          company: string | null
+          created_at: string | null
+          email: string | null
+          email_status: string | null
+          facebook_url: string | null
+          full_name: string | null
+          id: string
+          latest_experience: string | null
+          lead_id: string
+          linkedin_url: string | null
+          location: string | null
+          organization_industry: string | null
+          organization_name: string | null
+          organization_website: string | null
+          phone: string | null
+          raw_response: Json | null
+          title: string | null
+          twitter_searched: boolean | null
+          twitter_url: string | null
+          user_id: string
+        }
+        Insert: {
+          apollo_searched?: boolean | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_status?: string | null
+          facebook_url?: string | null
+          full_name?: string | null
+          id?: string
+          latest_experience?: string | null
+          lead_id: string
+          linkedin_url?: string | null
+          location?: string | null
+          organization_industry?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
+          phone?: string | null
+          raw_response?: Json | null
+          title?: string | null
+          twitter_searched?: boolean | null
+          twitter_url?: string | null
+          user_id: string
+        }
+        Update: {
+          apollo_searched?: boolean | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_status?: string | null
+          facebook_url?: string | null
+          full_name?: string | null
+          id?: string
+          latest_experience?: string | null
+          lead_id?: string
+          linkedin_url?: string | null
+          location?: string | null
+          organization_industry?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
+          phone?: string | null
+          raw_response?: Json | null
+          title?: string | null
+          twitter_searched?: boolean | null
+          twitter_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clay_enrichments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           annual_revenue: string | null

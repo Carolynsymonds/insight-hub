@@ -336,6 +336,27 @@ const LeadsTable = ({
       url?: string;
     }>;
   } | null>(null);
+  const [clayEnrichments, setClayEnrichments] = useState<Array<{
+    id: string;
+    created_at: string;
+    full_name: string | null;
+    email: string | null;
+    company: string | null;
+    title: string | null;
+    phone: string | null;
+    location: string | null;
+    linkedin_url: string | null;
+    facebook_url: string | null;
+    twitter_url: string | null;
+    latest_experience: string | null;
+    email_status: string | null;
+    organization_name: string | null;
+    organization_website: string | null;
+    organization_industry: string | null;
+    apollo_searched: boolean | null;
+    twitter_searched: boolean | null;
+    raw_response: any;
+  }>>([]);
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -350,6 +371,31 @@ const LeadsTable = ({
       }
     }
   }, [leads, selectedLead]);
+
+  // Fetch clay enrichments when selectedLead changes
+  useEffect(() => {
+    const fetchClayEnrichments = async () => {
+      if (!selectedLead) {
+        setClayEnrichments([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('clay_enrichments')
+        .select('*')
+        .eq('lead_id', selectedLead.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching clay enrichments:', error);
+        return;
+      }
+
+      setClayEnrichments(data || []);
+    };
+
+    fetchClayEnrichments();
+  }, [selectedLead]);
 
   // Filter leads based on domain validity (Match Score >= 50% = valid)
   const filteredLeads = leads.filter((lead) => {
@@ -5069,6 +5115,178 @@ const LeadsTable = ({
                                               );
                                             }
                                           })()}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+
+                                  {/* Enrichment Logs from Clay */}
+                                  <AccordionItem value="clay-enrichments" className="border-border">
+                                    <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        <span>Enrichment Logs from Clay</span>
+                                        {clayEnrichments.length > 0 && (
+                                          <Badge variant="secondary" className="ml-2">
+                                            {clayEnrichments.length} {clayEnrichments.length === 1 ? 'log' : 'logs'}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-4">
+                                        {clayEnrichments.length > 0 ? (
+                                          clayEnrichments.map((enrichment) => (
+                                            <div key={enrichment.id} className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                                              {/* Header with timestamp */}
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-xs text-muted-foreground">
+                                                  {new Date(enrichment.created_at).toLocaleString()}
+                                                </p>
+                                                <div className="flex gap-1">
+                                                  {enrichment.apollo_searched && (
+                                                    <Badge variant="outline" className="text-[10px]">Apollo</Badge>
+                                                  )}
+                                                  {enrichment.twitter_searched && (
+                                                    <Badge variant="outline" className="text-[10px]">Twitter Search</Badge>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {/* Contact Info */}
+                                              <div className="grid gap-2 text-sm">
+                                                {enrichment.full_name && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Name:</span>
+                                                    <span className="font-medium">{enrichment.full_name}</span>
+                                                  </div>
+                                                )}
+                                                {enrichment.title && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Title:</span>
+                                                    <span>{enrichment.title}</span>
+                                                  </div>
+                                                )}
+                                                {enrichment.email && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Email:</span>
+                                                    <a href={`mailto:${enrichment.email}`} className="text-primary hover:underline">
+                                                      {enrichment.email}
+                                                    </a>
+                                                  </div>
+                                                )}
+                                                {enrichment.phone && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Phone:</span>
+                                                    <span>{enrichment.phone}</span>
+                                                  </div>
+                                                )}
+                                                {enrichment.location && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Location:</span>
+                                                    <span>{enrichment.location}</span>
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              {/* Social Profiles */}
+                                              {(enrichment.linkedin_url || enrichment.facebook_url || enrichment.twitter_url) && (
+                                                <div className="pt-2 border-t space-y-1">
+                                                  <p className="text-xs text-muted-foreground font-medium">Social Profiles:</p>
+                                                  {enrichment.linkedin_url && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <Linkedin className="h-3 w-3" />
+                                                      <a
+                                                        href={enrichment.linkedin_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline truncate"
+                                                      >
+                                                        {enrichment.linkedin_url.replace("https://", "").replace("www.", "")}
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {enrichment.facebook_url && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <Facebook className="h-3 w-3" />
+                                                      <a
+                                                        href={enrichment.facebook_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline truncate"
+                                                      >
+                                                        {enrichment.facebook_url.replace("https://", "").replace("www.", "")}
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {enrichment.twitter_url && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <Twitter className="h-3 w-3" />
+                                                      <a
+                                                        href={enrichment.twitter_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-primary hover:underline truncate"
+                                                      >
+                                                        {enrichment.twitter_url.replace("https://", "").replace("www.", "")}
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+
+                                              {/* Organization Info */}
+                                              {(enrichment.organization_name || enrichment.organization_website || enrichment.organization_industry) && (
+                                                <div className="pt-2 border-t space-y-1">
+                                                  <p className="text-xs text-muted-foreground font-medium">Organization:</p>
+                                                  <div className="grid gap-1 text-xs">
+                                                    {enrichment.organization_name && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Name:</span>
+                                                        <span>{enrichment.organization_name}</span>
+                                                      </div>
+                                                    )}
+                                                    {enrichment.organization_website && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Website:</span>
+                                                        <a
+                                                          href={enrichment.organization_website.startsWith('http') ? enrichment.organization_website : `https://${enrichment.organization_website}`}
+                                                          target="_blank"
+                                                          rel="noopener noreferrer"
+                                                          className="text-primary hover:underline"
+                                                        >
+                                                          {enrichment.organization_website}
+                                                        </a>
+                                                      </div>
+                                                    )}
+                                                    {enrichment.organization_industry && (
+                                                      <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Industry:</span>
+                                                        <span>{enrichment.organization_industry}</span>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                              {/* Raw Response Collapsible */}
+                                              <Collapsible>
+                                                <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                                  <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                                  View Raw Response
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <pre className="mt-2 p-2 bg-background rounded border text-[10px] font-mono whitespace-pre-wrap break-all overflow-x-auto max-h-48 overflow-y-auto">
+                                                    {JSON.stringify(enrichment.raw_response, null, 2)}
+                                                  </pre>
+                                                </CollapsibleContent>
+                                              </Collapsible>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <p className="text-sm text-muted-foreground">
+                                            No Clay enrichment logs yet. Send data from Clay to see logs here.
+                                          </p>
+                                        )}
                                       </div>
                                     </AccordionContent>
                                   </AccordionItem>
