@@ -1558,7 +1558,7 @@ const LeadsTable = ({
                   {/* View All only */}
                   {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>}
                   {viewMode === 'all' && <TableHead>Zipcode</TableHead>}
-                  {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">DMA</TableHead>}
+                  {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px] border-r border-border">DMA</TableHead>}
                   {/* View All & Company: Company Domain */}
                   {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                     <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
@@ -1700,7 +1700,7 @@ const LeadsTable = ({
                       {/* View All only */}
                       {viewMode === 'all' && <TableCell>{lead.mics_sector || "—"}</TableCell>}
                       {viewMode === 'all' && <TableCell>{lead.zipcode || "—"}</TableCell>}
-                      {viewMode === 'all' && <TableCell>{lead.dma || "—"}</TableCell>}
+                      {viewMode === 'all' && <TableCell className="border-r border-border">{lead.dma || "—"}</TableCell>}
                       {/* All views: Company Domain */}
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                         <TableCell>
