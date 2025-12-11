@@ -98,6 +98,27 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       
       if (!user) throw new Error("Not authenticated");
 
+      // Check for duplicate (same full_name AND company)
+      if (formData.full_name && formData.company) {
+        const { data: existingLead } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("user_id", user.id)
+          .ilike("full_name", formData.full_name)
+          .ilike("company", formData.company)
+          .maybeSingle();
+
+        if (existingLead) {
+          toast({
+            title: "Duplicate Lead",
+            description: `A lead with name "${formData.full_name}" at company "${formData.company}" already exists.`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from("leads").insert({
         ...formData,
         truck_types: selectedTruckTypes.length > 0 ? selectedTruckTypes.join(",") : null,
@@ -194,13 +215,61 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         return lead;
       });
 
-      const { error } = await supabase.from("leads").insert(leads);
+      // Query existing leads to check for duplicates
+      const { data: existingLeads } = await supabase
+        .from("leads")
+        .select("full_name, company")
+        .eq("user_id", user.id);
+
+      // Filter out duplicates (same full_name AND company, case-insensitive)
+      const duplicates: string[] = [];
+      const seenInCsv = new Set<string>();
+      
+      const uniqueLeads = leads.filter(lead => {
+        const key = `${(lead.full_name || '').toLowerCase()}|${(lead.company || '').toLowerCase()}`;
+        
+        // Check for duplicates within the CSV itself
+        if (seenInCsv.has(key)) {
+          duplicates.push(`${lead.full_name} (${lead.company || 'No company'})`);
+          return false;
+        }
+        seenInCsv.add(key);
+        
+        // Check against existing database records
+        const isDuplicate = existingLeads?.some(
+          existing => 
+            (existing.full_name || '').toLowerCase() === (lead.full_name || '').toLowerCase() &&
+            (existing.company || '').toLowerCase() === (lead.company || '').toLowerCase()
+        );
+        
+        if (isDuplicate) {
+          duplicates.push(`${lead.full_name} (${lead.company || 'No company'})`);
+        }
+        return !isDuplicate;
+      });
+
+      if (uniqueLeads.length === 0) {
+        toast({
+          title: "No New Leads",
+          description: `All ${leads.length} leads already exist in the database.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        e.target.value = "";
+        return;
+      }
+
+      const { error } = await supabase.from("leads").insert(uniqueLeads);
 
       if (error) throw error;
 
+      const duplicateMessage = duplicates.length > 0 
+        ? ` ${duplicates.length} duplicate(s) skipped.`
+        : '';
+
       toast({
         title: "Success!",
-        description: `${leads.length} leads uploaded successfully.`,
+        description: `${uniqueLeads.length} leads uploaded.${duplicateMessage}`,
       });
 
       onUploadComplete();
