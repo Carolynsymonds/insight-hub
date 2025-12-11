@@ -2201,7 +2201,12 @@ const LeadsTable = ({
                           <Drawer
                             direction="right"
                             open={openDrawer === lead.id}
-                            onOpenChange={(open) => setOpenDrawer(open ? lead.id : null)}
+                            onOpenChange={(open) => {
+                              setOpenDrawer(open ? lead.id : null);
+                              if (open) {
+                                setSelectedLead(lead);
+                              }
+                            }}
                             dismissible={false}
                           >
                             <DrawerTrigger asChild>
