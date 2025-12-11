@@ -5459,6 +5459,24 @@ const LeadsTable = ({
                                     </AccordionContent>
                                   </AccordionItem>
                                 </Accordion>
+
+                                {/* Delete Lead Section */}
+                                <div className="mt-6 pt-4 border-t border-border">
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to delete "${lead.full_name}"?`)) {
+                                        handleDelete(lead.id);
+                                        setOpenDrawer(null);
+                                      }
+                                    }}
+                                    className="w-full"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Lead
+                                  </Button>
+                                </div>
                               </div>
                             </DrawerContent>
                           </Drawer>
