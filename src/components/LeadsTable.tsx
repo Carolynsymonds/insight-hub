@@ -1509,7 +1509,7 @@ const LeadsTable = ({
                   {/* View All & Contact: Name */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
                   {/* View All & Contact: Email */}
-                  {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Email</TableHead>}
+                  {(viewMode === 'all' || viewMode === 'contact') && <TableHead className={viewMode === 'contact' ? "border-r border-border" : ""}>Email</TableHead>}
                   {/* Contact only: Contact Socials (after Email) */}
                   {viewMode === 'contact' && <TableHead>Contact Socials</TableHead>}
                   {/* View All & Company: Company */}
@@ -1597,7 +1597,7 @@ const LeadsTable = ({
                       )}
                       {/* View All & Contact: Email */}
                       {(viewMode === 'all' || viewMode === 'contact') && (
-                        <TableCell>{lead.email || "—"}</TableCell>
+                        <TableCell className={viewMode === 'contact' ? "border-r border-border" : ""}>{lead.email || "—"}</TableCell>
                       )}
                       {/* Contact only: Contact Socials (after Email) */}
                       {viewMode === 'contact' && (
