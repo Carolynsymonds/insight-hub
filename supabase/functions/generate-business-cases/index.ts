@@ -50,8 +50,10 @@ Using the company information below — including industry, description, product
 
 Your output must follow this structure:
 
-Start with one sentence contextualising the business, using the company's core operations + fleet details.
-Format: "Given their work in {industry/description}, and a fleet of {Vehicles Count} {Truck Types}, {Company Name} is likely seeking vehicle tracking to support several operational needs."
+Start with one sentence contextualizing the business using a direct, professional opening.
+Format: "{Company Name}, operating with a fleet of {Vehicles Count} {Truck Types}, likely seeks vehicle tracking to optimize their mobile operations across {relevant context based on their industry/products/services}."
+
+Do NOT use phrases like "Given their work in" or "to support several operational needs" - be more direct and specific about what they do.
 
 Then provide 5 bullet points using these business cases (adapt emphasis based on selected features):
 • Coordinating trucks/equipment across worksites
@@ -72,7 +74,7 @@ Truck Types: ${truck_types || "Not specified"}
 Features Needed: ${features || "Not specified"}
 
 Output:
-A short paragraph (1-2 sentences) + the 5 bullet points above, tailored to the company. Use bullet points with • character.`;
+A single opening sentence + the 5 bullet points above, tailored to the company. Use bullet points with • character.`;
 
     console.log("Calling Lovable AI Gateway...");
 
