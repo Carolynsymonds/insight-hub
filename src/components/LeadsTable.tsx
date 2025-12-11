@@ -5142,14 +5142,7 @@ const LeadsTable = ({
                                                 <p className="text-xs text-muted-foreground">
                                                   {new Date(enrichment.created_at).toLocaleString()}
                                                 </p>
-                                                <div className="flex gap-1">
-                                                  {enrichment.apollo_searched && (
-                                                    <Badge variant="outline" className="text-[10px]">Apollo</Badge>
-                                                  )}
-                                                  {enrichment.twitter_searched && (
-                                                    <Badge variant="outline" className="text-[10px]">Twitter Search</Badge>
-                                                  )}
-                                                </div>
+                                                <Badge variant="outline" className="text-[10px]">From Clay</Badge>
                                               </div>
 
                                               {/* Contact Info */}
