@@ -186,7 +186,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
           else if (header === "mics subsector (harmonised)" || header === "mics_subsector") lead.mics_subsector = value;
           else if (header === "mics segment (harmonised)" || header === "mics_segment") lead.mics_segment = value;
           else if (header === "vehicles_count" || header === "vehicles count") lead.vehicles_count = value;
-          else if (header === "confirm_vehicles_50_plus" || header === "confirm vehicles +50" || header === "confirm_vehicles_+50") lead.confirm_vehicles_50_plus = value;
+          else if (header === "confirm_vehicles_50_plus" || header === "confirm vehicles +50" || header === "confirm_vehicles_+50" || header === "confirm_vehicles_50plus") lead.confirm_vehicles_50_plus = value;
           else if (header === "truck_types" || header === "truck") lead.truck_types = value;
           else if (header === "features") lead.features = value;
         });
