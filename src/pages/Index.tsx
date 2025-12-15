@@ -349,23 +349,33 @@ const Index = () => {
       return;
     }
 
-    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category", "Diagnosis Category", "Diagnosis Explanation", "Diagnosis Recommendation"];
+    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category", "Socials Found", "Diagnosis Category", "Diagnosis Explanation", "Diagnosis Recommendation"];
     const csvContent = [
       headers.join(","),
-      ...filteredLeads.map((lead) => [
-        `"${lead.full_name || ''}"`,
-        `"${lead.email_address || ''}"`,
-        `"${lead.phone_number || ''}"`,
-        `"${lead.company || ''}"`,
-        `"${lead.city || ''}"`,
-        `"${lead.state || ''}"`,
-        `"${lead.domain || ''}"`,
-        lead.match_score !== null ? lead.match_score : '',
-        `"${lead.category || ''}"`,
-        `"${!lead.domain ? (lead.diagnosis_category || '') : ''}"`,
-        `"${!lead.domain ? (lead.diagnosis_explanation || '').replace(/"/g, '""') : ''}"`,
-        `"${!lead.domain ? (lead.diagnosis_recommendation || '').replace(/"/g, '""') : ''}"`,
-      ].join(","))
+      ...filteredLeads.map((lead) => {
+        const showSocials = lead.enrichment_confidence === null || lead.enrichment_confidence < 50;
+        const socialsFound = showSocials ? [
+          lead.facebook ? 'Facebook' : '',
+          lead.linkedin ? 'LinkedIn' : '',
+          lead.instagram ? 'Instagram' : ''
+        ].filter(Boolean).join(', ') : '';
+        
+        return [
+          `"${lead.full_name || ''}"`,
+          `"${lead.email_address || ''}"`,
+          `"${lead.phone_number || ''}"`,
+          `"${lead.company || ''}"`,
+          `"${lead.city || ''}"`,
+          `"${lead.state || ''}"`,
+          `"${lead.domain || ''}"`,
+          lead.match_score !== null ? lead.match_score : '',
+          `"${lead.category || ''}"`,
+          `"${socialsFound}"`,
+          `"${!lead.domain ? (lead.diagnosis_category || '') : ''}"`,
+          `"${!lead.domain ? (lead.diagnosis_explanation || '').replace(/"/g, '""') : ''}"`,
+          `"${!lead.domain ? (lead.diagnosis_recommendation || '').replace(/"/g, '""') : ''}"`,
+        ].join(",");
+      })
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
