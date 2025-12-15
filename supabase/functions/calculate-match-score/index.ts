@@ -138,15 +138,11 @@ serve(async (req) => {
       const domainScore = lead.domain_relevance_score || 0;
       
       // Equal weights: 50% each
-      const combinedScore = (distanceScore + domainScore) / 2;
-      
-      // Scale to 0-70 range (keeping headroom for email/KG verified leads at 95-99)
-      matchScore = Math.round(combinedScore * 0.7);
+      matchScore = Math.round((distanceScore + domainScore) / 2);
       
       matchScoreSource = 'calculated';
       console.log(`Step 3 inputs: Distance=${distanceMiles}mi → ${distanceScore.toFixed(1)}, Domain=${domainScore}`);
-      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore}) / 2 = ${combinedScore.toFixed(1)}`);
-      console.log(`Step 3 final: ${combinedScore.toFixed(1)} * 0.7 = ${matchScore}`);
+      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore}) / 2 = ${matchScore}`);
     }
 
     // Update the lead with match score
