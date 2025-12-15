@@ -2066,11 +2066,11 @@ const LeadsTable = ({
                         <>
                           <TableCell>
                             <div className="flex flex-col gap-1 text-xs">
-                              {/* LinkedIn */}
-                              <div className="flex items-center gap-1.5">
-                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.linkedin ? (
-                                  <>
+                              {/* LinkedIn - hide if validated as false */}
+                              {lead.linkedin_validated !== false && (
+                                <div className="flex items-center gap-1.5">
+                                  <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  {lead.linkedin ? (
                                     <a
                                       href={lead.linkedin}
                                       target="_blank"
@@ -2086,25 +2086,17 @@ const LeadsTable = ({
                                         }
                                       })()}
                                     </a>
-                                    {lead.linkedin_validated === false && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
-                                      >
-                                        Invalid
-                                      </Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground">not found</span>
-                                )}
-                              </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </div>
+                              )}
 
-                              {/* Instagram */}
-                              <div className="flex items-center gap-1.5">
-                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.instagram ? (
-                                  <>
+                              {/* Instagram - hide if validated as false */}
+                              {lead.instagram_validated !== false && (
+                                <div className="flex items-center gap-1.5">
+                                  <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  {lead.instagram ? (
                                     <a
                                       href={lead.instagram}
                                       target="_blank"
@@ -2120,25 +2112,17 @@ const LeadsTable = ({
                                         }
                                       })()}
                                     </a>
-                                    {lead.instagram_validated === false && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
-                                      >
-                                        Invalid
-                                      </Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground">not found</span>
-                                )}
-                              </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </div>
+                              )}
 
-                              {/* Facebook */}
-                              <div className="flex items-center gap-1.5">
-                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.facebook ? (
-                                  <>
+                              {/* Facebook - hide if validated as false */}
+                              {lead.facebook_validated !== false && (
+                                <div className="flex items-center gap-1.5">
+                                  <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  {lead.facebook ? (
                                     <a
                                       href={lead.facebook}
                                       target="_blank"
@@ -2154,19 +2138,11 @@ const LeadsTable = ({
                                         }
                                       })()}
                                     </a>
-                                    {lead.facebook_validated === false && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-[10px] px-1 py-0 text-destructive border-destructive"
-                                      >
-                                        Invalid
-                                      </Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground">not found</span>
-                                )}
-                              </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>{lead.size || "—"}</TableCell>
@@ -2266,72 +2242,81 @@ const LeadsTable = ({
                       {viewMode === 'company' && (
                         <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.linkedin ? (
-                                <a
-                                  href={lead.linkedin}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline truncate max-w-[120px]"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {(() => {
-                                    try {
-                                      return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
-                                    } catch {
-                                      return lead.linkedin;
-                                    }
-                                  })()}
-                                </a>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.instagram ? (
-                                <a
-                                  href={lead.instagram}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline truncate max-w-[120px]"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {(() => {
-                                    try {
-                                      return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
-                                    } catch {
-                                      return lead.instagram;
-                                    }
-                                  })()}
-                                </a>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.facebook ? (
-                                <a
-                                  href={lead.facebook}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline truncate max-w-[120px]"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {(() => {
-                                    try {
-                                      return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
-                                    } catch {
-                                      return lead.facebook;
-                                    }
-                                  })()}
-                                </a>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </div>
+                            {/* LinkedIn - hide if validated as false */}
+                            {lead.linkedin_validated !== false && (
+                              <div className="flex items-center gap-1.5">
+                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.linkedin ? (
+                                  <a
+                                    href={lead.linkedin}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline truncate max-w-[120px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      try {
+                                        return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
+                                      } catch {
+                                        return lead.linkedin;
+                                      }
+                                    })()}
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            )}
+                            {/* Instagram - hide if validated as false */}
+                            {lead.instagram_validated !== false && (
+                              <div className="flex items-center gap-1.5">
+                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.instagram ? (
+                                  <a
+                                    href={lead.instagram}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline truncate max-w-[120px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      try {
+                                        return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                                      } catch {
+                                        return lead.instagram;
+                                      }
+                                    })()}
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            )}
+                            {/* Facebook - hide if validated as false */}
+                            {lead.facebook_validated !== false && (
+                              <div className="flex items-center gap-1.5">
+                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                {lead.facebook ? (
+                                  <a
+                                    href={lead.facebook}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline truncate max-w-[120px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      try {
+                                        return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
+                                      } catch {
+                                        return lead.facebook;
+                                      }
+                                    })()}
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                       )}
