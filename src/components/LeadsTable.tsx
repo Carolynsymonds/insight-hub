@@ -546,9 +546,12 @@ const LeadsTable = ({
       }
       onEnrichComplete();
     } catch (error: any) {
+      const errorMessage = error.message?.includes('quota') || error.message?.includes('rate limit')
+        ? "SerpAPI account has hit its request quota. Please try again later."
+        : error.message;
       toast({
         title: "Coordinate Lookup Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

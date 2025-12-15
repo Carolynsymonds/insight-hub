@@ -108,6 +108,18 @@ serve(async (req) => {
     const response = await fetch(serpApiUrl);
     
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({
+            error: "SerpAPI account has hit its request quota. Please try again later.",
+            rateLimited: true,
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
       throw new Error(`SerpAPI error: ${response.status} ${response.statusText}`);
     }
 
@@ -138,6 +150,19 @@ serve(async (req) => {
       
       const serperResponse = await fetch(serperSearchUrl);
       
+      if (serperResponse.status === 429) {
+        return new Response(
+          JSON.stringify({
+            error: "SerpAPI account has hit its request quota. Please try again later.",
+            rateLimited: true,
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       if (serperResponse.ok) {
         const serperData = await serperResponse.json();
         console.log('Serper fallback organic_results count:', serperData.organic_results?.length || 0);
@@ -153,6 +178,19 @@ serve(async (req) => {
           console.log('Maps lookup with extracted address:', mapsLookupUrl);
           
           const mapsResponse = await fetch(mapsLookupUrl);
+          
+          if (mapsResponse.status === 429) {
+            return new Response(
+              JSON.stringify({
+                error: "SerpAPI account has hit its request quota. Please try again later.",
+                rateLimited: true,
+              }),
+              {
+                status: 429,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            );
+          }
           
           if (mapsResponse.ok) {
             const mapsData = await mapsResponse.json();
