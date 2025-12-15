@@ -277,7 +277,7 @@ const LeadsTable = ({
   const [calculatingMatchScore, setCalculatingMatchScore] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState<{ leadId: string; source: string } | null>(null);
   const [expandedDiagnosis, setExpandedDiagnosis] = useState<string | null>(null);
-  const [scoringIndustry, setScoringIndustry] = useState<string | null>(null);
+  
   const [findingCoordinates, setFindingCoordinates] = useState<string | null>(null);
   const [enrichingCompanyDetails, setEnrichingCompanyDetails] = useState<string | null>(null);
   const [companyDetailsStep, setCompanyDetailsStep] = useState<{ step: number; message: string } | null>(null);
@@ -903,66 +903,6 @@ const LeadsTable = ({
     }
   };
 
-  const handleScoreIndustryRelevance = async (lead: Lead) => {
-    if (!lead.domain) {
-      toast({
-        title: "Cannot Score Industry Relevance",
-        description: "Domain is required. Run enrichment first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if any MICS data is available
-    const hasMicsData = lead.mics_sector || lead.mics_subsector || lead.mics_segment;
-    if (!hasMicsData) {
-      toast({
-        title: "Cannot Score Industry Relevance",
-        description:
-          "No MICS classification data available. Industry relevance requires MICS Sector, Subsector, or Segment to compare against.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setScoringIndustry(lead.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("score-industry-relevance", {
-        body: {
-          leadId: lead.id,
-          domain: lead.domain,
-          micsSector: lead.mics_sector,
-          micsSubsector: lead.mics_subsector,
-          micsSegment: lead.mics_segment,
-        },
-      });
-
-      if (error) throw error;
-
-      // Handle skipped case when no MICS data
-      if (data.skipped) {
-        toast({
-          title: "Industry Relevance",
-          description: data.explanation,
-        });
-      } else {
-        toast({
-          title: "Industry Relevance Scored!",
-          description: `Score: ${data.score}/100`,
-        });
-      }
-
-      onEnrichComplete();
-    } catch (error: any) {
-      toast({
-        title: "Scoring Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setScoringIndustry(null);
-    }
-  };
 
   const handleSearchFacebookSerper = async (lead: Lead) => {
     setEnrichingFacebook(lead.id);
@@ -3615,7 +3555,7 @@ const LeadsTable = ({
                                                 {lead.match_score_source === "google_knowledge_graph" &&
                                                   "🌐 Google Knowledge Graph"}
                                                 {lead.match_score_source === "calculated" &&
-                                                  "📊 Distance + Domain Relevance + Industry Relevance"}
+                                                  "📊 Distance + Domain Relevance"}
                                               </p>
                                             </div>
                                           )}
@@ -3937,149 +3877,6 @@ const LeadsTable = ({
                                             </AccordionContent>
                                           </AccordionItem>
 
-                                          {/* Industry Relevance Accordion Item */}
-                                          <AccordionItem value="industry-relevance" className="border-border">
-                                            <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer py-3">
-                                              <div className="flex items-center justify-between w-full pr-4">
-                                                <div className="flex items-center gap-2">
-                                                  <span>Industry Relevance</span>
-                                                  {lead.industry_relevance_score !== null && (
-                                                    <span className="font-semibold text-foreground">
-                                                      {lead.industry_relevance_score}/100
-                                                    </span>
-                                                  )}
-                                                </div>
-                                                {lead.industry_relevance_score !== null && (
-                                                  <Badge
-                                                    variant={
-                                                      lead.industry_relevance_score >= 80
-                                                        ? "default"
-                                                        : lead.industry_relevance_score >= 50
-                                                          ? "secondary"
-                                                          : "destructive"
-                                                    }
-                                                    className={
-                                                      lead.industry_relevance_score >= 80
-                                                        ? "bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                                        : lead.industry_relevance_score >= 50
-                                                          ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500"
-                                                          : "bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                                    }
-                                                    onClick={(e) => e.stopPropagation()}
-                                                  >
-                                                    {lead.industry_relevance_score >= 80
-                                                      ? "🟢 High"
-                                                      : lead.industry_relevance_score >= 50
-                                                        ? "🟡 Medium"
-                                                        : "🔴 Low"}
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                              <div className="space-y-3 pt-2">
-                                                {lead.industry_relevance_score !== null ? (
-                                                  <div className="p-4 bg-muted rounded-lg space-y-3">
-                                                    <div>
-                                                      <p className="text-sm font-medium text-muted-foreground mb-1">
-                                                        AI Industry Match Score
-                                                      </p>
-                                                      <p className="text-3xl font-bold">
-                                                        {lead.industry_relevance_score}/100
-                                                      </p>
-                                                      <p className="text-xs text-muted-foreground mt-1">
-                                                        Evaluated by Gemini AI
-                                                      </p>
-                                                    </div>
-
-                                                    {lead.industry_relevance_explanation && (
-                                                      <div className="pt-3 border-t">
-                                                        <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                          Analysis
-                                                        </p>
-                                                        <p className="text-sm text-foreground">
-                                                          {lead.industry_relevance_explanation}
-                                                        </p>
-                                                      </div>
-                                                    )}
-
-                                                    <div className="pt-3 border-t">
-                                                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                                                        MICS Classification
-                                                      </p>
-                                                      {lead.mics_sector && (
-                                                        <p className="text-sm text-foreground">
-                                                          <span className="font-medium">Sector:</span>{" "}
-                                                          {lead.mics_sector}
-                                                        </p>
-                                                      )}
-                                                      {lead.mics_subsector && (
-                                                        <p className="text-sm text-foreground mt-1">
-                                                          <span className="font-medium">Subsector:</span>{" "}
-                                                          {lead.mics_subsector}
-                                                        </p>
-                                                      )}
-                                                      {lead.mics_segment && (
-                                                        <p className="text-sm text-foreground mt-1">
-                                                          <span className="font-medium">Segment:</span>{" "}
-                                                          {lead.mics_segment}
-                                                        </p>
-                                                      )}
-                                                      {!lead.mics_sector &&
-                                                        !lead.mics_subsector &&
-                                                        !lead.mics_segment && (
-                                                          <p className="text-sm text-muted-foreground italic">
-                                                            No MICS classification data available
-                                                          </p>
-                                                        )}
-                                                    </div>
-                                                  </div>
-                                                ) : (
-                                                  <p className="text-sm text-muted-foreground">
-                                                    No industry relevance score calculated yet
-                                                  </p>
-                                                )}
-
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  className="w-full"
-                                                  disabled={
-                                                    !lead.domain ||
-                                                    scoringIndustry === lead.id ||
-                                                    (!lead.mics_sector && !lead.mics_subsector && !lead.mics_segment)
-                                                  }
-                                                  onClick={() => handleScoreIndustryRelevance(lead)}
-                                                >
-                                                  {scoringIndustry === lead.id ? (
-                                                    <>
-                                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                      Scoring...
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Sparkles className="mr-2 h-4 w-4" />
-                                                      Calculate Industry Relevance
-                                                    </>
-                                                  )}
-                                                </Button>
-
-                                                {!lead.domain && (
-                                                  <p className="text-xs text-muted-foreground text-center">
-                                                    Run domain enrichment first
-                                                  </p>
-                                                )}
-                                                {lead.domain &&
-                                                  !lead.mics_sector &&
-                                                  !lead.mics_subsector &&
-                                                  !lead.mics_segment && (
-                                                    <p className="text-xs text-muted-foreground text-center">
-                                                      No MICS classification data - cannot score industry relevance
-                                                    </p>
-                                                  )}
-                                              </div>
-                                            </AccordionContent>
-                                          </AccordionItem>
                                         </Accordion>
                                       </div>
                                     </AccordionContent>
