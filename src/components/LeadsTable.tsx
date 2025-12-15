@@ -1921,26 +1921,45 @@ const LeadsTable = ({
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && (
                         <TableCell>
                           {lead.domain ? (
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={`https://${lead.domain}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {lead.domain}
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                              {lead.match_score !== null && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-white text-black border-border"
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`https://${lead.domain}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline flex items-center gap-1"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {lead.match_score}%
+                                  {lead.domain}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                                {lead.match_score !== null && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-white text-black border-border"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {lead.match_score}%
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {lead.email_domain_validated === false 
+                                    ? "0%" 
+                                    : lead.enrichment_confidence !== null 
+                                      ? `${lead.enrichment_confidence}%` 
+                                      : "—"} confidence
                                 </Badge>
-                              )}
+                                {lead.email_domain_validated !== null && (
+                                  <Badge 
+                                    variant={lead.email_domain_validated ? "default" : "destructive"}
+                                    className={`text-xs ${lead.email_domain_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                  >
+                                    {lead.email_domain_validated ? "✓ VALID" : "✗ INVALID"}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           ) : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (
                             (() => {
