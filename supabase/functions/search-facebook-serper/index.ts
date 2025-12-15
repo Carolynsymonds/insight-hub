@@ -28,10 +28,23 @@ const extractFacebookProfile = (url: string): string => {
     const urlObj = new URL(url);
     const normalizedHost = "facebook.com";
     const pathParts = urlObj.pathname.split("/").filter(Boolean);
-    if (pathParts.length > 0) {
-      return `https://${normalizedHost}/${pathParts[0]}`;
+    
+    if (pathParts.length === 0) {
+      return url;
     }
-    return url;
+    
+    // Handle /p/PageName/ format (Facebook page URLs)
+    if (pathParts[0] === "p" && pathParts.length > 1) {
+      return `https://${normalizedHost}/p/${pathParts[1]}`;
+    }
+    
+    // Handle /profile.php?id=xxx format
+    if (pathParts[0] === "profile.php") {
+      return url; // Keep the full URL for profile.php links
+    }
+    
+    // Standard format: /PageName/
+    return `https://${normalizedHost}/${pathParts[0]}`;
   } catch {
     return url;
   }
