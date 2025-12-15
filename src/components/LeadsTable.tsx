@@ -2550,6 +2550,25 @@ const LeadsTable = ({
                                                           <Badge variant="outline" className="text-xs">
                                                             {mostRecentLog.confidence}% confidence
                                                           </Badge>
+                                                          {lead.email_domain_validated !== null && lead.domain === mostRecentLog.domain && (
+                                                            <TooltipProvider>
+                                                              <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                  <Badge 
+                                                                    variant={lead.email_domain_validated ? "default" : "destructive"}
+                                                                    className={`text-xs ${lead.email_domain_validated ? "bg-green-600 hover:bg-green-600" : ""}`}
+                                                                  >
+                                                                    {lead.email_domain_validated ? "✓ VALID" : "✗ INVALID"}
+                                                                  </Badge>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="max-w-xs">
+                                                                  <p className="text-xs">
+                                                                    {lead.domain_relevance_explanation || "Domain validation result"}
+                                                                  </p>
+                                                                </TooltipContent>
+                                                              </Tooltip>
+                                                            </TooltipProvider>
+                                                          )}
                                                           <TooltipProvider>
                                                             <Tooltip>
                                                               <TooltipTrigger asChild>
