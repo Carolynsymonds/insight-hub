@@ -2548,7 +2548,9 @@ const LeadsTable = ({
                                                       {mostRecentLog.domain && (
                                                         <div className="flex items-center gap-1">
                                                           <Badge variant="outline" className="text-xs">
-                                                            {mostRecentLog.confidence}% confidence
+                                                            {lead.email_domain_validated === false && lead.domain === mostRecentLog.domain 
+                                                              ? "0%" 
+                                                              : `${mostRecentLog.confidence}%`} confidence
                                                           </Badge>
                                                           {lead.email_domain_validated !== null && lead.domain === mostRecentLog.domain && (
                                                             <TooltipProvider>
