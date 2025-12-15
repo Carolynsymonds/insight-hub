@@ -1044,6 +1044,55 @@ async function enrichWithGoogle(
     }
 
     // Create enrichment log
+    // Validate domain if found
+    if (finalDomain) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+        
+        console.log(`Google: Validating domain via validate-domain function: ${finalDomain}`);
+        
+        const validateResponse = await fetch(`${supabaseUrl}/functions/v1/validate-domain`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseAnonKey}`,
+          },
+          body: JSON.stringify({ domain: finalDomain }),
+        });
+
+        if (validateResponse.ok) {
+          const validationResult = await validateResponse.json();
+          console.log(`Google domain validation result:`, validationResult);
+          
+          if (!validationResult.is_valid_domain) {
+            console.log(`Google: Domain ${finalDomain} failed validation - ${validationResult.reason}`);
+            // Keep the domain but set confidence to 0 for invalid domains
+            finalConfidence = 0;
+            
+            searchSteps.push({
+              step: "Validation",
+              query: `validate-domain: ${finalDomain}`,
+              resultFound: false,
+              source: `${validationResult.reason} (DNS: ${validationResult.dns_valid}, HTTP: ${validationResult.http_status})`,
+            });
+          } else {
+            console.log(`Google: Domain ${finalDomain} validated successfully`);
+            
+            searchSteps.push({
+              step: "Validation",
+              query: `validate-domain: ${finalDomain}`,
+              resultFound: true,
+              source: `${validationResult.reason} (DNS: ${validationResult.dns_valid}, HTTP: ${validationResult.http_status})`,
+            });
+          }
+        }
+      } catch (validationError) {
+        console.error("Google: Error validating domain:", validationError);
+        // Continue with unvalidated domain
+      }
+    }
+
     const log: EnrichmentLog = {
       timestamp,
       action: finalDomain
@@ -1416,6 +1465,41 @@ async function enrichWithApollo(
       };
 
       console.log(`Extracted domain: ${domain} (source: ${sourceUrl}) with confidence ${confidence}%`);
+      
+      // Validate domain if found
+      if (domain) {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+          
+          console.log(`Apollo: Validating domain via validate-domain function: ${domain}`);
+          
+          const validateResponse = await fetch(`${supabaseUrl}/functions/v1/validate-domain`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseAnonKey}`,
+            },
+            body: JSON.stringify({ domain }),
+          });
+
+          if (validateResponse.ok) {
+            const validationResult = await validateResponse.json();
+            console.log(`Apollo domain validation result:`, validationResult);
+            
+            if (!validationResult.is_valid_domain) {
+              console.log(`Apollo: Domain ${domain} failed validation - ${validationResult.reason}`);
+              // Keep the domain but set confidence to 0 for invalid domains
+              confidence = 0;
+            } else {
+              console.log(`Apollo: Domain ${domain} validated successfully`);
+            }
+          }
+        } catch (validationError) {
+          console.error("Apollo: Error validating domain:", validationError);
+          // Continue with unvalidated domain
+        }
+      }
     } else {
       console.log("No organizations found in Apollo response");
     }
