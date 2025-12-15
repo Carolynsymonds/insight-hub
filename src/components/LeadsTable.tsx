@@ -1685,6 +1685,19 @@ const LeadsTable = ({
   };
   return (
     <>
+      {/* Bulk Delete Button - always visible when leads selected */}
+      {selectedLeads.size > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-2">
+            <Trash2 className="h-4 w-4" />
+            Delete ({selectedLeads.size})
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {selectedLeads.size} lead{selectedLeads.size > 1 ? 's' : ''} selected
+          </span>
+        </div>
+      )}
+
       {/* Filter Bar */}
       {!hideFilterBar && (
         <div className="flex items-center gap-4 mb-4">
@@ -1701,12 +1714,6 @@ const LeadsTable = ({
               </SelectContent>
             </Select>
           </div>
-          {selectedLeads.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Delete ({selectedLeads.size})
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
