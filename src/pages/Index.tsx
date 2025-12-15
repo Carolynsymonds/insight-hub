@@ -266,19 +266,21 @@ const Index = () => {
         });
 
         // Step 2: Calculate distance (need to refetch lead to get coordinates)
-        const { data: leadWithCoords } = await supabase.from("leads").select("latitude, longitude").eq("id", lead.id).single();
+        const { data: leadWithCoords } = await supabase.from("leads").select("latitude, longitude").eq("id", lead.id).maybeSingle();
         
-        if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
+        if (leadWithCoords && leadWithCoords.latitude && leadWithCoords.longitude) {
           await supabase.functions.invoke("calculate-distance", {
             body: {
               leadId: lead.id,
               city: lead.city,
               state: lead.state,
               zipcode: lead.zipcode,
-              latitude: leadWithCoords.latitude,
-              longitude: leadWithCoords.longitude
+              latitude: Number(leadWithCoords.latitude),
+              longitude: Number(leadWithCoords.longitude)
             }
           });
+        } else {
+          console.log(`Skipping distance calculation for ${lead.company} - no coordinates found`);
         }
 
         // Step 3: Score domain relevance
