@@ -721,7 +721,7 @@ const LeadsTable = ({
         if (emailResult.data?.domain) domainFound = true;
       }
 
-      // Step 4: Diagnose ONLY if no domain found from any source
+      // Step 4: Always run diagnosis when no domain found from any source
       if (!domainFound) {
         setFindDomainStep('Diagnosing...');
         // Refetch lead to get updated enrichment_logs
