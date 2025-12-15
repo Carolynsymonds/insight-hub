@@ -207,8 +207,44 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
 
   const parseCSV = (text: string): { headers: string[]; rows: string[][] } => {
     const lines = text.split("\n").filter(line => line.trim());
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-    const rows = lines.slice(1).map(line => line.split(",").map(v => v.trim()));
+    
+    // Parse a single CSV line handling quoted fields with commas
+    const parseLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote inside quoted field
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote mode
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Don't forget the last field
+      result.push(current.trim());
+      
+      return result;
+    };
+    
+    const headers = parseLine(lines[0]).map(h => h.toLowerCase());
+    const rows = lines.slice(1).map(line => parseLine(line));
+    
     return { headers, rows };
   };
 
