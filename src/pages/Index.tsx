@@ -129,11 +129,9 @@ const Index = () => {
         lead.enrichment_confidence === null && !lead.domain
       ).length;
 
-      // Count diagnosis categories for invalid/not enriched leads
+      // Count diagnosis categories only for leads without domains (failed enrichment)
       const diagnosisCounts: Record<string, number> = {};
-      (data || []).filter(lead => 
-        lead.enrichment_confidence === null || lead.enrichment_confidence < 50
-      ).forEach(lead => {
+      (data || []).filter(lead => !lead.domain).forEach(lead => {
         const category = lead.diagnosis_category || 'Not diagnosed';
         diagnosisCounts[category] = (diagnosisCounts[category] || 0) + 1;
       });
@@ -459,9 +457,9 @@ const Index = () => {
           </div>
 
           {/* Diagnosis Breakdown */}
-          {(stats.invalid + stats.notEnriched) > 0 && (
+          {Object.keys(stats.diagnosisCounts).length > 0 && (
             <div className="p-6 border rounded-lg">
-              <h3 className="font-medium mb-4">Invalid/Not Enriched Breakdown by Diagnosis</h3>
+              <h3 className="font-medium mb-4">Leads Without Domain by Diagnosis</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {Object.entries(stats.diagnosisCounts)
                   .sort(([,a], [,b]) => b - a)
