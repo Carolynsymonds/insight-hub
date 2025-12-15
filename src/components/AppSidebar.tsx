@@ -1,4 +1,4 @@
-import { Home, UserPlus, LogOut } from "lucide-react";
+import { Home, UserPlus, LogOut, BarChart3 } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,11 @@ const menuItems = [
     title: "Add Leads",
     icon: UserPlus,
     view: "add-leads",
+  },
+  {
+    title: "Statistics",
+    icon: BarChart3,
+    view: "statistics",
   },
 ];
 interface AppSidebarProps {
