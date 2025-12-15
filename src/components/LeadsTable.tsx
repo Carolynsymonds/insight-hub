@@ -813,7 +813,7 @@ const LeadsTable = ({
     }
   };
 
-
+  const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase.from("leads").delete().eq("id", id);
       if (error) throw error;
