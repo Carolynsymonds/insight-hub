@@ -349,7 +349,7 @@ const Index = () => {
       return;
     }
 
-    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category"];
+    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category", "Diagnosis Category", "Diagnosis Explanation", "Diagnosis Recommendation"];
     const csvContent = [
       headers.join(","),
       ...filteredLeads.map((lead) => [
@@ -362,6 +362,9 @@ const Index = () => {
         `"${lead.domain || ''}"`,
         lead.match_score !== null ? lead.match_score : '',
         `"${lead.category || ''}"`,
+        `"${!lead.domain ? (lead.diagnosis_category || '') : ''}"`,
+        `"${!lead.domain ? (lead.diagnosis_explanation || '').replace(/"/g, '""') : ''}"`,
+        `"${!lead.domain ? (lead.diagnosis_recommendation || '').replace(/"/g, '""') : ''}"`,
       ].join(","))
     ].join("\n");
 
