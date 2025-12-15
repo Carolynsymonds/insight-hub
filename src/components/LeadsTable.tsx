@@ -2399,14 +2399,29 @@ const LeadsTable = ({
                                     {lead.domain || lead.company || "Unknown"}
                                   </p>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setOpenDrawer(null)}
-                                  className="select-none"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to delete "${lead.full_name}"?`)) {
+                                        handleDelete(lead.id);
+                                        setOpenDrawer(null);
+                                      }
+                                    }}
+                                    className="select-none text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setOpenDrawer(null)}
+                                    className="select-none"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </DrawerHeader>
                               <div className="px-4 pb-8 select-text overflow-y-auto" style={{ userSelect: "text" }}>
                                 <Accordion type="single" collapsible className="w-full">
@@ -5460,23 +5475,6 @@ const LeadsTable = ({
                                   </AccordionItem>
                                 </Accordion>
 
-                                {/* Delete Lead Section */}
-                                <div className="mt-6 pt-4 border-t border-border">
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to delete "${lead.full_name}"?`)) {
-                                        handleDelete(lead.id);
-                                        setOpenDrawer(null);
-                                      }
-                                    }}
-                                    className="w-full"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Lead
-                                  </Button>
-                                </div>
                               </div>
                             </DrawerContent>
                           </Drawer>
