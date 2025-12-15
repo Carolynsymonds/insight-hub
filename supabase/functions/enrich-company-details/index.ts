@@ -198,7 +198,12 @@ function validateEmailMatch(
   leadEmail: string | null, 
   scrapedEmail: string | null
 ): { isValidated: boolean; matchType: 'exact' | 'domain' | 'none' } {
+  console.log(`[Email Validation] Starting validation...`);
+  console.log(`[Email Validation] Lead email: ${leadEmail || 'null'}`);
+  console.log(`[Email Validation] Scraped email: ${scrapedEmail || 'null'}`);
+  
   if (!leadEmail || !scrapedEmail) {
+    console.log(`[Email Validation] FAILED: Missing email(s) - leadEmail: ${!!leadEmail}, scrapedEmail: ${!!scrapedEmail}`);
     return { isValidated: false, matchType: 'none' };
   }
   
@@ -207,6 +212,7 @@ function validateEmailMatch(
   
   // Exact email match (case-insensitive)
   if (leadEmailLower === scrapedEmailLower) {
+    console.log(`[Email Validation] SUCCESS: Exact email match! "${leadEmailLower}" === "${scrapedEmailLower}"`);
     return { isValidated: true, matchType: 'exact' };
   }
   
@@ -214,15 +220,21 @@ function validateEmailMatch(
   const leadDomain = leadEmailLower.split('@')[1];
   const scrapedDomain = scrapedEmailLower.split('@')[1];
   
+  console.log(`[Email Validation] Lead domain: ${leadDomain || 'null'}`);
+  console.log(`[Email Validation] Scraped domain: ${scrapedDomain || 'null'}`);
+  
   // Skip if lead email is from a personal domain
   if (leadDomain && PERSONAL_EMAIL_DOMAINS.includes(leadDomain)) {
+    console.log(`[Email Validation] FAILED: Lead email is from personal domain (${leadDomain})`);
     return { isValidated: false, matchType: 'none' };
   }
   
   if (leadDomain && scrapedDomain && leadDomain === scrapedDomain) {
+    console.log(`[Email Validation] SUCCESS: Domain match! "${leadDomain}" === "${scrapedDomain}"`);
     return { isValidated: true, matchType: 'domain' };
   }
   
+  console.log(`[Email Validation] FAILED: No match found. Lead domain "${leadDomain}" !== Scraped domain "${scrapedDomain}"`);
   return { isValidated: false, matchType: 'none' };
 }
 
