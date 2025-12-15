@@ -95,9 +95,9 @@ const Index = () => {
       const {
         data,
         error
-      } = await supabase.from("leads").select("*").order("created_at", {
-        ascending: false
-      });
+      } = await supabase.from("leads").select("*")
+        .order("upload_batch", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: true });
       if (error) throw error;
       setLeads(data || []);
 
