@@ -93,14 +93,21 @@ serve(async (req) => {
     let isValid = false;
     let reason = '';
 
+    // Create abort controller with 10 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const httpResponse = await fetch(`https://${domain}`, {
         method: 'GET',
         redirect: 'manual',
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
         }
       });
+      
+      clearTimeout(timeoutId);
 
       httpStatus = httpResponse.status;
       console.log(`[validate-domain] HTTP Status: ${httpStatus}`);
@@ -161,18 +168,25 @@ serve(async (req) => {
         reason = `Domain returns HTTP ${httpStatus}. Domain appears to be active.`;
       }
     } catch (httpError) {
-      console.log(`[validate-domain] HTTP request failed:`, httpError);
+      clearTimeout(timeoutId);
+      console.log(`[validate-domain] HTTPS request failed:`, httpError);
       
       // Try HTTP if HTTPS fails
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 10000);
+      
       try {
         console.log(`[validate-domain] Retrying with http://${domain}`);
         const httpFallbackResponse = await fetch(`http://${domain}`, {
           method: 'GET',
           redirect: 'manual',
+          signal: fallbackController.signal,
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
           }
         });
+        
+        clearTimeout(fallbackTimeoutId);
         
         httpStatus = httpFallbackResponse.status;
         const locationHeader = httpFallbackResponse.headers.get('location');
@@ -199,6 +213,7 @@ serve(async (req) => {
           reason = `Domain returns HTTP ${httpStatus} via HTTP fallback.`;
         }
       } catch (fallbackError) {
+        clearTimeout(fallbackTimeoutId);
         console.log(`[validate-domain] HTTP fallback also failed:`, fallbackError);
         // DNS valid but HTTP completely fails - domain might be inactive
         isValid = false;
