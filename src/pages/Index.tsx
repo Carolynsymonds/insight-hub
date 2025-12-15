@@ -193,9 +193,21 @@ const Index = () => {
           });
         }
 
-        // Check if domain found, run diagnosis if not
+        // Check if domain found, validate it or run diagnosis
         const { data: updated } = await supabase.from("leads").select("domain, enrichment_logs").eq("id", lead.id).maybeSingle();
-        if (!updated?.domain) {
+        if (updated?.domain) {
+          // Validate the found domain
+          const { data: validationResult } = await supabase.functions.invoke("validate-domain", {
+            body: { domain: updated.domain }
+          });
+          
+          if (validationResult) {
+            await supabase.from("leads")
+              .update({ email_domain_validated: validationResult.is_valid_domain })
+              .eq("id", lead.id);
+          }
+        } else {
+          // No domain found, run diagnosis
           await supabase.functions.invoke("diagnose-enrichment", {
             body: {
               leadId: lead.id,
