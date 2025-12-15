@@ -33,6 +33,7 @@ import {
   ArrowDown,
   Download,
   FileText,
+  Shield,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -3047,6 +3048,47 @@ const LeadsTable = ({
                                               </>
                                             )}
                                           </Button>
+                                          
+                                          {/* Validate Domain Button - only show when domain exists */}
+                                          {lead.domain && (
+                                            <div className="mt-2">
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleCheckDomain(lead)}
+                                                disabled={checkingDomain === lead.id}
+                                                className="w-full"
+                                              >
+                                                {checkingDomain === lead.id ? (
+                                                  <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Validating...
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Shield className="mr-2 h-4 w-4" />
+                                                    Validate Domain
+                                                  </>
+                                                )}
+                                              </Button>
+                                              
+                                              {/* Show validation status */}
+                                              {lead.email_domain_validated === true && (
+                                                <p className="text-xs text-primary text-center mt-1">
+                                                  ✓ Domain verified
+                                                </p>
+                                              )}
+                                              {lead.email_domain_validated === false && (
+                                                <div className="flex items-center justify-center gap-1 mt-1">
+                                                  <Badge variant="destructive" className="text-xs">
+                                                    Invalid
+                                                  </Badge>
+                                                  <span className="text-xs text-muted-foreground">0% confidence</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                          
                                           {!lead.domain && (
                                             <p className="text-xs text-muted-foreground text-center mt-1">
                                               Find a domain first to check validity
