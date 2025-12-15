@@ -317,16 +317,19 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       
       if (!user) throw new Error("Not authenticated");
 
-      // Get the next batch number
-      const { data: maxBatchResult } = await supabase
+      // Get the next batch number (ignore manual leads where upload_batch is null)
+      const { data: maxBatchResult, error: maxBatchError } = await supabase
         .from("leads")
         .select("upload_batch")
         .eq("user_id", user.id)
+        .not("upload_batch", "is", null)
         .order("upload_batch", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      const nextBatch = (maxBatchResult?.upload_batch || 0) + 1;
+      if (maxBatchError) throw maxBatchError;
+
+      const nextBatch = (maxBatchResult?.upload_batch ?? 0) + 1;
 
       const leads = previewData.leads.map(lead => ({
         ...lead,
