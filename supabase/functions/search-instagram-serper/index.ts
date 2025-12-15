@@ -113,18 +113,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get existing enrichment logs and diagnosis
+    // Get existing enrichment logs
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs, diagnosis_category")
+      .select("enrichment_logs")
       .eq("id", leadId)
       .single();
 
     const existingLogs = existingLead?.enrichment_logs || [];
-    
-    // Update diagnosis to "Socials found" if we found a profile and current diagnosis indicates no domain
-    const shouldUpdateDiagnosis = instagramUrl && 
-      existingLead?.diagnosis_category === "Company doesn't exist / New company";
 
     // Add Instagram search log with top 3 results
     const instagramSearchLog = {
@@ -145,7 +141,6 @@ Deno.serve(async (req) => {
         instagram_source_url: instagramSourceUrl,
         instagram_confidence: instagramConfidence > 0 ? instagramConfidence : null,
         enrichment_logs: [...existingLogs, instagramSearchLog],
-        ...(shouldUpdateDiagnosis && { diagnosis_category: "Socials found" }),
       })
       .eq("id", leadId);
 

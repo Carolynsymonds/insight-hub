@@ -126,10 +126,10 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get existing enrichment logs and diagnosis
+    // Get existing enrichment logs
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs, diagnosis_category")
+      .select("enrichment_logs")
       .eq("id", leadId)
       .single();
 
@@ -147,10 +147,6 @@ Deno.serve(async (req) => {
       source: "serpapi_facebook_search",
     };
 
-    // Update diagnosis to "Socials found" if we found a profile and current diagnosis indicates no domain
-    const shouldUpdateDiagnosis = facebookUrl && 
-      existingLead?.diagnosis_category === "Company doesn't exist / New company";
-
     const { error: updateError } = await supabase
       .from("leads")
       .update({ 
@@ -158,7 +154,6 @@ Deno.serve(async (req) => {
         facebook_source_url: facebookSourceUrl,
         facebook_confidence: facebookConfidence > 0 ? facebookConfidence : null,
         enrichment_logs: [...existingLogs, facebookSearchLog],
-        ...(shouldUpdateDiagnosis && { diagnosis_category: "Socials found" }),
       })
       .eq("id", leadId);
 
