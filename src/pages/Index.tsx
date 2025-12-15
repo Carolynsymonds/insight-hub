@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2 } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 
 const CATEGORIES = [{
@@ -63,6 +63,8 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('company');
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentCompany: '' });
+  const [bulkScoring, setBulkScoring] = useState(false);
+  const [scoreProgress, setScoreProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   useEffect(() => {
     checkAuth();
   }, []);
@@ -235,6 +237,85 @@ const Index = () => {
     }
   };
 
+  const handleBulkCalculateMatchScore = async () => {
+    const leadsToScore = filteredLeads.filter(lead => lead.domain && lead.match_score === null);
+    
+    if (leadsToScore.length === 0) {
+      toast({
+        title: "No leads to score",
+        description: "All displayed leads with domains already have match scores.",
+      });
+      return;
+    }
+
+    setBulkScoring(true);
+    setScoreProgress({ current: 0, total: leadsToScore.length, currentCompany: '' });
+
+    try {
+      for (let i = 0; i < leadsToScore.length; i++) {
+        const lead = leadsToScore[i];
+        setScoreProgress({ current: i + 1, total: leadsToScore.length, currentCompany: lead.company || '' });
+
+        // Step 1: Find coordinates
+        await supabase.functions.invoke("find-company-coordinates", {
+          body: {
+            leadId: lead.id,
+            domain: lead.domain,
+            sourceUrl: lead.source_url
+          }
+        });
+
+        // Step 2: Calculate distance (need to refetch lead to get coordinates)
+        const { data: leadWithCoords } = await supabase.from("leads").select("latitude, longitude").eq("id", lead.id).single();
+        
+        if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
+          await supabase.functions.invoke("calculate-distance", {
+            body: {
+              leadId: lead.id,
+              city: lead.city,
+              state: lead.state,
+              zipcode: lead.zipcode,
+              destinationLat: leadWithCoords.latitude,
+              destinationLng: leadWithCoords.longitude
+            }
+          });
+        }
+
+        // Step 3: Score domain relevance
+        await supabase.functions.invoke("score-domain-relevance", {
+          body: {
+            leadId: lead.id,
+            companyName: lead.company,
+            domain: lead.domain,
+            city: lead.city,
+            state: lead.state,
+            dma: lead.dma
+          }
+        });
+
+        // Step 4: Calculate final match score
+        await supabase.functions.invoke("calculate-match-score", {
+          body: { leadId: lead.id }
+        });
+      }
+
+      toast({
+        title: "Match scoring complete",
+        description: `Processed ${leadsToScore.length} leads.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error during scoring",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkScoring(false);
+      setScoreProgress({ current: 0, total: 0, currentCompany: '' });
+      fetchLeads();
+    }
+  };
+
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
   
   // Get unique batches from category leads
@@ -380,25 +461,46 @@ const Index = () => {
                   </Button>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkFindDomains}
-                disabled={bulkEnriching || filteredLeads.length === 0}
-                className="gap-2"
-              >
-                {bulkEnriching ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Finding... ({bulkProgress.current}/{bulkProgress.total})
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4" />
-                    Find Domains
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkFindDomains}
+                  disabled={bulkEnriching || bulkScoring || filteredLeads.length === 0}
+                  className="gap-2"
+                >
+                  {bulkEnriching ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Finding... ({bulkProgress.current}/{bulkProgress.total})
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4" />
+                      Find Domains
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkCalculateMatchScore}
+                  disabled={bulkScoring || bulkEnriching || filteredLeads.length === 0}
+                  className="gap-2"
+                >
+                  {bulkScoring ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Scoring... ({scoreProgress.current}/{scoreProgress.total})
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4" />
+                      Calculate Match Score
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
             <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
