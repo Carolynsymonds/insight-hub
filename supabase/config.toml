@@ -3,6 +3,9 @@ project_id = "uwatntzozavzfhnkiowd"
 [functions.calculate-match-score]
 verify_jwt = false
 
+[functions.check-domain]
+verify_jwt = false
+
 [functions.clay-contact-enrichment]
 verify_jwt = false
 
