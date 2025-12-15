@@ -313,6 +313,7 @@ const LeadsTable = ({
   const [generatingBusinessCases, setGeneratingBusinessCases] = useState(false);
   const [findingDomain, setFindingDomain] = useState<string | null>(null);
   const [findDomainStep, setFindDomainStep] = useState<string | null>(null);
+  const [checkingDomain, setCheckingDomain] = useState<string | null>(null);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
@@ -770,7 +771,49 @@ const LeadsTable = ({
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleCheckDomain = async (lead: Lead) => {
+    if (!lead.domain) {
+      toast({
+        title: "Cannot Check Domain",
+        description: "No domain found. Run domain enrichment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckingDomain(lead.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-domain", {
+        body: {
+          leadId: lead.id,
+          domain: lead.domain,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: data.isValid ? "Domain Valid ✓" : "Domain Invalid ✗",
+        description: data.reason,
+        variant: data.isValid ? "default" : "destructive",
+      });
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Domain Check Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingDomain(null);
+    }
+  };
+
+
     try {
       const { error } = await supabase.from("leads").delete().eq("id", id);
       if (error) throw error;
@@ -2977,6 +3020,32 @@ const LeadsTable = ({
                                               </>
                                             )}
                                           </Button>
+                                          
+                                          {/* Check Domain Validity Button */}
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleCheckDomain(lead)}
+                                            disabled={checkingDomain === lead.id || !lead.domain}
+                                            className="w-full mt-2"
+                                            variant="outline"
+                                          >
+                                            {checkingDomain === lead.id ? (
+                                              <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Checking Domain...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Check Domain
+                                              </>
+                                            )}
+                                          </Button>
+                                          {!lead.domain && (
+                                            <p className="text-xs text-muted-foreground text-center mt-1">
+                                              Find a domain first to check validity
+                                            </p>
+                                          )}
                                         </div>
 
                                         {/* Enrich Buttons */}
