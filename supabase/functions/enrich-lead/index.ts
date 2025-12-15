@@ -859,50 +859,6 @@ async function enrichWithGoogle(
       }
     }
 
-    // STEP 5: Company name with spaces removed (if all previous steps failed)
-    if (!finalDomain) {
-      // Remove all spaces from company name
-      const companyNoSpaces = company.replace(/\s+/g, "");
-      
-      // Only try if the no-spaces version is different from original (i.e., had spaces)
-      if (companyNoSpaces !== company) {
-        const step5Query = `"${companyNoSpaces}"`;
-        console.log(`Step 5: Company name without spaces: ${step5Query}`);
-
-        const step5Result = await performGoogleSearch(step5Query, serpApiKey);
-
-        searchSteps.push({
-          step: "5",
-          query: step5Query,
-          resultFound: step5Result.domain !== null,
-          source: step5Result.sourceType || undefined,
-        });
-
-        if (step5Result.domain) {
-          finalDomain = step5Result.domain;
-          finalSourceUrl = step5Result.sourceUrl;
-          // Lowest confidence for step 5: 3% for knowledge_graph, 1% for local_results
-          finalConfidence = step5Result.sourceType === "knowledge_graph" ? 3 : 1;
-          finalSource = step5Result.sourceType === "knowledge_graph" ? "google_knowledge_graph" : "google_local_results";
-          finalSelectedOrg = step5Result.selectedOrg;
-          finalGpsCoordinates = step5Result.gpsCoordinates;
-          finalLatitude = step5Result.latitude;
-          finalLongitude = step5Result.longitude;
-          finalSearchInformation = step5Result.searchInformation;
-
-          console.log(`Step 5 successful: ${finalDomain} with confidence ${finalConfidence}%`);
-        }
-      } else {
-        console.log("Step 5 skipped: Company name has no spaces");
-        searchSteps.push({
-          step: "5",
-          query: "Skipped - Company name has no spaces to remove",
-          resultFound: false,
-          source: undefined,
-        });
-      }
-    }
-
     // Create enrichment log
     const log: EnrichmentLog = {
       timestamp,
