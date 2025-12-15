@@ -3047,27 +3047,6 @@ const LeadsTable = ({
                                               </>
                                             )}
                                           </Button>
-                                          
-                                          {/* Check Domain Validity Button */}
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleCheckDomain(lead)}
-                                            disabled={checkingDomain === lead.id || !lead.domain}
-                                            className="w-full mt-2"
-                                            variant="outline"
-                                          >
-                                            {checkingDomain === lead.id ? (
-                                              <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Checking Domain...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <CheckCircle className="mr-2 h-4 w-4" />
-                                                Check Domain
-                                              </>
-                                            )}
-                                          </Button>
                                           {!lead.domain && (
                                             <p className="text-xs text-muted-foreground text-center mt-1">
                                               Find a domain first to check validity
