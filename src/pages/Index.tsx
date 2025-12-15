@@ -65,6 +65,13 @@ const Index = () => {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   const [bulkScoring, setBulkScoring] = useState(false);
   const [scoreProgress, setScoreProgress] = useState({ current: 0, total: 0, currentCompany: '' });
+  const [stats, setStats] = useState({
+    total: 0,
+    valid: 0,
+    invalid: 0,
+    notEnriched: 0,
+    diagnosisCounts: {} as Record<string, number>
+  });
   useEffect(() => {
     checkAuth();
   }, []);
@@ -110,6 +117,28 @@ const Index = () => {
         }
       });
       setCategoryCounts(counts);
+
+      // Calculate statistics
+      const valid = (data || []).filter(lead => 
+        lead.enrichment_confidence !== null && lead.enrichment_confidence >= 50
+      ).length;
+      const invalid = (data || []).filter(lead => 
+        lead.enrichment_confidence !== null && lead.enrichment_confidence < 50
+      ).length;
+      const notEnriched = (data || []).filter(lead => 
+        lead.enrichment_confidence === null && !lead.domain
+      ).length;
+
+      // Count diagnosis categories for invalid/not enriched leads
+      const diagnosisCounts: Record<string, number> = {};
+      (data || []).filter(lead => 
+        lead.enrichment_confidence === null || lead.enrichment_confidence < 50
+      ).forEach(lead => {
+        const category = lead.diagnosis_category || 'Not diagnosed';
+        diagnosisCounts[category] = (diagnosisCounts[category] || 0) + 1;
+      });
+
+      setStats({ total: (data || []).length, valid, invalid, notEnriched, diagnosisCounts });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -399,7 +428,73 @@ const Index = () => {
       </div>;
   }
   return <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
-      {activeView === "home" ? selectedCategory ? <div className="space-y-4">
+      {activeView === "statistics" ? (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Lead Statistics</h2>
+            <p className="text-muted-foreground">Overview of your lead enrichment status</p>
+          </div>
+          
+          {/* Overview Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 border rounded-lg bg-card">
+              <p className="text-sm text-muted-foreground">Total Leads</p>
+              <p className="text-3xl font-bold">{stats.total}</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+              <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
+              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
+              <p className="text-xs text-green-600/70 dark:text-green-400/70">≥50% confidence</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-600 dark:text-red-400">Invalid Domains</p>
+              <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalid}</p>
+              <p className="text-xs text-red-600/70 dark:text-red-400/70">&lt;50% confidence</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-muted/50">
+              <p className="text-sm text-muted-foreground">Not Enriched</p>
+              <p className="text-3xl font-bold">{stats.notEnriched}</p>
+              <p className="text-xs text-muted-foreground">Awaiting enrichment</p>
+            </div>
+          </div>
+
+          {/* Diagnosis Breakdown */}
+          {(stats.invalid + stats.notEnriched) > 0 && (
+            <div className="p-6 border rounded-lg">
+              <h3 className="font-medium mb-4">Invalid/Not Enriched Breakdown by Diagnosis</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Object.entries(stats.diagnosisCounts)
+                  .sort(([,a], [,b]) => b - a)
+                  .map(([category, count]) => (
+                    <div key={category} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                      <span className="text-sm">{category}</span>
+                      <span className="font-semibold text-lg">{count}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Category Breakdown */}
+          <div className="p-6 border rounded-lg">
+            <h3 className="font-medium mb-4">Leads by Category</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {CATEGORIES.map(category => {
+                const Icon = category.icon;
+                return (
+                  <div key={category.name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary" />
+                      <span className="text-sm">{category.name}</span>
+                    </div>
+                    <span className="font-semibold">{categoryCounts[category.name] || 0}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : activeView === "home" ? selectedCategory ? <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h2 className="text-2xl font-semibold">{selectedCategory}</h2>
