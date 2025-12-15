@@ -61,7 +61,7 @@ serve(async (req) => {
     // Fetch the lead including enrichment_logs
     const { data: lead, error: fetchError } = await supabase
       .from('leads')
-      .select('enrichment_source, enrichment_confidence, enrichment_logs, distance_miles, domain_relevance_score, industry_relevance_score, email_domain_validated')
+      .select('enrichment_source, enrichment_confidence, enrichment_logs, distance_miles, domain_relevance_score, email_domain_validated')
       .eq('id', leadId)
       .single();
 
@@ -112,9 +112,9 @@ serve(async (req) => {
       matchScoreSource = 'email_domain';
       console.log(`Step 2b applied: Email domain verified from logs (confidence ${bestEnrichment.confidence}%) - 99%`);
     }
-    // Step 3: Equal-weighted calculation (33.33% each: distance, domain, industry)
+    // Step 3: Equal-weighted calculation (50% each: distance, domain)
     else {
-      console.log('Step 3: Calculating with equal weights (distance, domain, industry)');
+      console.log('Step 3: Calculating with equal weights (distance, domain)');
       
       // Get distance in miles (default to high distance if not available)
       const distanceMiles = lead.distance_miles ?? 999;
@@ -140,19 +140,18 @@ serve(async (req) => {
         distanceScore = Math.max(0, 20 - ((distanceMiles - 100) * 0.2));
       }
       
-      // Get relevance scores (0-100)
+      // Get domain relevance score (0-100)
       const domainScore = lead.domain_relevance_score || 0;
-      const industryScore = lead.industry_relevance_score || 0;
       
-      // Equal weights: 33.33% each
-      const combinedScore = (distanceScore + domainScore + industryScore) / 3;
+      // Equal weights: 50% each
+      const combinedScore = (distanceScore + domainScore) / 2;
       
       // Scale to 0-70 range (keeping headroom for email/KG verified leads at 95-99)
       matchScore = Math.round(combinedScore * 0.7);
       
       matchScoreSource = 'calculated';
-      console.log(`Step 3 inputs: Distance=${distanceMiles}mi → ${distanceScore.toFixed(1)}, Domain=${domainScore}, Industry=${industryScore}`);
-      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore} + ${industryScore}) / 3 = ${combinedScore.toFixed(1)}`);
+      console.log(`Step 3 inputs: Distance=${distanceMiles}mi → ${distanceScore.toFixed(1)}, Domain=${domainScore}`);
+      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore}) / 2 = ${combinedScore.toFixed(1)}`);
       console.log(`Step 3 final: ${combinedScore.toFixed(1)} * 0.7 = ${matchScore}`);
     }
 
