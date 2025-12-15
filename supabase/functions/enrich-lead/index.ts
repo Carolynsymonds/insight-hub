@@ -108,6 +108,37 @@ function extractCorrectedCompanyName(spellingFix: string): string | null {
   return null;
 }
 
+// Blocked domains that should not be accepted as company websites
+const BLOCKED_DOMAINS = [
+  'facebook.com',
+  'linkedin.com',
+  'instagram.com',
+  'twitter.com',
+  'x.com',
+  'youtube.com',
+  'yelp.com',
+  'pinterest.com',
+  'tiktok.com',
+  'nextdoor.com',
+  'thumbtack.com',
+  'angieslist.com',
+  'homeadvisor.com',
+  'bbb.org',
+  'mapquest.com',
+  'yellowpages.com',
+  'whitepages.com',
+  'manta.com',
+  'google.com',
+  'wikipedia.org'
+];
+
+function isBlockedDomain(domain: string): boolean {
+  const normalizedDomain = domain.toLowerCase();
+  return BLOCKED_DOMAINS.some(blocked => 
+    normalizedDomain === blocked || normalizedDomain.endsWith('.' + blocked)
+  );
+}
+
 async function performGoogleSearch(
   query: string,
   serpApiKey: string,
@@ -180,31 +211,43 @@ async function performGoogleSearch(
     }
     
     if (websiteUrl) {
-      const fullUrl = normalizeDomain(websiteUrl);
-      domain = extractRootDomain(websiteUrl);
-      sourceUrl = fullUrl;
-      confidence = 100;
-      sourceType = "knowledge_graph";
-      selectedOrg = {
-        name: data.knowledge_graph.title || "",
-        domain: domain,
-      };
-      console.log(`Extracted domain from knowledge_graph: ${domain} (source: ${sourceUrl})`);
+      const extractedDomain = extractRootDomain(websiteUrl);
+      // Check if domain is blocked (social media, directories, etc.)
+      if (!isBlockedDomain(extractedDomain)) {
+        const fullUrl = normalizeDomain(websiteUrl);
+        domain = extractedDomain;
+        sourceUrl = fullUrl;
+        confidence = 100;
+        sourceType = "knowledge_graph";
+        selectedOrg = {
+          name: data.knowledge_graph.title || "",
+          domain: domain,
+        };
+        console.log(`Extracted domain from knowledge_graph: ${domain} (source: ${sourceUrl})`);
+      } else {
+        console.log(`Skipping blocked domain from knowledge_graph: ${extractedDomain}`);
+      }
     }
   }
   
   if (!domain && data.local_results?.places?.[0]?.links?.website) {
     // Fallback to local results
-    const fullUrl = normalizeDomain(data.local_results.places[0].links.website);
-    domain = extractRootDomain(data.local_results.places[0].links.website);
-    sourceUrl = fullUrl;
-    confidence = 50;
-    sourceType = "local_results";
-    selectedOrg = {
-      name: data.local_results.places[0].title || "",
-      domain: domain,
-    };
-    console.log(`Extracted domain from local_results: ${domain} (source: ${sourceUrl})`);
+    const potentialDomain = extractRootDomain(data.local_results.places[0].links.website);
+    // Check if domain is blocked (social media, directories, etc.)
+    if (!isBlockedDomain(potentialDomain)) {
+      const fullUrl = normalizeDomain(data.local_results.places[0].links.website);
+      domain = potentialDomain;
+      sourceUrl = fullUrl;
+      confidence = 50;
+      sourceType = "local_results";
+      selectedOrg = {
+        name: data.local_results.places[0].title || "",
+        domain: domain,
+      };
+      console.log(`Extracted domain from local_results: ${domain} (source: ${sourceUrl})`);
+    } else {
+      console.log(`Skipping blocked domain from local_results: ${potentialDomain}`);
+    }
   }
 
   // Extract GPS coordinates - prioritize local_results.places (actual business location)
