@@ -57,6 +57,7 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid' | 'not_enriched'>('valid');
+  const [batchFilter, setBatchFilter] = useState<'all' | number>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -132,7 +133,19 @@ const Index = () => {
     setRolesDialogOpen(true);
   };
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
+  
+  // Get unique batches from category leads
+  const uniqueBatches = [...new Set(
+    categoryFilteredLeads
+      .filter(lead => lead.upload_batch !== null)
+      .map(lead => lead.upload_batch as number)
+  )].sort((a, b) => a - b);
+
   const filteredLeads = categoryFilteredLeads.filter((lead) => {
+    // Batch filter
+    if (batchFilter !== 'all' && lead.upload_batch !== batchFilter) return false;
+    
+    // Domain filter
     if (domainFilter === 'all') return true;
     if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
     if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
@@ -205,6 +218,22 @@ const Index = () => {
                       <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
                       <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
                       <SelectItem value="not_enriched">Not Enriched</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select 
+                    value={batchFilter === 'all' ? 'all' : String(batchFilter)} 
+                    onValueChange={(value) => setBatchFilter(value === 'all' ? 'all' : Number(value))}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Batch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Batches</SelectItem>
+                      {uniqueBatches.map((batch) => (
+                        <SelectItem key={batch} value={String(batch)}>
+                          Batch {batch}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

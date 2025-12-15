@@ -175,6 +175,7 @@ export type Database = {
           tech_stack: string | null
           truck_types: string | null
           updated_at: string | null
+          upload_batch: number | null
           user_id: string
           vehicle_tracking_interest_explanation: string | null
           vehicle_tracking_interest_score: number | null
@@ -258,6 +259,7 @@ export type Database = {
           tech_stack?: string | null
           truck_types?: string | null
           updated_at?: string | null
+          upload_batch?: number | null
           user_id: string
           vehicle_tracking_interest_explanation?: string | null
           vehicle_tracking_interest_score?: number | null
@@ -341,6 +343,7 @@ export type Database = {
           tech_stack?: string | null
           truck_types?: string | null
           updated_at?: string | null
+          upload_batch?: number | null
           user_id?: string
           vehicle_tracking_interest_explanation?: string | null
           vehicle_tracking_interest_score?: number | null

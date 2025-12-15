@@ -317,9 +317,21 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       
       if (!user) throw new Error("Not authenticated");
 
+      // Get the next batch number
+      const { data: maxBatchResult } = await supabase
+        .from("leads")
+        .select("upload_batch")
+        .eq("user_id", user.id)
+        .order("upload_batch", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const nextBatch = (maxBatchResult?.upload_batch || 0) + 1;
+
       const leads = previewData.leads.map(lead => ({
         ...lead,
         user_id: user.id,
+        upload_batch: nextBatch,
       }));
 
       // Query existing leads to check for duplicates
