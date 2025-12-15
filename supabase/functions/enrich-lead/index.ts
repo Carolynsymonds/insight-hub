@@ -303,6 +303,112 @@ async function performGoogleSearch(
   };
 }
 
+// AI Spelling Validation helper function
+async function validateSpellingWithAI(
+  company: string,
+  city: string | null,
+  state: string | null
+): Promise<{
+  correctedCompany: string;
+  correctedCity: string | null;
+  correctedState: string | null;
+  corrections: { field: string; original: string; corrected: string }[];
+}> {
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  
+  if (!lovableApiKey) {
+    console.log("No LOVABLE_API_KEY configured, skipping AI spelling validation");
+    return { correctedCompany: company, correctedCity: city, correctedState: state, corrections: [] };
+  }
+
+  try {
+    console.log(`AI Spelling Validation: Checking company="${company}", city="${city}", state="${state}"`);
+    
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{
+          role: "user",
+          content: `Review these business lead fields for spelling errors, abbreviations, or typos and provide corrections:
+
+Company: "${company}"
+City: "${city || 'N/A'}"
+State: "${state || 'N/A'}"
+
+Common patterns to fix:
+- Abbreviated city names: "SPRNGFLD" → "Springfield", "CHERKEE HMSTD" → "Cherokee Homestead"
+- Missing vowels: "LNCLN" → "Lincoln"
+- Shortened words: "HMSTD" → "Homestead", "MTN" → "Mountain"
+- State abbreviations are OK (MO, TX, CA etc.)
+
+Return ONLY a valid JSON object with the corrected values. If no correction is needed for a field, return the original value.
+Format: {"company": "...", "city": "...", "state": "..."}`
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`AI spelling validation failed: ${response.status}`);
+      return { correctedCompany: company, correctedCity: city, correctedState: state, corrections: [] };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.log("AI returned no content");
+      return { correctedCompany: company, correctedCity: city, correctedState: state, corrections: [] };
+    }
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonStr = content;
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    } else {
+      // Try to find JSON object directly
+      const directMatch = content.match(/\{[\s\S]*\}/);
+      if (directMatch) {
+        jsonStr = directMatch[0];
+      }
+    }
+
+    const parsed = JSON.parse(jsonStr);
+    const corrections: { field: string; original: string; corrected: string }[] = [];
+
+    const correctedCompany = parsed.company || company;
+    const correctedCity = parsed.city === "N/A" ? city : (parsed.city || city);
+    const correctedState = parsed.state === "N/A" ? state : (parsed.state || state);
+
+    // Track corrections
+    if (correctedCompany.toLowerCase() !== company.toLowerCase()) {
+      corrections.push({ field: "company", original: company, corrected: correctedCompany });
+    }
+    if (city && correctedCity && correctedCity.toLowerCase() !== city.toLowerCase()) {
+      corrections.push({ field: "city", original: city, corrected: correctedCity });
+    }
+    if (state && correctedState && correctedState.toLowerCase() !== state.toLowerCase()) {
+      corrections.push({ field: "state", original: state, corrected: correctedState });
+    }
+
+    if (corrections.length > 0) {
+      console.log(`AI Spelling Corrections made: ${JSON.stringify(corrections)}`);
+    } else {
+      console.log("AI found no spelling corrections needed");
+    }
+
+    return { correctedCompany, correctedCity, correctedState, corrections };
+  } catch (error) {
+    console.error("AI spelling validation error:", error);
+    return { correctedCompany: company, correctedCity: city, correctedState: state, corrections: [] };
+  }
+}
+
 async function enrichWithGoogle(
   company: string,
   city: string | null,
@@ -324,14 +430,48 @@ async function enrichWithGoogle(
   }
 
   const timestamp = new Date().toISOString();
-  const locationPart = [city, state].filter(Boolean).join(" ");
+  const searchSteps: EnrichmentLog["searchSteps"] = [];
+
+  // STEP 0: AI Spelling Validation
+  console.log("Step 0: AI Spelling Validation");
+  const spellingResult = await validateSpellingWithAI(company, city, state);
+  
+  // Use corrected values for all subsequent searches
+  const searchCompany = spellingResult.correctedCompany;
+  const searchCity = spellingResult.correctedCity;
+  const searchState = spellingResult.correctedState;
+  
+  // Log the spelling validation step
+  if (spellingResult.corrections.length > 0) {
+    const correctionsSummary = spellingResult.corrections
+      .map(c => `${c.field}: "${c.original}" → "${c.corrected}"`)
+      .join(", ");
+    
+    searchSteps.push({
+      step: "0 - AI Spelling",
+      query: `Reviewed: Company="${company}", City="${city || 'N/A'}", State="${state || 'N/A'}"`,
+      resultFound: true,
+      spellingCorrection: {
+        original: `${company}, ${city || 'N/A'}, ${state || 'N/A'}`,
+        corrected: `${searchCompany}, ${searchCity || 'N/A'}, ${searchState || 'N/A'}`,
+      },
+    });
+    console.log(`Step 0: Corrections applied - ${correctionsSummary}`);
+  } else {
+    searchSteps.push({
+      step: "0 - AI Spelling",
+      query: `Reviewed: Company="${company}", City="${city || 'N/A'}", State="${state || 'N/A'}"`,
+      resultFound: false,
+    });
+    console.log("Step 0: No corrections needed");
+  }
+
+  const locationPart = [searchCity, searchState].filter(Boolean).join(" ");
 
   // STEP 1: Detailed search with company name, location, and MICS sector (if available)
   const micsPartStep1 = micsSector ? ` ${micsSector}` : "";
-  const step1Query = `"${company}" ${locationPart}${micsPartStep1} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
-  console.log(`Step 1: Detailed search for company: ${company}, location: ${locationPart}${micsSector ? `, MICS: ${micsSector}` : ""}`);
-
-  const searchSteps: EnrichmentLog["searchSteps"] = [];
+  const step1Query = `"${searchCompany}" ${locationPart}${micsPartStep1} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
+  console.log(`Step 1: Detailed search for company: ${searchCompany}, location: ${locationPart}${micsSector ? `, MICS: ${micsSector}` : ""}`);
   let finalResult: any;
   let finalDomain: string | null = null;
   let finalSourceUrl: string | null = null;
@@ -370,15 +510,15 @@ async function enrichWithGoogle(
       // Step 1 failed but spelling correction detected
       const correctedName = extractCorrectedCompanyName(step1Result.searchInformation.spelling_fix);
 
-      if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-        console.log(`Step 1 spelling correction: "${company}" → "${correctedName}"`);
+      if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+        console.log(`Step 1 spelling correction: "${searchCompany}" → "${correctedName}"`);
 
         searchSteps.push({
           step: "1-correction",
-          query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+          query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
           resultFound: false,
           spellingCorrection: {
-            original: company,
+            original: searchCompany,
             corrected: correctedName,
           },
         });
@@ -414,7 +554,7 @@ async function enrichWithGoogle(
     if (!finalDomain && micsSector) {
       // STEP 2: Fallback to industry search if Step 1 failed and we have MICS sector
       // Step 2a: WITH filters
-      const step2Query = `${company} ${city || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
+      const step2Query = `${searchCompany} ${searchCity || ""} ${micsSector} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 2a: Industry fallback search with query: ${step2Query}`);
 
       const step2Result = await performGoogleSearch(step2Query, serpApiKey);
@@ -444,20 +584,20 @@ async function enrichWithGoogle(
         // Step 2a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step2Result.searchInformation.spelling_fix);
 
-        if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 2a spelling correction: "${company}" → "${correctedName}"`);
+        if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+          console.log(`Step 2a spelling correction: "${searchCompany}" → "${correctedName}"`);
 
           searchSteps.push({
             step: "2a-correction",
-            query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+            query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
-              original: company,
+              original: searchCompany,
               corrected: correctedName,
             },
           });
 
-          const correctedQuery = step2Query.replace(company, correctedName);
+          const correctedQuery = step2Query.replace(searchCompany, correctedName);
           const step2bResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
           searchSteps.push({
@@ -487,7 +627,7 @@ async function enrichWithGoogle(
 
       // Step 2c: WITHOUT filters (if 2a and 2b failed)
       if (!finalDomain) {
-        const step2cQuery = `${company} ${city || ""} ${micsSector}`;
+        const step2cQuery = `${searchCompany} ${searchCity || ""} ${micsSector}`;
         console.log(`Step 2c: Industry search without filters: ${step2cQuery}`);
 
         const step2cResult = await performGoogleSearch(step2cQuery, serpApiKey);
@@ -515,20 +655,20 @@ async function enrichWithGoogle(
         } else if (step2cResult.searchInformation?.spelling_fix) {
           const correctedName = extractCorrectedCompanyName(step2cResult.searchInformation.spelling_fix);
 
-          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-            console.log(`Step 2c spelling correction: "${company}" → "${correctedName}"`);
+          if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+            console.log(`Step 2c spelling correction: "${searchCompany}" → "${correctedName}"`);
 
             searchSteps.push({
               step: "2c-correction",
-              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
               resultFound: false,
               spellingCorrection: {
-                original: company,
+                original: searchCompany,
                 corrected: correctedName,
               },
             });
 
-            const correctedQuery = step2cQuery.replace(company, correctedName);
+            const correctedQuery = step2cQuery.replace(searchCompany, correctedName);
             const step2dResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
             searchSteps.push({
@@ -570,7 +710,7 @@ async function enrichWithGoogle(
     // STEP 3: Simple search fallback (if Steps 1 & 2 both failed or Step 2 was skipped)
     if (!finalDomain) {
       // Step 3a: WITH filters
-      const step3Query = `${company} ${locationPart} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
+      const step3Query = `${searchCompany} ${locationPart} ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 3a: Simple fallback search with query: ${step3Query}`);
 
       const step3Result = await performGoogleSearch(step3Query, serpApiKey);
@@ -599,20 +739,20 @@ async function enrichWithGoogle(
         // Step 3a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step3Result.searchInformation.spelling_fix);
 
-        if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 3a spelling correction: "${company}" → "${correctedName}"`);
+        if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+          console.log(`Step 3a spelling correction: "${searchCompany}" → "${correctedName}"`);
 
           searchSteps.push({
             step: "3a-correction",
-            query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+            query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
-              original: company,
+              original: searchCompany,
               corrected: correctedName,
             },
           });
 
-          const correctedQuery = step3Query.replace(company, correctedName);
+          const correctedQuery = step3Query.replace(searchCompany, correctedName);
           const step3bResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
           searchSteps.push({
@@ -642,7 +782,7 @@ async function enrichWithGoogle(
 
       // Step 3c: WITHOUT filters (if 3a and 3b failed)
       if (!finalDomain) {
-        const step3cQuery = `${company} ${locationPart}`;
+        const step3cQuery = `${searchCompany} ${locationPart}`;
         console.log(`Step 3c: Simple search without filters: ${step3cQuery}`);
 
         const step3cResult = await performGoogleSearch(step3cQuery, serpApiKey);
@@ -670,20 +810,20 @@ async function enrichWithGoogle(
         } else if (step3cResult.searchInformation?.spelling_fix) {
           const correctedName = extractCorrectedCompanyName(step3cResult.searchInformation.spelling_fix);
 
-          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-            console.log(`Step 3c spelling correction: "${company}" → "${correctedName}"`);
+          if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+            console.log(`Step 3c spelling correction: "${searchCompany}" → "${correctedName}"`);
 
             searchSteps.push({
               step: "3c-correction",
-              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
               resultFound: false,
               spellingCorrection: {
-                original: company,
+                original: searchCompany,
                 corrected: correctedName,
               },
             });
 
-            const correctedQuery = step3cQuery.replace(company, correctedName);
+            const correctedQuery = step3cQuery.replace(searchCompany, correctedName);
             const step3dResult = await performGoogleSearch(correctedQuery, serpApiKey);
 
             searchSteps.push({
@@ -716,7 +856,7 @@ async function enrichWithGoogle(
     // STEP 4: Company name only search (if all previous steps failed)
     if (!finalDomain) {
       // Step 4a: WITH filters
-      const step4Query = `"${company}" ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
+      const step4Query = `"${searchCompany}" ("official site" OR "website" OR "home page") -jobs -indeed -glassdoor -yelp`;
       console.log(`Step 4a: Company name only search with query: ${step4Query}`);
 
       const step4Result = await performGoogleSearch(step4Query, serpApiKey);
@@ -745,15 +885,15 @@ async function enrichWithGoogle(
         // Step 4a failed but spelling correction detected
         const correctedName = extractCorrectedCompanyName(step4Result.searchInformation.spelling_fix);
 
-        if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-          console.log(`Step 4a spelling correction: "${company}" → "${correctedName}"`);
+        if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+          console.log(`Step 4a spelling correction: "${searchCompany}" → "${correctedName}"`);
 
           searchSteps.push({
             step: "4a-correction",
-            query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+            query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
             resultFound: false,
             spellingCorrection: {
-              original: company,
+              original: searchCompany,
               corrected: correctedName,
             },
           });
@@ -788,7 +928,7 @@ async function enrichWithGoogle(
 
       // Step 4c: WITHOUT filters (if 4a and 4b failed)
       if (!finalDomain) {
-        const step4cQuery = `"${company}"`;
+        const step4cQuery = `"${searchCompany}"`;
         console.log(`Step 4c: Company name only without filters: ${step4cQuery}`);
 
         const step4cResult = await performGoogleSearch(step4cQuery, serpApiKey);
@@ -816,15 +956,15 @@ async function enrichWithGoogle(
         } else if (step4cResult.searchInformation?.spelling_fix) {
           const correctedName = extractCorrectedCompanyName(step4cResult.searchInformation.spelling_fix);
 
-          if (correctedName && correctedName.toLowerCase() !== company.toLowerCase()) {
-            console.log(`Step 4c spelling correction: "${company}" → "${correctedName}"`);
+          if (correctedName && correctedName.toLowerCase() !== searchCompany.toLowerCase()) {
+            console.log(`Step 4c spelling correction: "${searchCompany}" → "${correctedName}"`);
 
             searchSteps.push({
               step: "4c-correction",
-              query: `Spelling correction detected: "${company}" → "${correctedName}"`,
+              query: `Spelling correction detected: "${searchCompany}" → "${correctedName}"`,
               resultFound: false,
               spellingCorrection: {
-                original: company,
+                original: searchCompany,
                 corrected: correctedName,
               },
             });
