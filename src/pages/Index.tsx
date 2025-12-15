@@ -275,8 +275,8 @@ const Index = () => {
               city: lead.city,
               state: lead.state,
               zipcode: lead.zipcode,
-              destinationLat: leadWithCoords.latitude,
-              destinationLng: leadWithCoords.longitude
+              latitude: leadWithCoords.latitude,
+              longitude: leadWithCoords.longitude
             }
           });
         }
