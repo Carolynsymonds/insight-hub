@@ -1033,33 +1033,36 @@ async function enrichWithEmail(
     resultFound: true,
   });
 
-  // Step 4: Verify domain exists via DNS lookup
+  // Step 4: Verify domain using validate-domain function
   try {
-    const dnsQuery = `https://dns.google/resolve?name=${emailDomain}&type=A`;
-    console.log(`Verifying domain with DNS query: ${dnsQuery}`);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    console.log(`Validating domain via validate-domain function: ${emailDomain}`);
+    
+    const validateResponse = await fetch(`${supabaseUrl}/functions/v1/validate-domain`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ domain: emailDomain }),
+    });
 
-    const response = await fetch(dnsQuery);
-
-    if (!response.ok) {
-      throw new Error(`DNS lookup failed: ${response.status}`);
+    if (!validateResponse.ok) {
+      throw new Error(`validate-domain function failed: ${validateResponse.status}`);
     }
 
-    const data = await response.json();
+    const validationResult = await validateResponse.json();
+    console.log(`Domain validation result:`, validationResult);
 
-    // Status 0 = Success (NOERROR), Status 3 = NXDOMAIN (domain doesn't exist)
-    const hasARecords = data.Status === 0 && data.Answer && data.Answer.length > 0;
-
-    console.log(`DNS lookup result: Status=${data.Status}, HasARecords=${hasARecords}`);
-
-    if (hasARecords) {
-      // Domain verified - has valid A records
-      const ipAddresses = data.Answer.filter((a: any) => a.type === 1).map((a: any) => a.data);
-
+    if (validationResult.is_valid_domain) {
+      // Domain verified
       searchSteps.push({
         step: 3,
-        query: dnsQuery,
+        query: `validate-domain: ${emailDomain}`,
         resultFound: true,
-        source: `DNS resolved to ${ipAddresses.length} IP address(es): ${ipAddresses.join(", ")}`,
+        source: `${validationResult.reason} (DNS: ${validationResult.dns_valid}, HTTP: ${validationResult.http_status}${validationResult.redirect_to ? `, Redirect: ${validationResult.redirect_to}` : ''})`,
       });
 
       const log: EnrichmentLog = {
@@ -1077,18 +1080,15 @@ async function enrichWithEmail(
         source: "email_domain_verified",
         searchSteps,
       };
-      console.log(`Domain verified via DNS with 95% confidence: ${emailDomain}`);
+      console.log(`Domain verified via validate-domain with 95% confidence: ${emailDomain}`);
       return { domain: emailDomain, sourceUrl: emailDomain, confidence: 95, source: "email_domain_verified", log };
     } else {
-      // Domain not verified - no A records or NXDOMAIN
-      const reason =
-        data.Status === 3 ? "NXDOMAIN - domain does not exist" : "No A records found - domain may not have a website";
-
+      // Domain not verified
       searchSteps.push({
         step: 3,
-        query: dnsQuery,
+        query: `validate-domain: ${emailDomain}`,
         resultFound: false,
-        source: reason,
+        source: `${validationResult.reason} (DNS: ${validationResult.dns_valid}, HTTP: ${validationResult.http_status}${validationResult.redirect_to ? `, Redirect: ${validationResult.redirect_to}` : ''})`,
       });
 
       const log: EnrichmentLog = {
@@ -1102,16 +1102,17 @@ async function enrichWithEmail(
         source: "email_domain_not_verified",
         searchSteps,
       };
-      console.log(`Domain not verified: ${emailDomain} - ${reason}`);
+      console.log(`Domain not verified: ${emailDomain} - ${validationResult.reason}`);
       return { domain: null, sourceUrl: null, confidence: 0, source: "email_domain_not_verified", log };
     }
-  } catch (error) {
-    console.error("Error verifying email domain:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("Error validating email domain:", error);
     searchSteps.push({
       step: 3,
-      query: `https://dns.google/resolve?name=${emailDomain}&type=A`,
+      query: `validate-domain: ${emailDomain}`,
       resultFound: false,
-      source: "Error during verification",
+      source: `Error during validation: ${errorMessage}`,
     });
 
     const log: EnrichmentLog = {
