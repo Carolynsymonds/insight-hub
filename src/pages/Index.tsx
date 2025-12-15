@@ -276,7 +276,7 @@ const Index = () => {
                 </Button>
               </div>
             </div>
-            <LeadsTable leads={categoryFilteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
+            <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-2">Select a Category</h2>
