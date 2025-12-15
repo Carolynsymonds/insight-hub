@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2 } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2 } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 
 const CATEGORIES = [{
@@ -61,6 +61,8 @@ const Index = () => {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
+  const [bulkEnriching, setBulkEnriching] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   useEffect(() => {
     checkAuth();
   }, []);
@@ -132,6 +134,95 @@ const Index = () => {
     setRolesDialogCategory(categoryName);
     setRolesDialogOpen(true);
   };
+
+  const handleBulkFindDomains = async () => {
+    const leadsToEnrich = filteredLeads.filter(lead => !lead.domain && lead.company);
+    
+    if (leadsToEnrich.length === 0) {
+      toast({
+        title: "No leads to enrich",
+        description: "All displayed leads already have domains or no company name.",
+      });
+      return;
+    }
+
+    setBulkEnriching(true);
+    setBulkProgress({ current: 0, total: leadsToEnrich.length, currentCompany: '' });
+
+    try {
+      for (let i = 0; i < leadsToEnrich.length; i++) {
+        const lead = leadsToEnrich[i];
+        setBulkProgress({ current: i + 1, total: leadsToEnrich.length, currentCompany: lead.company || '' });
+
+        // Run all 3 sources sequentially
+        await supabase.functions.invoke("enrich-lead", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            mics_sector: lead.mics_sector,
+            email: lead.email,
+            source: "apollo"
+          }
+        });
+
+        await supabase.functions.invoke("enrich-lead", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            mics_sector: lead.mics_sector,
+            email: lead.email,
+            source: "google"
+          }
+        });
+
+        if (lead.email) {
+          await supabase.functions.invoke("enrich-lead", {
+            body: {
+              leadId: lead.id,
+              company: lead.company,
+              city: lead.city,
+              state: lead.state,
+              mics_sector: lead.mics_sector,
+              email: lead.email,
+              source: "email"
+            }
+          });
+        }
+
+        // Check if domain found, run diagnosis if not
+        const { data: updated } = await supabase.from("leads").select("domain, enrichment_logs").eq("id", lead.id).maybeSingle();
+        if (!updated?.domain) {
+          await supabase.functions.invoke("diagnose-enrichment", {
+            body: {
+              leadId: lead.id,
+              leadData: lead,
+              enrichmentLogs: updated?.enrichment_logs || []
+            }
+          });
+        }
+      }
+
+      toast({
+        title: "Bulk enrichment complete",
+        description: `Processed ${leadsToEnrich.length} leads.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error during bulk enrichment",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkEnriching(false);
+      setBulkProgress({ current: 0, total: 0, currentCompany: '' });
+      fetchLeads();
+    }
+  };
+
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
   
   // Get unique batches from category leads
@@ -247,34 +338,55 @@ const Index = () => {
               </div>
             </div>
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">View:</span>
-              <div className="flex border rounded-md overflow-hidden">
-                <Button
-                  variant={viewMode === 'company' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="rounded-none border-0"
-                  onClick={() => setViewMode('company')}
-                >
-                  Company
-                </Button>
-                <Button
-                  variant={viewMode === 'contact' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="rounded-none border-0 border-x"
-                  onClick={() => setViewMode('contact')}
-                >
-                  Contact
-                </Button>
-                <Button
-                  variant={viewMode === 'all' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="rounded-none border-0"
-                  onClick={() => setViewMode('all')}
-                >
-                  View All
-                </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">View:</span>
+                <div className="flex border rounded-md overflow-hidden">
+                  <Button
+                    variant={viewMode === 'company' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-none border-0"
+                    onClick={() => setViewMode('company')}
+                  >
+                    Company
+                  </Button>
+                  <Button
+                    variant={viewMode === 'contact' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-none border-0 border-x"
+                    onClick={() => setViewMode('contact')}
+                  >
+                    Contact
+                  </Button>
+                  <Button
+                    variant={viewMode === 'all' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-none border-0"
+                    onClick={() => setViewMode('all')}
+                  >
+                    View All
+                  </Button>
+                </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkFindDomains}
+                disabled={bulkEnriching || filteredLeads.length === 0}
+                className="gap-2"
+              >
+                {bulkEnriching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Finding... ({bulkProgress.current}/{bulkProgress.total})
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    Find Domains
+                  </>
+                )}
+              </Button>
             </div>
             <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
