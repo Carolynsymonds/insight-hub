@@ -87,14 +87,8 @@ serve(async (req) => {
     let matchScore: number;
     let matchScoreSource: string;
 
-    // Step 0 (HIGHEST PRIORITY): Check if email domain is validated via scraping match
-    if (lead.email_domain_validated === true) {
-      matchScore = 100;
-      matchScoreSource = 'email_validated';
-      console.log('Step 0 applied: Email validated via website scrape - 100%');
-    }
     // Step 1: Check if email domain is verified (using effective source)
-    else if (effectiveSource === 'email_domain_verified') {
+    if (effectiveSource === 'email_domain_verified') {
       matchScore = 99;
       matchScoreSource = 'email_domain';
       console.log('Step 1 applied: Email domain verified - 99%');
