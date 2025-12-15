@@ -114,14 +114,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get existing enrichment logs
+    // Get existing enrichment logs and diagnosis
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs")
+      .select("enrichment_logs, diagnosis_category")
       .eq("id", leadId)
       .single();
 
     const existingLogs = existingLead?.enrichment_logs || [];
+    
+    // Update diagnosis to "Socials found" if we found a profile and current diagnosis indicates no domain
+    const shouldUpdateDiagnosis = foundLinkedin && 
+      existingLead?.diagnosis_category === "Company doesn't exist / New company";
 
     // Create new log entry with query and top3Results
     const newLog = {
@@ -145,6 +149,7 @@ serve(async (req) => {
         linkedin_source_url: foundLinkedinSourceUrl,
         enrichment_logs: [...existingLogs, newLog],
         updated_at: new Date().toISOString(),
+        ...(shouldUpdateDiagnosis && { diagnosis_category: "Socials found" }),
       })
       .eq("id", leadId);
 
