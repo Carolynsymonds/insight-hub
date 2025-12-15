@@ -722,15 +722,19 @@ const LeadsTable = ({
         if (emailResult.data?.domain) domainFound = true;
       }
 
-      // Step 4: Always run diagnosis when no domain found from any source
+      // Step 4: Run diagnosis when no domain found from any source
+      // Refetch lead to check if domain was found and get updated enrichment_logs
+      const { data: updatedLead } = await supabase
+        .from("leads")
+        .select("domain, enrichment_logs")
+        .eq("id", lead.id)
+        .single();
+      
+      // Check if domain exists in database (might have been found by one of the sources)
+      domainFound = !!updatedLead?.domain;
+
       if (!domainFound) {
         setFindDomainStep('Diagnosing...');
-        // Refetch lead to get updated enrichment_logs
-        const { data: updatedLead } = await supabase
-          .from("leads")
-          .select("enrichment_logs")
-          .eq("id", lead.id)
-          .single();
 
         await supabase.functions.invoke("diagnose-enrichment", {
           body: {
