@@ -183,6 +183,20 @@ Analyze each platform and provide your validation.`;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Check if any social is now validated as valid
+    const anyValidSocial = facebookValid === true || linkedinValid === true || instagramValid === true;
+
+    // Get current diagnosis to check if we should update it
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("diagnosis_category")
+      .eq("id", leadId)
+      .single();
+
+    // Update diagnosis to "Socials found" only if at least one social is VALID and current diagnosis indicates no domain
+    const shouldUpdateDiagnosis = anyValidSocial && 
+      existingLead?.diagnosis_category === "Company doesn't exist / New company";
+
     const validationLog = {
       timestamp: new Date().toISOString(),
       lead_info: { company, city, state, mics_sector, mics_subsector, mics_segment },
@@ -199,6 +213,7 @@ Analyze each platform and provide your validation.`;
         linkedin_validated: linkedinValid,
         instagram_validated: instagramValid,
         social_validation_log: validationLog,
+        ...(shouldUpdateDiagnosis && { diagnosis_category: "Socials found" }),
       })
       .eq("id", leadId);
 
