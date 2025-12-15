@@ -466,7 +466,7 @@ const Index = () => {
                 {Object.entries(stats.diagnosisCounts)
                   .sort(([,a], [,b]) => b - a)
                   .map(([category, count]) => (
-                    <div key={category} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <div key={category} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
                       <span className="text-sm">{category}</span>
                       <span className="font-semibold text-lg">{count}</span>
                     </div>
@@ -482,7 +482,7 @@ const Index = () => {
               {CATEGORIES.map(category => {
                 const Icon = category.icon;
                 return (
-                  <div key={category.name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <div key={category.name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-primary" />
                       <span className="text-sm">{category.name}</span>
