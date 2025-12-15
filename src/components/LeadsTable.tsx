@@ -783,22 +783,28 @@ const LeadsTable = ({
 
     setCheckingDomain(lead.id);
     try {
-      const { data, error } = await supabase.functions.invoke("check-domain", {
+      const { data, error } = await supabase.functions.invoke("validate-domain", {
         body: {
-          leadId: lead.id,
           domain: lead.domain,
-          company: lead.company,
-          city: lead.city,
-          state: lead.state,
         },
       });
 
       if (error) throw error;
 
+      // Update the lead with validation result
+      const { error: updateError } = await supabase
+        .from("leads")
+        .update({
+          email_domain_validated: data.is_valid_domain,
+        })
+        .eq("id", lead.id);
+
+      if (updateError) throw updateError;
+
       toast({
-        title: data.isValid ? "Domain Valid ✓" : "Domain Invalid ✗",
+        title: data.is_valid_domain ? "Domain Valid ✓" : "Domain Invalid ✗",
         description: data.reason,
-        variant: data.isValid ? "default" : "destructive",
+        variant: data.is_valid_domain ? "default" : "destructive",
       });
 
       onEnrichComplete();
