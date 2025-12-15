@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -313,6 +314,7 @@ const LeadsTable = ({
   const [findingDomain, setFindingDomain] = useState<string | null>(null);
   const [findDomainStep, setFindDomainStep] = useState<string | null>(null);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
     check_existing: { status: string; message?: string; data?: Record<string, any> };
     apollo_search: { status: string; message?: string; data?: Record<string, any> };
@@ -374,6 +376,46 @@ const LeadsTable = ({
       }
     }
   }, [leads, selectedLead]);
+
+  // Clear selection when leads data changes
+  useEffect(() => {
+    setSelectedLeads(new Set());
+  }, [leads]);
+
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeads(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedLeads.size === filteredLeads.length && filteredLeads.length > 0) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeads.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedLeads.size} leads?`)) return;
+    
+    try {
+      const { error } = await supabase.from("leads").delete().in("id", Array.from(selectedLeads));
+      if (error) throw error;
+      toast({ title: "Success", description: `${selectedLeads.size} leads deleted.` });
+      setSelectedLeads(new Set());
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
 
   // Fetch clay enrichments when selectedLead changes
   useEffect(() => {
@@ -1659,6 +1701,12 @@ const LeadsTable = ({
               </SelectContent>
             </Select>
           </div>
+          {selectedLeads.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-2">
+              <Trash2 className="h-4 w-4" />
+              Delete ({selectedLeads.size})
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
@@ -1695,6 +1743,13 @@ const LeadsTable = ({
             <Table>
               <TableHeader className="sticky top-0 bg-background z-20">
                 <TableRow>
+                  {/* Checkbox column */}
+                  <TableHead className="w-[40px]">
+                    <Checkbox 
+                      checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length}
+                      onCheckedChange={toggleAllSelection}
+                    />
+                  </TableHead>
                   {/* View All & Contact: Name */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Name</TableHead>}
 {/* View All & Contact: Email */}
@@ -1778,7 +1833,7 @@ const LeadsTable = ({
                 {filteredLeads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={showEnrichedColumns ? 19 : 9}
+                      colSpan={showEnrichedColumns ? 20 : 10}
                       className="text-center text-muted-foreground py-8"
                     >
                       {leads.length === 0
@@ -1793,6 +1848,13 @@ const LeadsTable = ({
                       className="cursor-pointer hover:bg-muted/50 group"
                       onClick={() => showLeadDetails(lead)}
                     >
+                      {/* Checkbox cell */}
+                      <TableCell className="w-[40px]" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox 
+                          checked={selectedLeads.has(lead.id)}
+                          onCheckedChange={() => toggleLeadSelection(lead.id)}
+                        />
+                      </TableCell>
                       {/* View All & Contact: Name */}
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell className="font-medium">{lead.full_name}</TableCell>
