@@ -196,9 +196,10 @@ const Index = () => {
       setLoading(false);
     }
   };
-  const handleUploadComplete = () => {
+  const handleUploadComplete = (category: string) => {
     fetchLeads();
     setActiveView("home");
+    setSelectedCategory(category);
   };
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);

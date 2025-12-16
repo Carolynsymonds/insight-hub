@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LeadUploadProps {
-  onUploadComplete: () => void;
+  onUploadComplete: (category: string) => void;
   defaultCategory?: string;
 }
 
@@ -193,7 +193,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       setSelectedTruckTypes([]);
       setSelectedFeatures([]);
 
-      onUploadComplete();
+      onUploadComplete(formData.category);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -395,7 +395,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
 
       setShowPreview(false);
       setPreviewData(null);
-      onUploadComplete();
+      onUploadComplete(csvCategory);
     } catch (error: any) {
       toast({
         title: "Error",
