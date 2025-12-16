@@ -1913,19 +1913,6 @@ const LeadsTable = ({
         )}
 
         <div className="flex items-center gap-3 ml-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           <span className="text-sm text-muted-foreground">
             Showing {filteredLeads.length} of {leads.length} leads
           </span>
