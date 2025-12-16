@@ -357,7 +357,12 @@ const LeadsTable = ({
     phone_clay: string | null;
     created_at: string | null;
     raw_response: any;
+    profile_match_score: number | null;
+    profile_match_confidence: string | null;
+    profile_match_reasons: string[] | null;
+    profile_match_evaluated_at: string | null;
   }>>([]);
+  const [evaluatingMatchId, setEvaluatingMatchId] = useState<string | null>(null);
   const [allClayEnrichments, setAllClayEnrichments] = useState<Record<string, {
     title_clay: string | null;
     company_clay: string | null;
@@ -438,7 +443,15 @@ const LeadsTable = ({
         return;
       }
 
-      setClayEnrichments(data || []);
+      // Cast the data to include new match evaluation fields
+      const enrichmentsWithMatch = (data || []).map(d => ({
+        ...d,
+        profile_match_score: d.profile_match_score as number | null,
+        profile_match_confidence: d.profile_match_confidence as string | null,
+        profile_match_reasons: d.profile_match_reasons as string[] | null,
+        profile_match_evaluated_at: d.profile_match_evaluated_at as string | null,
+      }));
+      setClayEnrichments(enrichmentsWithMatch);
     };
 
     fetchClayEnrichments();
@@ -1567,6 +1580,64 @@ const LeadsTable = ({
       });
     } finally {
       setEnrichingWithClay(null);
+    }
+  };
+
+  const handleEvaluateMatch = async (enrichment: typeof clayEnrichments[0]) => {
+    if (!selectedLead) return;
+    
+    setEvaluatingMatchId(enrichment.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('evaluate-profile-match', {
+        body: {
+          enrichmentId: enrichment.id,
+          leadData: {
+            name: selectedLead.full_name,
+            company: selectedLead.company,
+            email: selectedLead.email,
+            location: selectedLead.city && selectedLead.state 
+              ? `${selectedLead.city}, ${selectedLead.state}` 
+              : selectedLead.city || selectedLead.state || null,
+          },
+          profileData: {
+            platform: 'LinkedIn',
+            linkedin: enrichment.linkedin,
+            full_name: enrichment.full_name,
+            title_clay: enrichment.title_clay,
+            company_clay: enrichment.company_clay,
+            location_clay: enrichment.location_clay,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // Update local state with new evaluation results
+      setClayEnrichments(prev => prev.map(e => 
+        e.id === enrichment.id 
+          ? {
+              ...e,
+              profile_match_score: data.result.match_score,
+              profile_match_confidence: data.result.confidence_level,
+              profile_match_reasons: data.result.reasons,
+              profile_match_evaluated_at: new Date().toISOString(),
+            }
+          : e
+      ));
+
+      toast({
+        title: "Evaluation Complete",
+        description: `Match score: ${data.result.match_score}% (${data.result.confidence_level} confidence)`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Evaluation Failed",
+        description: error.message || "Could not evaluate profile match.",
+        variant: "destructive",
+      });
+    } finally {
+      setEvaluatingMatchId(null);
     }
   };
 
@@ -5385,6 +5456,76 @@ const LeadsTable = ({
                                                   )}
                                                 </div>
                                               )}
+
+                                              {/* Profile Match Evaluation */}
+                                              <div className="pt-3 border-t space-y-2">
+                                                {enrichment.profile_match_evaluated_at ? (
+                                                  <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                      <span className="text-xs text-muted-foreground font-medium">Match Evaluation:</span>
+                                                      <div className="flex items-center gap-2">
+                                                        <Badge 
+                                                          variant={
+                                                            enrichment.profile_match_confidence === 'high' ? 'default' :
+                                                            enrichment.profile_match_confidence === 'medium' ? 'secondary' : 'destructive'
+                                                          }
+                                                          className="text-[10px]"
+                                                        >
+                                                          {enrichment.profile_match_score}% - {enrichment.profile_match_confidence}
+                                                        </Badge>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={() => handleEvaluateMatch(enrichment)}
+                                                          disabled={evaluatingMatchId === enrichment.id}
+                                                          className="h-6 px-2 text-[10px]"
+                                                        >
+                                                          {evaluatingMatchId === enrichment.id ? (
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                          ) : (
+                                                            "Re-evaluate"
+                                                          )}
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                    {enrichment.profile_match_reasons && enrichment.profile_match_reasons.length > 0 && (
+                                                      <Collapsible>
+                                                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                                          <ChevronRight className="h-3 w-3" />
+                                                          View Reasons ({enrichment.profile_match_reasons.length})
+                                                        </CollapsibleTrigger>
+                                                        <CollapsibleContent>
+                                                          <ul className="mt-2 space-y-1 text-xs text-muted-foreground pl-4">
+                                                            {enrichment.profile_match_reasons.map((reason, idx) => (
+                                                              <li key={idx} className="list-disc">{reason}</li>
+                                                            ))}
+                                                          </ul>
+                                                        </CollapsibleContent>
+                                                      </Collapsible>
+                                                    )}
+                                                  </div>
+                                                ) : (
+                                                  <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleEvaluateMatch(enrichment)}
+                                                    disabled={evaluatingMatchId === enrichment.id}
+                                                    className="w-full h-8 text-xs gap-2"
+                                                  >
+                                                    {evaluatingMatchId === enrichment.id ? (
+                                                      <>
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                        Evaluating...
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <Shield className="h-3 w-3" />
+                                                        Evaluate Match
+                                                      </>
+                                                    )}
+                                                  </Button>
+                                                )}
+                                              </div>
 
                                               {/* Raw Response Collapsible */}
                                               <Collapsible>
