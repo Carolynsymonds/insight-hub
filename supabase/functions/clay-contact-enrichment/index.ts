@@ -100,7 +100,13 @@ serve(async (req) => {
           }
         }
 
-        // Insert into clay_enrichments table with simplified schema
+        // Delete any existing clay_enrichments for this lead (keep only latest)
+        await supabase
+          .from('clay_enrichments')
+          .delete()
+          .eq('lead_id', leadId);
+
+        // Insert new clay enrichment record
         const { error: insertError } = await supabase
           .from('clay_enrichments')
           .insert({
@@ -122,7 +128,7 @@ serve(async (req) => {
         if (insertError) {
           console.error('Error inserting clay enrichment:', insertError);
         } else {
-          console.log('Clay enrichment inserted successfully');
+          console.log('Clay enrichment inserted successfully (replaced previous)');
         }
       } else {
         console.log('No lead found with email:', email);
