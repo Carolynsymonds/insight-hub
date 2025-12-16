@@ -19,6 +19,37 @@ const DOMAIN_MARKETPLACES = [
   'register.com'
 ];
 
+// Content markers that indicate a parked or for-sale domain page
+const PARKING_PAGE_MARKERS = [
+  'this domain is for sale',
+  'domain for sale',
+  'buy this domain',
+  'parked domain',
+  'domain parking',
+  'sedoparking',
+  'domain may be for sale',
+  'make an offer',
+  'make offer on this domain',
+  'inquire about this domain',
+  'domain is available',
+  'get this domain',
+  'purchase this domain',
+  'hugedomains.com',
+  'godaddy.com/domainsearch',
+  'afternic.com',
+  'dan.com',
+  'sedo.com',
+  'domainmarket.com',
+  'parkingcrew',
+  'bodis.com',
+  'coming soon', // Often used on parked domains
+  'under construction', // Sometimes indicates parked
+  'domainnamesales',
+  'domainlore',
+  'parked by',
+  'parked free',
+];
+
 interface ValidationResult {
   domain: string;
   dns_valid: boolean;
@@ -26,6 +57,27 @@ interface ValidationResult {
   redirect_to: string | null;
   is_valid_domain: boolean;
   reason: string;
+}
+
+// Check if page content contains parking page markers
+function containsParkingMarkers(html: string): string | null {
+  const htmlLower = html.toLowerCase();
+  for (const marker of PARKING_PAGE_MARKERS) {
+    if (htmlLower.includes(marker.toLowerCase())) {
+      return marker;
+    }
+  }
+  return null;
+}
+
+// Check if final URL after redirects is a marketplace
+function isMarketplaceDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return DOMAIN_MARKETPLACES.some(marketplace => hostname.includes(marketplace));
+  } catch {
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -85,7 +137,7 @@ serve(async (req) => {
 
     console.log(`[validate-domain] DNS valid - A records found: ${dnsData.Answer.map((a: any) => a.data).join(', ')}`);
 
-    // Step 2: HTTP/Redirect Check
+    // Step 2: HTTP/Redirect Check with content analysis
     console.log(`[validate-domain] Step 2: HTTP Check for https://${domain}`);
     
     let httpStatus: number | null = null;
@@ -148,8 +200,62 @@ serve(async (req) => {
           }
         }
       } else if (httpStatus === 200) {
-        isValid = true;
-        reason = 'Domain resolves correctly and returns HTTP 200.';
+        // HTTP 200 - need to check the page content for parking markers
+        console.log(`[validate-domain] HTTP 200 - checking page content for parking markers`);
+        
+        const bodyText = await httpResponse.text();
+        const parkingMarker = containsParkingMarkers(bodyText);
+        
+        if (parkingMarker) {
+          console.log(`[validate-domain] Parking marker found: "${parkingMarker}"`);
+          isValid = false;
+          reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}").`;
+        } else {
+          // Also do a follow-redirect check to see where JS redirects might go
+          console.log(`[validate-domain] No parking markers in content, checking for JS redirects`);
+          
+          const followController = new AbortController();
+          const followTimeoutId = setTimeout(() => followController.abort(), 10000);
+          
+          try {
+            const followResponse = await fetch(`https://${domain}`, {
+              method: 'GET',
+              redirect: 'follow',
+              signal: followController.signal,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
+              }
+            });
+            clearTimeout(followTimeoutId);
+            
+            const finalUrl = followResponse.url;
+            console.log(`[validate-domain] Final URL after following redirects: ${finalUrl}`);
+            
+            if (isMarketplaceDomain(finalUrl)) {
+              isValid = false;
+              reason = `Domain redirects to marketplace: ${finalUrl}. Domain is parked or for sale.`;
+            } else {
+              // Check the final page content as well
+              const finalBodyText = await followResponse.text();
+              const finalParkingMarker = containsParkingMarkers(finalBodyText);
+              
+              if (finalParkingMarker) {
+                console.log(`[validate-domain] Parking marker found after redirect: "${finalParkingMarker}"`);
+                isValid = false;
+                reason = `Domain appears to be parked or for sale (detected: "${finalParkingMarker}").`;
+              } else {
+                isValid = true;
+                reason = 'Domain resolves correctly and returns HTTP 200.';
+              }
+            }
+          } catch (followError) {
+            clearTimeout(followTimeoutId);
+            console.log(`[validate-domain] Follow redirect check failed:`, followError);
+            // If follow check fails but initial check passed, consider it valid
+            isValid = true;
+            reason = 'Domain resolves correctly and returns HTTP 200.';
+          }
+        }
       } else if (httpStatus === 301 || httpStatus === 302 || httpStatus === 307 || httpStatus === 308) {
         isValid = false;
         reason = `Domain returns redirect status ${httpStatus} but no location header.`;
@@ -206,8 +312,17 @@ serve(async (req) => {
             reason = `Domain accessible via HTTP and redirects to ${redirectTo}.`;
           }
         } else if (httpStatus === 200) {
-          isValid = true;
-          reason = 'Domain resolves correctly via HTTP and returns 200.';
+          // Check content for parking markers on HTTP fallback too
+          const bodyText = await httpFallbackResponse.text();
+          const parkingMarker = containsParkingMarkers(bodyText);
+          
+          if (parkingMarker) {
+            isValid = false;
+            reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}").`;
+          } else {
+            isValid = true;
+            reason = 'Domain resolves correctly via HTTP and returns 200.';
+          }
         } else {
           isValid = false;
           reason = `Domain returns HTTP ${httpStatus} via HTTP fallback.`;
