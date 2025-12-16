@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Search,
   Sparkles,
@@ -526,7 +527,7 @@ const LeadsTable = ({
     );
   };
 
-  const handleExportCSV = () => {
+  const handleExportCompanyCSV = () => {
     const headers = ["Company Name", "Domain", "Confidence Score"];
     const rows = filteredLeads.map((lead) => [
       lead.company || "",
@@ -543,13 +544,47 @@ const LeadsTable = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `leads-export-${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `company-details-${new Date().toISOString().split("T")[0]}.csv`);
     link.click();
     URL.revokeObjectURL(url);
 
     toast({
       title: "Export Complete",
-      description: `Exported ${filteredLeads.length} leads to CSV`,
+      description: `Exported ${filteredLeads.length} company details to CSV`,
+    });
+  };
+
+  const handleExportContactsCSV = () => {
+    const headers = ["Name", "LinkedIn", "Confidence Score", "Job Title", "AI Summary"];
+    const rows = filteredLeads.map((lead) => {
+      const clayData = allClayEnrichments[lead.id];
+      return [
+        clayData?.full_name || lead.full_name || "",
+        clayData?.linkedin || "",
+        clayData?.profile_match_score !== null && clayData?.profile_match_score !== undefined 
+          ? `${clayData.profile_match_score}%` 
+          : "",
+        clayData?.title_clay || "",
+        clayData?.summary_clay || "",
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contact-details-${new Date().toISOString().split("T")[0]}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredLeads.length} contact details to CSV`,
     });
   };
 
@@ -1869,10 +1904,22 @@ const LeadsTable = ({
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCompanyCSV}>
+                Export Company Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportContactsCSV}>
+                Export Contact Details
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <span className="text-sm text-muted-foreground">
             Showing {filteredLeads.length} of {leads.length} leads
           </span>
