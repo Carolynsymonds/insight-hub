@@ -371,6 +371,8 @@ const LeadsTable = ({
     location_clay: string | null;
     phone_clay: string | null;
     summary_clay: string | null;
+    profile_match_score: number | null;
+    profile_match_confidence: string | null;
   }>>({});
 
   // Use external filter if provided, otherwise use internal state
@@ -471,7 +473,7 @@ const LeadsTable = ({
       const leadIds = leads.map(l => l.id);
       const { data, error } = await supabase
         .from('clay_enrichments')
-        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay')
+        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay, profile_match_score, profile_match_confidence')
         .in('lead_id', leadIds);
 
       if (error) {
@@ -480,7 +482,7 @@ const LeadsTable = ({
       }
 
       // Create a map of lead_id -> enrichment data (use the most recent one per lead)
-      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null }> = {};
+      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null; profile_match_score: number | null; profile_match_confidence: string | null }> = {};
       data?.forEach(enrichment => {
         if (!enrichmentMap[enrichment.lead_id]) {
           enrichmentMap[enrichment.lead_id] = {
@@ -489,6 +491,8 @@ const LeadsTable = ({
             location_clay: enrichment.location_clay,
             phone_clay: enrichment.phone_clay,
             summary_clay: enrichment.summary_clay,
+            profile_match_score: enrichment.profile_match_score,
+            profile_match_confidence: enrichment.profile_match_confidence,
           };
         }
       });
@@ -2027,21 +2031,37 @@ const LeadsTable = ({
                             <div className="flex items-center gap-1.5">
                               <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                               {lead.contact_linkedin ? (
-                                <a
-                                  href={lead.contact_linkedin}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline truncate max-w-[120px]"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {(() => {
-                                    try {
-                                      return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
-                                    } catch {
-                                      return lead.contact_linkedin;
-                                    }
-                                  })()}
-                                </a>
+                                <>
+                                  <a
+                                    href={lead.contact_linkedin}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline truncate max-w-[100px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      try {
+                                        return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
+                                      } catch {
+                                        return lead.contact_linkedin;
+                                      }
+                                    })()}
+                                  </a>
+                                  {allClayEnrichments[lead.id]?.profile_match_score !== null && allClayEnrichments[lead.id]?.profile_match_score !== undefined && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-[10px] px-1 py-0 ${
+                                        allClayEnrichments[lead.id]?.profile_match_confidence === 'high' 
+                                          ? 'bg-green-50 text-green-700 border-green-200' 
+                                          : allClayEnrichments[lead.id]?.profile_match_confidence === 'medium'
+                                          ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                          : 'bg-red-50 text-red-700 border-red-200'
+                                      }`}
+                                    >
+                                      {allClayEnrichments[lead.id]?.profile_match_score}%
+                                    </Badge>
+                                  )}
+                                </>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
