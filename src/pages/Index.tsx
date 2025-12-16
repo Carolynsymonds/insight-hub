@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 
 const CATEGORIES = [{
@@ -67,6 +67,8 @@ const Index = () => {
   const [scoreProgress, setScoreProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   const [bulkFindingContacts, setBulkFindingContacts] = useState(false);
   const [contactProgress, setContactProgress] = useState({ current: 0, total: 0, currentName: '' });
+  const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
+  const [evaluateProgress, setEvaluateProgress] = useState({ current: 0, total: 0 });
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
@@ -413,6 +415,87 @@ const Index = () => {
     }
   };
 
+  const handleBulkEvaluateMatches = async () => {
+    const leadIds = filteredLeads.map(lead => lead.id);
+    
+    if (leadIds.length === 0) {
+      toast({
+        title: "No leads",
+        description: "No leads to evaluate.",
+      });
+      return;
+    }
+
+    setBulkEvaluatingMatches(true);
+
+    try {
+      // Fetch all unevaluated clay_enrichments for these leads
+      const { data: enrichments, error } = await supabase
+        .from('clay_enrichments')
+        .select('id, lead_id, full_name, linkedin, title_clay, company_clay, location_clay')
+        .in('lead_id', leadIds)
+        .is('profile_match_evaluated_at', null);
+
+      if (error) throw error;
+
+      if (!enrichments || enrichments.length === 0) {
+        toast({
+          title: "All Evaluated",
+          description: "All Clay enrichments have already been evaluated.",
+        });
+        setBulkEvaluatingMatches(false);
+        return;
+      }
+
+      setEvaluateProgress({ current: 0, total: enrichments.length });
+
+      for (let i = 0; i < enrichments.length; i++) {
+        const enrichment = enrichments[i];
+        setEvaluateProgress({ current: i + 1, total: enrichments.length });
+
+        const lead = filteredLeads.find(l => l.id === enrichment.lead_id);
+        if (!lead) continue;
+
+        await supabase.functions.invoke('evaluate-profile-match', {
+          body: {
+            enrichmentId: enrichment.id,
+            leadData: {
+              name: lead.full_name,
+              company: lead.company,
+              email: lead.email,
+              location: lead.city && lead.state 
+                ? `${lead.city}, ${lead.state}` 
+                : lead.city || lead.state || null,
+            },
+            profileData: {
+              platform: 'LinkedIn',
+              linkedin: enrichment.linkedin,
+              full_name: enrichment.full_name,
+              title_clay: enrichment.title_clay,
+              company_clay: enrichment.company_clay,
+              location_clay: enrichment.location_clay,
+            },
+          },
+        });
+      }
+
+      toast({
+        title: "Evaluation Complete",
+        description: `Evaluated ${enrichments.length} profile(s).`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Evaluation Error",
+        description: error.message || "Failed to evaluate profiles.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkEvaluatingMatches(false);
+      setEvaluateProgress({ current: 0, total: 0 });
+      fetchLeads();
+    }
+  };
+
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
   
   // Get unique batches from category leads
@@ -646,7 +729,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkFindDomains}
-                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || filteredLeads.length === 0}
+                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   {bulkEnriching ? (
@@ -665,7 +748,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkCalculateMatchScore}
-                  disabled={bulkScoring || bulkEnriching || bulkFindingContacts || filteredLeads.length === 0}
+                  disabled={bulkScoring || bulkEnriching || bulkFindingContacts || bulkEvaluatingMatches || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   {bulkScoring ? (
@@ -684,7 +767,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkFindContacts}
-                  disabled={bulkFindingContacts || bulkScoring || bulkEnriching || filteredLeads.length === 0}
+                  disabled={bulkFindingContacts || bulkScoring || bulkEnriching || bulkEvaluatingMatches || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   {bulkFindingContacts ? (
@@ -696,6 +779,25 @@ const Index = () => {
                     <>
                       <Users className="h-4 w-4" />
                       Find Contacts
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkEvaluateMatches}
+                  disabled={bulkEvaluatingMatches || bulkFindingContacts || bulkScoring || bulkEnriching || filteredLeads.length === 0}
+                  className="gap-2"
+                >
+                  {bulkEvaluatingMatches ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Evaluating... ({evaluateProgress.current}/{evaluateProgress.total})
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Evaluate Matches
                     </>
                   )}
                 </Button>
