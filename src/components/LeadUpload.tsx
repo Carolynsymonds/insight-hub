@@ -554,93 +554,95 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                   </div>
                 </div>
 
-                {/* Vehicle-specific fields */}
-                <div className="border-t pt-4 mt-4">
-                  <h3 className="text-sm font-medium mb-4">Vehicle Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Vehicles Count</Label>
-                      <Select
-                        value={formData.vehicles_count}
-                        onValueChange={(value) => setFormData({ ...formData, vehicles_count: value })}
-                        disabled={loading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select count" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VEHICLES_COUNT_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                {/* Vehicle-specific fields - only show for Vehicles category */}
+                {formData.category === "Vehicles" && (
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-sm font-medium mb-4">Vehicle Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Vehicles Count</Label>
+                        <Select
+                          value={formData.vehicles_count}
+                          onValueChange={(value) => setFormData({ ...formData, vehicles_count: value })}
+                          disabled={loading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select count" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {VEHICLES_COUNT_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Confirm Vehicles +50</Label>
+                        <Select
+                          value={formData.confirm_vehicles_50_plus}
+                          onValueChange={(value) => setFormData({ ...formData, confirm_vehicles_50_plus: value })}
+                          disabled={loading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONFIRM_VEHICLES_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Confirm Vehicles +50</Label>
-                      <Select
-                        value={formData.confirm_vehicles_50_plus}
-                        onValueChange={(value) => setFormData({ ...formData, confirm_vehicles_50_plus: value })}
-                        disabled={loading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CONFIRM_VEHICLES_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div className="space-y-3">
-                      <Label>Truck Types</Label>
-                      <div className="space-y-2">
-                        {TRUCK_TYPE_OPTIONS.map((type) => (
-                          <div key={type} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`truck-${type}`}
-                              checked={selectedTruckTypes.includes(type)}
-                              onChange={(e) => handleTruckTypeChange(type, e.target.checked)}
-                              disabled={loading}
-                              className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor={`truck-${type}`} className="text-sm font-normal cursor-pointer">
-                              {type}
-                            </Label>
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div className="space-y-3">
+                        <Label>Truck Types</Label>
+                        <div className="space-y-2">
+                          {TRUCK_TYPE_OPTIONS.map((type) => (
+                            <div key={type} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`truck-${type}`}
+                                checked={selectedTruckTypes.includes(type)}
+                                onChange={(e) => handleTruckTypeChange(type, e.target.checked)}
+                                disabled={loading}
+                                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                              />
+                              <Label htmlFor={`truck-${type}`} className="text-sm font-normal cursor-pointer">
+                                {type}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-3">
-                      <Label>Features</Label>
-                      <div className="space-y-2">
-                        {FEATURES_OPTIONS.map((feature) => (
-                          <div key={feature} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`feature-${feature}`}
-                              checked={selectedFeatures.includes(feature)}
-                              onChange={(e) => handleFeatureChange(feature, e.target.checked)}
-                              disabled={loading}
-                              className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor={`feature-${feature}`} className="text-sm font-normal cursor-pointer">
-                              {feature}
-                            </Label>
-                          </div>
-                        ))}
+                      <div className="space-y-3">
+                        <Label>Features</Label>
+                        <div className="space-y-2">
+                          {FEATURES_OPTIONS.map((feature) => (
+                            <div key={feature} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`feature-${feature}`}
+                                checked={selectedFeatures.includes(feature)}
+                                onChange={(e) => handleFeatureChange(feature, e.target.checked)}
+                                disabled={loading}
+                                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                              />
+                              <Label htmlFor={`feature-${feature}`} className="text-sm font-normal cursor-pointer">
+                                {feature}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <Button type="submit" disabled={loading} className="w-full">
                   Add Lead
