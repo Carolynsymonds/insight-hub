@@ -77,7 +77,9 @@ const Index = () => {
     diagnosisCounts: {} as Record<string, number>,
     contactsTotal: 0,
     contactsValid: 0,
-    contactsInvalid: 0
+    contactsInvalid: 0,
+    contactsLowConfidence: 0,
+    contactsNotFound: 0
   });
   useEffect(() => {
     checkAuth();
@@ -161,6 +163,12 @@ const Index = () => {
         c => c.profile_match_score !== null && c.profile_match_score > 50
       ).length;
       
+      // Low confidence = has LinkedIn but score <=50
+      const contactsLowConfidence = leadsWithLinkedIn.length - contactsValid;
+      
+      // Not found = no LinkedIn at all
+      const contactsNotFound = contactsTotal - leadsWithLinkedIn.length;
+      
       // Invalid = everyone else (low confidence + no LinkedIn)
       const contactsInvalid = contactsTotal - contactsValid;
 
@@ -172,7 +180,9 @@ const Index = () => {
         diagnosisCounts,
         contactsTotal,
         contactsValid,
-        contactsInvalid
+        contactsInvalid,
+        contactsLowConfidence,
+        contactsNotFound
       });
     } catch (error: any) {
       toast({
@@ -629,15 +639,23 @@ const Index = () => {
                 <p className="text-sm text-green-600 dark:text-green-400">Valid Contacts</p>
                 <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.contactsValid}</p>
                 <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                  High confidence LinkedIn profiles (&gt;50)
+                  {stats.contactsTotal > 0 ? ((stats.contactsValid / stats.contactsTotal) * 100).toFixed(1) : 0}% • High confidence (&gt;50)
                 </p>
               </div>
               <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
                 <p className="text-sm text-red-600 dark:text-red-400">Invalid/Not Found</p>
                 <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.contactsInvalid}</p>
                 <p className="text-xs text-red-600/70 dark:text-red-400/70">
-                  Low confidence or no LinkedIn profile
+                  {stats.contactsTotal > 0 ? ((stats.contactsInvalid / stats.contactsTotal) * 100).toFixed(1) : 0}% of all leads
                 </p>
+                <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800 space-y-1">
+                  <p className="text-xs text-red-600/80 dark:text-red-400/80">
+                    • Low confidence: {stats.contactsLowConfidence} ({stats.contactsTotal > 0 ? ((stats.contactsLowConfidence / stats.contactsTotal) * 100).toFixed(1) : 0}%)
+                  </p>
+                  <p className="text-xs text-red-600/80 dark:text-red-400/80">
+                    • Not found: {stats.contactsNotFound} ({stats.contactsTotal > 0 ? ((stats.contactsNotFound / stats.contactsTotal) * 100).toFixed(1) : 0}%)
+                  </p>
+                </div>
               </div>
             </div>
           </div>
