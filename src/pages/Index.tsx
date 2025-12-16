@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2 } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -71,6 +71,8 @@ const Index = () => {
   const [contactProgress, setContactProgress] = useState({ current: 0, total: 0, currentName: '' });
   const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
   const [evaluateProgress, setEvaluateProgress] = useState({ current: 0, total: 0 });
+  const [bulkFindingSocials, setBulkFindingSocials] = useState(false);
+  const [socialProgress, setSocialProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   const [bulkEnrichmentModalOpen, setBulkEnrichmentModalOpen] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -543,9 +545,100 @@ const Index = () => {
     }
   };
 
+  const handleBulkFindSocials = async () => {
+    // Only process leads without domains
+    const leadsToSearch = filteredLeads.filter(lead => !lead.domain && lead.company);
+    
+    if (leadsToSearch.length === 0) {
+      toast({
+        title: "No leads to search",
+        description: "Find Socials only applies to leads without domains. All displayed leads either have domains or no company name.",
+      });
+      return;
+    }
+
+    setBulkFindingSocials(true);
+    setSocialProgress({ current: 0, total: leadsToSearch.length, currentCompany: '' });
+
+    try {
+      for (let i = 0; i < leadsToSearch.length; i++) {
+        const lead = leadsToSearch[i];
+        setSocialProgress({ current: i + 1, total: leadsToSearch.length, currentCompany: lead.company || '' });
+
+        // Search Facebook
+        await supabase.functions.invoke("search-facebook-serper", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+          }
+        });
+
+        // Search LinkedIn
+        await supabase.functions.invoke("search-linkedin-serper", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+          }
+        });
+
+        // Search Instagram
+        await supabase.functions.invoke("search-instagram-serper", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+          }
+        });
+
+        // Get updated lead data to validate socials
+        const { data: updatedLead } = await supabase.from("leads")
+          .select("facebook, linkedin, instagram, enrichment_logs")
+          .eq("id", lead.id)
+          .maybeSingle();
+
+        // Parse social search results from enrichment logs
+        const logs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs as any[] : [];
+        const facebookResults = logs.find((l: any) => l.action === 'facebook_search_serper')?.top3Results || [];
+        const linkedinResults = logs.find((l: any) => l.action === 'linkedin_search_serper')?.top3Results || [];
+        const instagramResults = logs.find((l: any) => l.action === 'instagram_search_serper')?.top3Results || [];
+
+        // Validate social profiles with AI
+        await supabase.functions.invoke("score-social-relevance", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            facebookResults,
+            linkedinResults,
+            instagramResults,
+          }
+        });
+      }
+
+      toast({
+        title: "Social search complete",
+        description: `Processed ${leadsToSearch.length} leads.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error during social search",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkFindingSocials(false);
+      setSocialProgress({ current: 0, total: 0, currentCompany: '' });
+      fetchLeads();
+    }
+  };
+
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
-  
-  // Get unique batches from category leads
   const uniqueBatches = [...new Set(
     categoryFilteredLeads
       .filter(lead => lead.upload_batch !== null)
@@ -840,7 +933,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setBulkEnrichmentModalOpen(true)}
-                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || filteredLeads.length === 0}
+                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || bulkFindingSocials || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -884,10 +977,35 @@ const Index = () => {
                       </div>
                       <Button 
                         onClick={handleBulkFindDomains} 
-                        disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches}
+                        disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || bulkFindingSocials}
                         size="sm"
                       >
                         {bulkEnriching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
+                      </Button>
+                    </div>
+                    
+                    {/* Find Socials */}
+                    <div className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Share2 className="h-4 w-4 text-primary" />
+                          Find Socials
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          <span className="font-medium text-foreground">Only for leads without domains.</span> Searches Facebook, LinkedIn, and Instagram for company social profiles, then validates with AI.
+                        </p>
+                        {bulkFindingSocials && (
+                          <p className="text-xs text-primary mt-2">
+                            Progress: {socialProgress.current}/{socialProgress.total} {socialProgress.currentCompany && `- ${socialProgress.currentCompany}`}
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleBulkFindSocials} 
+                        disabled={bulkFindingSocials || bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches}
+                        size="sm"
+                      >
+                        {bulkFindingSocials ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
                       </Button>
                     </div>
                     
@@ -909,7 +1027,7 @@ const Index = () => {
                       </div>
                       <Button 
                         onClick={handleBulkCalculateMatchScore} 
-                        disabled={bulkScoring || bulkEnriching || bulkFindingContacts || bulkEvaluatingMatches}
+                        disabled={bulkScoring || bulkEnriching || bulkFindingContacts || bulkEvaluatingMatches || bulkFindingSocials}
                         size="sm"
                       >
                         {bulkScoring ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
@@ -934,7 +1052,7 @@ const Index = () => {
                       </div>
                       <Button 
                         onClick={handleBulkFindContacts} 
-                        disabled={bulkFindingContacts || bulkScoring || bulkEnriching || bulkEvaluatingMatches}
+                        disabled={bulkFindingContacts || bulkScoring || bulkEnriching || bulkEvaluatingMatches || bulkFindingSocials}
                         size="sm"
                       >
                         {bulkFindingContacts ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
@@ -959,7 +1077,7 @@ const Index = () => {
                       </div>
                       <Button 
                         onClick={handleBulkEvaluateMatches} 
-                        disabled={bulkEvaluatingMatches || bulkFindingContacts || bulkScoring || bulkEnriching}
+                        disabled={bulkEvaluatingMatches || bulkFindingContacts || bulkScoring || bulkEnriching || bulkFindingSocials}
                         size="sm"
                       >
                         {bulkEvaluatingMatches ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
