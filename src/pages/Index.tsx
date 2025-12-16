@@ -7,8 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -69,6 +70,7 @@ const Index = () => {
   const [contactProgress, setContactProgress] = useState({ current: 0, total: 0, currentName: '' });
   const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
   const [evaluateProgress, setEvaluateProgress] = useState({ current: 0, total: 0 });
+  const [bulkEnrichmentModalOpen, setBulkEnrichmentModalOpen] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
@@ -756,80 +758,128 @@ const Index = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleBulkFindDomains}
+                  onClick={() => setBulkEnrichmentModalOpen(true)}
                   disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || filteredLeads.length === 0}
                   className="gap-2"
                 >
-                  {bulkEnriching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Finding... ({bulkProgress.current}/{bulkProgress.total})
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4" />
-                      Find Domains
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkCalculateMatchScore}
-                  disabled={bulkScoring || bulkEnriching || bulkFindingContacts || bulkEvaluatingMatches || filteredLeads.length === 0}
-                  className="gap-2"
-                >
-                  {bulkScoring ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Scoring... ({scoreProgress.current}/{scoreProgress.total})
-                    </>
-                  ) : (
-                    <>
-                      <Target className="h-4 w-4" />
-                      Calculate Match Score
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkFindContacts}
-                  disabled={bulkFindingContacts || bulkScoring || bulkEnriching || bulkEvaluatingMatches || filteredLeads.length === 0}
-                  className="gap-2"
-                >
-                  {bulkFindingContacts ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Finding... ({contactProgress.current}/{contactProgress.total})
-                    </>
-                  ) : (
-                    <>
-                      <Users className="h-4 w-4" />
-                      Find Contacts
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkEvaluateMatches}
-                  disabled={bulkEvaluatingMatches || bulkFindingContacts || bulkScoring || bulkEnriching || filteredLeads.length === 0}
-                  className="gap-2"
-                >
-                  {bulkEvaluatingMatches ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Evaluating... ({evaluateProgress.current}/{evaluateProgress.total})
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      Evaluate Matches
-                    </>
-                  )}
+                  <Sparkles className="h-4 w-4" />
+                  Bulk Enrichment
                 </Button>
               </div>
+
+              {/* Bulk Enrichment Modal */}
+              <Dialog open={bulkEnrichmentModalOpen} onOpenChange={setBulkEnrichmentModalOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Bulk Enrichment Actions</DialogTitle>
+                    <DialogDescription>
+                      Run enrichment operations on {filteredLeads.length} displayed leads
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    {/* Find Domains */}
+                    <div className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Search className="h-4 w-4 text-primary" />
+                          Find Domains
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Search for company website domains using Apollo API, Google Search, and email domain extraction. Validates found domains and runs diagnosis if no domain is found.
+                        </p>
+                        {bulkEnriching && (
+                          <p className="text-xs text-primary mt-2">
+                            Progress: {bulkProgress.current}/{bulkProgress.total} {bulkProgress.currentCompany && `- ${bulkProgress.currentCompany}`}
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleBulkFindDomains} 
+                        disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches}
+                        size="sm"
+                      >
+                        {bulkEnriching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
+                      </Button>
+                    </div>
+                    
+                    {/* Calculate Match Score */}
+                    <div className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Target className="h-4 w-4 text-primary" />
+                          Calculate Match Score
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          For leads with domains: finds company coordinates, calculates distance from lead location, scores domain relevance, and generates a 0-100 match score.
+                        </p>
+                        {bulkScoring && (
+                          <p className="text-xs text-primary mt-2">
+                            Progress: {scoreProgress.current}/{scoreProgress.total} {scoreProgress.currentCompany && `- ${scoreProgress.currentCompany}`}
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleBulkCalculateMatchScore} 
+                        disabled={bulkScoring || bulkEnriching || bulkFindingContacts || bulkEvaluatingMatches}
+                        size="sm"
+                      >
+                        {bulkScoring ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
+                      </Button>
+                    </div>
+                    
+                    {/* Find Contacts */}
+                    <div className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Users className="h-4 w-4 text-primary" />
+                          Find Contacts
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          For leads with name and email: enriches contact information via Apollo and sends to Clay for LinkedIn profile discovery.
+                        </p>
+                        {bulkFindingContacts && (
+                          <p className="text-xs text-primary mt-2">
+                            Progress: {contactProgress.current}/{contactProgress.total} {contactProgress.currentName && `- ${contactProgress.currentName}`}
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleBulkFindContacts} 
+                        disabled={bulkFindingContacts || bulkScoring || bulkEnriching || bulkEvaluatingMatches}
+                        size="sm"
+                      >
+                        {bulkFindingContacts ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
+                      </Button>
+                    </div>
+                    
+                    {/* Evaluate Matches */}
+                    <div className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                          Evaluate Matches
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          For Clay-enriched profiles: uses AI to evaluate how well the found LinkedIn profile matches the original lead and generates a confidence score.
+                        </p>
+                        {bulkEvaluatingMatches && (
+                          <p className="text-xs text-primary mt-2">
+                            Progress: {evaluateProgress.current}/{evaluateProgress.total}
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleBulkEvaluateMatches} 
+                        disabled={bulkEvaluatingMatches || bulkFindingContacts || bulkScoring || bulkEnriching}
+                        size="sm"
+                      >
+                        {bulkEvaluatingMatches ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
