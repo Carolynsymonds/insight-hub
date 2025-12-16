@@ -442,12 +442,16 @@ const Index = () => {
             <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
               <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
               <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70">≥50% confidence</p>
+              <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                {stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(1) : 0}% of total
+              </p>
             </div>
             <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
               <p className="text-sm text-red-600 dark:text-red-400">Invalid Domains</p>
               <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalid}</p>
-              <p className="text-xs text-red-600/70 dark:text-red-400/70">&lt;50% confidence</p>
+              <p className="text-xs text-red-600/70 dark:text-red-400/70">
+                {stats.total > 0 ? ((stats.invalid / stats.total) * 100).toFixed(1) : 0}% of total
+              </p>
             </div>
             <div className="p-4 border rounded-lg bg-muted/50">
               <p className="text-sm text-muted-foreground">Not Enriched</p>
