@@ -785,9 +785,16 @@ const Index = () => {
                           <Search className="h-4 w-4 text-primary" />
                           Find Domains
                         </h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Search for company website domains using Apollo API, Google Search, and email domain extraction. Validates found domains and runs diagnosis if no domain is found.
-                        </p>
+                        <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                          <p className="font-medium text-foreground text-xs">Enrichment Flow:</p>
+                          <ol className="list-decimal list-inside space-y-0.5 text-xs">
+                            <li><span className="font-medium">Apollo API</span> — Search company database by name, city, state</li>
+                            <li><span className="font-medium">Google Search</span> — AI spelling correction + knowledge graph lookup</li>
+                            <li><span className="font-medium">Email Extraction</span> — Extract domain from email (skip personal domains)</li>
+                            <li><span className="font-medium">Domain Validation</span> — DNS + HTTP check for parked/inactive domains</li>
+                            <li><span className="font-medium">AI Diagnosis</span> — If no domain found, categorize why it failed</li>
+                          </ol>
+                        </div>
                         {bulkEnriching && (
                           <p className="text-xs text-primary mt-2">
                             Progress: {bulkProgress.current}/{bulkProgress.total} {bulkProgress.currentCompany && `- ${bulkProgress.currentCompany}`}
