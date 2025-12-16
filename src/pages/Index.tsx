@@ -429,12 +429,12 @@ const Index = () => {
     setBulkEvaluatingMatches(true);
 
     try {
-      // Fetch all unevaluated clay_enrichments for these leads
+      // Fetch all clay_enrichments without a match score for these leads
       const { data: enrichments, error } = await supabase
         .from('clay_enrichments')
         .select('id, lead_id, full_name, linkedin, title_clay, company_clay, location_clay')
         .in('lead_id', leadIds)
-        .is('profile_match_evaluated_at', null);
+        .is('profile_match_score', null);
 
       if (error) throw error;
 
