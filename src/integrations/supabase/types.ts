@@ -51,6 +51,10 @@ export type Database = {
           linkedin: string | null
           location_clay: string | null
           phone_clay: string | null
+          profile_match_confidence: string | null
+          profile_match_evaluated_at: string | null
+          profile_match_reasons: Json | null
+          profile_match_score: number | null
           raw_response: Json | null
           title_clay: string | null
           twitter_url_clay: string | null
@@ -67,6 +71,10 @@ export type Database = {
           linkedin?: string | null
           location_clay?: string | null
           phone_clay?: string | null
+          profile_match_confidence?: string | null
+          profile_match_evaluated_at?: string | null
+          profile_match_reasons?: Json | null
+          profile_match_score?: number | null
           raw_response?: Json | null
           title_clay?: string | null
           twitter_url_clay?: string | null
@@ -83,6 +91,10 @@ export type Database = {
           linkedin?: string | null
           location_clay?: string | null
           phone_clay?: string | null
+          profile_match_confidence?: string | null
+          profile_match_evaluated_at?: string | null
+          profile_match_reasons?: Json | null
+          profile_match_score?: number | null
           raw_response?: Json | null
           title_clay?: string | null
           twitter_url_clay?: string | null

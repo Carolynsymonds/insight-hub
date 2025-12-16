@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.validate-domain]
 verify_jwt = false
+
+[functions.evaluate-profile-match]
+verify_jwt = false
