@@ -276,20 +276,9 @@ const Index = () => {
           });
         }
 
-        // Check if domain found, validate it or run diagnosis
+        // Check if domain found - if not, run diagnosis
         const { data: updated } = await supabase.from("leads").select("domain, enrichment_logs").eq("id", lead.id).maybeSingle();
-        if (updated?.domain) {
-          // Validate the found domain
-          const { data: validationResult } = await supabase.functions.invoke("validate-domain", {
-            body: { domain: updated.domain }
-          });
-          
-          if (validationResult) {
-            await supabase.from("leads")
-              .update({ email_domain_validated: validationResult.is_valid_domain })
-              .eq("id", lead.id);
-          }
-        } else {
+        if (!updated?.domain) {
           // No domain found, run diagnosis
           await supabase.functions.invoke("diagnose-enrichment", {
             body: {
@@ -299,6 +288,7 @@ const Index = () => {
             }
           });
         }
+        // Domain validation will only happen when user clicks "Validate Domain"
       }
 
       toast({
