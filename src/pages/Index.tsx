@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -563,6 +564,66 @@ const Index = () => {
     return true;
   });
 
+  const handleExportCompanyCSV = () => {
+    const headers = ["Company Name", "Domain", "Match Score", "City", "State", "Industry"];
+    const rows = filteredLeads.map((lead) => [
+      lead.company || "",
+      lead.domain || "",
+      lead.match_score !== null ? `${lead.match_score}%` : "",
+      lead.city || "",
+      lead.state || "",
+      lead.company_industry || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `company-details-${new Date().toISOString().split("T")[0]}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredLeads.length} company details to CSV`,
+    });
+  };
+
+  const handleExportContactsCSV = () => {
+    const headers = ["Name", "Email", "Company", "LinkedIn", "City", "State"];
+    const rows = filteredLeads.map((lead) => [
+      lead.full_name || "",
+      lead.email || "",
+      lead.company || "",
+      lead.contact_linkedin || "",
+      lead.city || "",
+      lead.state || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contact-details-${new Date().toISOString().split("T")[0]}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredLeads.length} contact details to CSV`,
+    });
+  };
+
   const handleViewChange = (view: string) => {
     setActiveView(view);
     if (view === "home") {
@@ -725,6 +786,18 @@ const Index = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Export CSV
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
