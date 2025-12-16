@@ -366,6 +366,9 @@ const LeadsTable = ({
   const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
   const [bulkEvaluateProgress, setBulkEvaluateProgress] = useState({ current: 0, total: 0 });
   const [allClayEnrichments, setAllClayEnrichments] = useState<Record<string, {
+    full_name: string | null;
+    email: string | null;
+    linkedin: string | null;
     title_clay: string | null;
     company_clay: string | null;
     location_clay: string | null;
@@ -474,7 +477,7 @@ const LeadsTable = ({
       const leadIds = leads.map(l => l.id);
       const { data, error } = await supabase
         .from('clay_enrichments')
-        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay, profile_match_score, profile_match_confidence, created_at')
+        .select('lead_id, full_name, email, linkedin, title_clay, company_clay, location_clay, phone_clay, summary_clay, profile_match_score, profile_match_confidence, created_at')
         .in('lead_id', leadIds)
         .order('created_at', { ascending: false });
 
@@ -484,11 +487,14 @@ const LeadsTable = ({
       }
 
       // Create a map of lead_id -> enrichment data (use the most recent one per lead - first in desc order)
-      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null; profile_match_score: number | null; profile_match_confidence: string | null }> = {};
+      const enrichmentMap: Record<string, { full_name: string | null; email: string | null; linkedin: string | null; title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null; profile_match_score: number | null; profile_match_confidence: string | null }> = {};
       data?.forEach(enrichment => {
         // Only take the first (most recent) record for each lead_id
         if (!enrichmentMap[enrichment.lead_id]) {
           enrichmentMap[enrichment.lead_id] = {
+            full_name: enrichment.full_name,
+            email: enrichment.email,
+            linkedin: enrichment.linkedin,
             title_clay: enrichment.title_clay,
             company_clay: enrichment.company_clay,
             location_clay: enrichment.location_clay,
@@ -1941,7 +1947,15 @@ const LeadsTable = ({
                     <TableHead>Phone Clay</TableHead>
                   )}
                   {(viewMode === 'all' || viewMode === 'contact') && (
-                    <TableHead className="max-w-[200px]">Summary Clay</TableHead>
+                    <TableHead className="max-w-[200px]">
+                      <div className="flex items-center gap-1">
+                        <Linkedin className="h-4 w-4" />
+                        Summary Clay
+                      </div>
+                    </TableHead>
+                  )}
+                  {(viewMode === 'all' || viewMode === 'contact') && (
+                    <TableHead className="min-w-[280px]">AI Summary</TableHead>
                   )}
                   {/* View All & Company: Description */}
                   {(viewMode === 'all' || viewMode === 'company') && (
@@ -2172,6 +2186,57 @@ const LeadsTable = ({
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell className="max-w-[200px] truncate" title={allClayEnrichments[lead.id]?.summary_clay || ""}>
                           {allClayEnrichments[lead.id]?.summary_clay || "—"}
+                        </TableCell>
+                      )}
+                      {/* AI Summary Cell */}
+                      {(viewMode === 'all' || viewMode === 'contact') && (
+                        <TableCell className="min-w-[280px]">
+                          {(() => {
+                            const clay = allClayEnrichments[lead.id];
+                            if (!clay?.full_name && !clay?.title_clay) return "—";
+                            
+                            const name = clay.full_name || lead.full_name;
+                            const title = clay.title_clay;
+                            const company = clay.company_clay;
+                            const email = clay.email || lead.email;
+                            const linkedinUrl = clay.linkedin || lead.contact_linkedin;
+                            const matchScore = clay.profile_match_score;
+                            
+                            // Determine email type
+                            const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'msn.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'gmx.com', 'fastmail.com'];
+                            const emailDomain = email?.split('@')[1]?.toLowerCase();
+                            const isPersonalEmail = emailDomain && personalDomains.includes(emailDomain);
+                            const emailType = isPersonalEmail ? 'Personal email' : 'Corporate email';
+                            
+                            // Determine LinkedIn status
+                            let linkedinStatus = 'LinkedIn unverified';
+                            if (matchScore !== null && matchScore >= 70) {
+                              linkedinStatus = 'LinkedIn verified';
+                            } else if (matchScore !== null && matchScore >= 50) {
+                              linkedinStatus = 'LinkedIn likely';
+                            }
+                            
+                            // Match score color
+                            const scoreColor = matchScore === null ? 'text-muted-foreground' : 
+                              matchScore >= 70 ? 'text-green-600' : 
+                              matchScore >= 50 ? 'text-yellow-600' : 'text-red-600';
+                            
+                            return (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm font-medium truncate">
+                                  {name}{title && company ? ` — ${title} at ${company}` : title ? ` — ${title}` : company ? ` at ${company}` : ''}.
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {email && `${emailType}`}
+                                  {email && linkedinUrl && ' + '}
+                                  {linkedinUrl && linkedinStatus}
+                                  {matchScore !== null && (
+                                    <span className={scoreColor}> Match: {matchScore}/100.</span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                       )}
                       {/* View All & Company: Description */}
