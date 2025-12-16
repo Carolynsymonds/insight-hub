@@ -550,59 +550,66 @@ const Index = () => {
   }
   return <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
       {activeView === "statistics" ? (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-semibold mb-2">Lead Statistics</h2>
             <p className="text-muted-foreground">Overview of your lead enrichment status</p>
           </div>
           
-          {/* Overview Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 border rounded-lg bg-card">
-              <p className="text-sm text-muted-foreground">Total Leads</p>
-              <p className="text-3xl font-bold">{stats.total}</p>
-            </div>
-            <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-              <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
-              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                {stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(1) : 0}% of total
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-              <p className="text-sm text-red-600 dark:text-red-400">Invalid Domains</p>
-              <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalid}</p>
-              <p className="text-xs text-red-600/70 dark:text-red-400/70">
-                {stats.total > 0 ? ((stats.invalid / stats.total) * 100).toFixed(1) : 0}% of total
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground">Not Enriched</p>
-              <p className="text-3xl font-bold">{stats.notEnriched}</p>
-              <p className="text-xs text-muted-foreground">Awaiting enrichment</p>
-            </div>
-          </div>
-
-          {/* Diagnosis Breakdown */}
-          {Object.keys(stats.diagnosisCounts).length > 0 && (
-            <div className="p-6 border rounded-lg">
-              <h3 className="font-medium mb-4">Leads Without Domain by Diagnosis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(stats.diagnosisCounts)
-                  .sort(([,a], [,b]) => b - a)
-                  .map(([category, count]) => (
-                    <div key={category} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
-                      <span className="text-sm">{category}</span>
-                      <span className="font-semibold text-lg">{count}</span>
-                    </div>
-                  ))}
+          {/* Company Enrichment Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Company Enrichment</h3>
+            
+            {/* Company Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 border rounded-lg bg-card">
+                <p className="text-sm text-muted-foreground">Total Leads</p>
+                <p className="text-3xl font-bold">{stats.total}</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
+                <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                  {stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(1) : 0}% of total
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+                <p className="text-sm text-red-600 dark:text-red-400">Invalid Domains</p>
+                <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalid}</p>
+                <p className="text-xs text-red-600/70 dark:text-red-400/70">
+                  {stats.total > 0 ? ((stats.invalid / stats.total) * 100).toFixed(1) : 0}% of total
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <p className="text-sm text-muted-foreground">Not Enriched</p>
+                <p className="text-3xl font-bold">{stats.notEnriched}</p>
+                <p className="text-xs text-muted-foreground">Awaiting enrichment</p>
               </div>
             </div>
-          )}
 
-          {/* Contact Enrichment Stats */}
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-medium mb-4">Contact Enrichment (Clay)</h3>
+            {/* Diagnosis Breakdown */}
+            {Object.keys(stats.diagnosisCounts).length > 0 && (
+              <div className="p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Leads Without Domain by Diagnosis</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(stats.diagnosisCounts)
+                    .sort(([,a], [,b]) => b - a)
+                    .map(([category, count]) => (
+                      <div key={category} className="flex justify-between items-center p-3 bg-background rounded-lg border">
+                        <span className="text-sm">{category}</span>
+                        <span className="font-semibold text-lg">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Contact Enrichment Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Contact Enrichment</h3>
+            
+            {/* Contact Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground">Total Contacts</p>
