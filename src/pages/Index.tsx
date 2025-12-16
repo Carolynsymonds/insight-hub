@@ -517,57 +517,6 @@ const Index = () => {
     return true;
   });
 
-  const handleExportCSV = () => {
-    if (filteredLeads.length === 0) {
-      toast({
-        title: "No leads to export",
-        description: "There are no leads matching the current filter.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const headers = ["Full Name", "Email", "Phone", "Company", "City", "State", "Domain", "Match Score", "Category", "Socials Found", "Diagnosis Category", "Diagnosis Explanation", "Diagnosis Recommendation"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredLeads.map((lead) => {
-        const showSocials = lead.enrichment_confidence === null || lead.enrichment_confidence < 50;
-        const socialsFound = showSocials ? [
-          lead.facebook ? 'Facebook' : '',
-          lead.linkedin ? 'LinkedIn' : '',
-          lead.instagram ? 'Instagram' : ''
-        ].filter(Boolean).join(', ') : '';
-        
-        return [
-          `"${lead.full_name || ''}"`,
-          `"${lead.email_address || ''}"`,
-          `"${lead.phone_number || ''}"`,
-          `"${lead.company || ''}"`,
-          `"${lead.city || ''}"`,
-          `"${lead.state || ''}"`,
-          `"${lead.domain || ''}"`,
-          lead.match_score !== null ? lead.match_score : '',
-          `"${lead.category || ''}"`,
-          `"${socialsFound}"`,
-          `"${!lead.domain ? (lead.diagnosis_category || '') : ''}"`,
-          `"${!lead.domain ? (lead.diagnosis_explanation || '').replace(/"/g, '""') : ''}"`,
-          `"${!lead.domain ? (lead.diagnosis_recommendation || '').replace(/"/g, '""') : ''}"`,
-        ].join(",");
-      })
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${selectedCategory || 'leads'}_export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    toast({
-      title: "Export successful",
-      description: `Exported ${filteredLeads.length} leads to CSV.`,
-    });
-  };
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -684,10 +633,6 @@ const Index = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </Button>
                 <span className="text-sm text-muted-foreground">
                   Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
                 </span>
