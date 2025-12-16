@@ -562,6 +562,13 @@ const Index = () => {
     return true;
   });
 
+  const handleViewChange = (view: string) => {
+    setActiveView(view);
+    if (view === "home") {
+      setSelectedCategory(null);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -570,7 +577,7 @@ const Index = () => {
         </div>
       </div>;
   }
-  return <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
+  return <DashboardLayout activeView={activeView} onViewChange={handleViewChange}>
       {activeView === "statistics" ? (
         <div className="space-y-8">
           <div>
