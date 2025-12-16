@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 
 const CATEGORIES = [{
@@ -65,6 +65,8 @@ const Index = () => {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentCompany: '' });
   const [bulkScoring, setBulkScoring] = useState(false);
   const [scoreProgress, setScoreProgress] = useState({ current: 0, total: 0, currentCompany: '' });
+  const [bulkFindingContacts, setBulkFindingContacts] = useState(false);
+  const [contactProgress, setContactProgress] = useState({ current: 0, total: 0, currentName: '' });
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
@@ -345,6 +347,72 @@ const Index = () => {
     }
   };
 
+  const handleBulkFindContacts = async () => {
+    const leadsToEnrich = filteredLeads.filter(lead => lead.full_name && lead.email);
+    
+    if (leadsToEnrich.length === 0) {
+      toast({
+        title: "No leads to enrich",
+        description: "All displayed leads need both name and email for contact enrichment.",
+      });
+      return;
+    }
+
+    setBulkFindingContacts(true);
+    setContactProgress({ current: 0, total: leadsToEnrich.length, currentName: '' });
+
+    try {
+      for (let i = 0; i < leadsToEnrich.length; i++) {
+        const lead = leadsToEnrich[i];
+        setContactProgress({ current: i + 1, total: leadsToEnrich.length, currentName: lead.full_name || '' });
+
+        // Step 1: Enrich Contact
+        const { data, error } = await supabase.functions.invoke("enrich-contact", {
+          body: {
+            leadId: lead.id,
+            full_name: lead.full_name,
+            email: lead.email,
+            domain: lead.domain,
+            company: lead.company,
+          },
+        });
+
+        if (error) {
+          console.error(`Error enriching ${lead.full_name}:`, error);
+          continue;
+        }
+
+        // Step 2: If LinkedIn URL found, send to Clay
+        if (data?.enrichedContact?.linkedin_url) {
+          console.log(`LinkedIn found for ${lead.full_name}, sending to Clay...`);
+          
+          await supabase.functions.invoke('send-to-clay', {
+            body: {
+              fullName: lead.full_name,
+              email: lead.email,
+              linkedin: data.enrichedContact.linkedin_url,
+            },
+          });
+        }
+      }
+
+      toast({
+        title: "Contact enrichment complete",
+        description: `Processed ${leadsToEnrich.length} contacts.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error during contact enrichment",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkFindingContacts(false);
+      setContactProgress({ current: 0, total: 0, currentName: '' });
+      fetchLeads();
+    }
+  };
+
   const categoryFilteredLeads = selectedCategory ? leads.filter(lead => lead.category === selectedCategory) : leads;
   
   // Get unique batches from category leads
@@ -578,7 +646,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkFindDomains}
-                  disabled={bulkEnriching || bulkScoring || filteredLeads.length === 0}
+                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   {bulkEnriching ? (
@@ -597,7 +665,7 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkCalculateMatchScore}
-                  disabled={bulkScoring || bulkEnriching || filteredLeads.length === 0}
+                  disabled={bulkScoring || bulkEnriching || bulkFindingContacts || filteredLeads.length === 0}
                   className="gap-2"
                 >
                   {bulkScoring ? (
@@ -609,6 +677,25 @@ const Index = () => {
                     <>
                       <Target className="h-4 w-4" />
                       Calculate Match Score
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkFindContacts}
+                  disabled={bulkFindingContacts || bulkScoring || bulkEnriching || filteredLeads.length === 0}
+                  className="gap-2"
+                >
+                  {bulkFindingContacts ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Finding... ({contactProgress.current}/{contactProgress.total})
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4" />
+                      Find Contacts
                     </>
                   )}
                 </Button>
