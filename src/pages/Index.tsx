@@ -773,7 +773,7 @@ const Index = () => {
                   <DialogHeader>
                     <DialogTitle>Bulk Enrichment Actions</DialogTitle>
                     <DialogDescription>
-                      Run enrichment operations on {filteredLeads.length} displayed leads
+                      Operations will run on <span className="font-medium">{filteredLeads.length} leads</span> currently shown based on your selected category, batch, and domain filters.
                     </DialogDescription>
                   </DialogHeader>
                   
