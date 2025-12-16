@@ -18,6 +18,7 @@ interface ClayContactData {
   phone?: string;
   location?: string;
   latest_experience?: string;
+  summary?: string;
 }
 
 serve(async (req) => {
@@ -29,7 +30,7 @@ serve(async (req) => {
     const clayData: ClayContactData = await req.json();
     const { 
       full_name, email, title, company, linkedin_url, facebook_url, twitter_url,
-      phone, location, latest_experience
+      phone, location, latest_experience, summary
     } = clayData;
 
     console.log('Clay Contact Data Received:', JSON.stringify(clayData));
@@ -114,6 +115,7 @@ serve(async (req) => {
             latest_experience_clay: latest_experience,
             location_clay: location,
             phone_clay: phone,
+            summary_clay: summary,
             raw_response: clayData
           });
 
