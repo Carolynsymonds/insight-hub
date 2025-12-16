@@ -518,6 +518,12 @@ const LeadsTable = ({
     if (domainFilter === "valid") return lead.match_score !== null && lead.match_score >= 50;
     if (domainFilter === "invalid") return lead.match_score === null || lead.match_score < 50;
     return true;
+  }).sort((a, b) => {
+    // Sort by name when in contact view
+    if (viewMode === 'contact') {
+      return (a.full_name || '').localeCompare(b.full_name || '');
+    }
+    return 0;
   });
 
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
