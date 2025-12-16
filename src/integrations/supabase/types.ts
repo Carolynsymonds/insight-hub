@@ -56,6 +56,7 @@ export type Database = {
           profile_match_reasons: Json | null
           profile_match_score: number | null
           raw_response: Json | null
+          summary_clay: string | null
           title_clay: string | null
           twitter_url_clay: string | null
         }
@@ -76,6 +77,7 @@ export type Database = {
           profile_match_reasons?: Json | null
           profile_match_score?: number | null
           raw_response?: Json | null
+          summary_clay?: string | null
           title_clay?: string | null
           twitter_url_clay?: string | null
         }
@@ -96,6 +98,7 @@ export type Database = {
           profile_match_reasons?: Json | null
           profile_match_score?: number | null
           raw_response?: Json | null
+          summary_clay?: string | null
           title_clay?: string | null
           twitter_url_clay?: string | null
         }

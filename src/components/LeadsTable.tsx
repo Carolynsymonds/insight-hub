@@ -370,6 +370,7 @@ const LeadsTable = ({
     company_clay: string | null;
     location_clay: string | null;
     phone_clay: string | null;
+    summary_clay: string | null;
   }>>({});
 
   // Use external filter if provided, otherwise use internal state
@@ -470,7 +471,7 @@ const LeadsTable = ({
       const leadIds = leads.map(l => l.id);
       const { data, error } = await supabase
         .from('clay_enrichments')
-        .select('lead_id, title_clay, company_clay, location_clay, phone_clay')
+        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay')
         .in('lead_id', leadIds);
 
       if (error) {
@@ -479,7 +480,7 @@ const LeadsTable = ({
       }
 
       // Create a map of lead_id -> enrichment data (use the most recent one per lead)
-      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null }> = {};
+      const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null }> = {};
       data?.forEach(enrichment => {
         if (!enrichmentMap[enrichment.lead_id]) {
           enrichmentMap[enrichment.lead_id] = {
@@ -487,6 +488,7 @@ const LeadsTable = ({
             company_clay: enrichment.company_clay,
             location_clay: enrichment.location_clay,
             phone_clay: enrichment.phone_clay,
+            summary_clay: enrichment.summary_clay,
           };
         }
       });
@@ -1920,7 +1922,7 @@ const LeadsTable = ({
                   )}
                   {/* Clay Enrichment Columns */}
                   {(viewMode === 'all' || viewMode === 'contact') && (
-                    <TableHead>Role Clay</TableHead>
+                    <TableHead>Job Title Clay</TableHead>
                   )}
                   {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Company Clay</TableHead>
@@ -1930,6 +1932,9 @@ const LeadsTable = ({
                   )}
                   {(viewMode === 'all' || viewMode === 'contact') && (
                     <TableHead>Phone Clay</TableHead>
+                  )}
+                  {(viewMode === 'all' || viewMode === 'contact') && (
+                    <TableHead className="max-w-[200px]">Summary Clay</TableHead>
                   )}
                   {/* View All & Company: Description */}
                   {(viewMode === 'all' || viewMode === 'company') && (
@@ -2140,6 +2145,11 @@ const LeadsTable = ({
                       )}
                       {(viewMode === 'all' || viewMode === 'contact') && (
                         <TableCell>{allClayEnrichments[lead.id]?.phone_clay || "—"}</TableCell>
+                      )}
+                      {(viewMode === 'all' || viewMode === 'contact') && (
+                        <TableCell className="max-w-[200px] truncate" title={allClayEnrichments[lead.id]?.summary_clay || ""}>
+                          {allClayEnrichments[lead.id]?.summary_clay || "—"}
+                        </TableCell>
                       )}
                       {/* View All & Company: Description */}
                       {(viewMode === 'all' || viewMode === 'company') && (

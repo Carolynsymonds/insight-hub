@@ -1,0 +1,1 @@
+ALTER TABLE public.clay_enrichments ADD COLUMN summary_clay TEXT;
