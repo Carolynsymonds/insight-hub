@@ -75,9 +75,9 @@ const Index = () => {
     invalid: 0,
     notEnriched: 0,
     diagnosisCounts: {} as Record<string, number>,
-    contactsTotal: 0,
     contactsWithLinkedIn: 0,
-    contactsWithoutLinkedIn: 0
+    contactsHighConfidence: 0,
+    contactsLowConfidence: 0
   });
   useEffect(() => {
     checkAuth();
@@ -144,11 +144,22 @@ const Index = () => {
       });
 
       // Calculate contact LinkedIn coverage from all leads
-      const contactsTotal = (data || []).length;
-      const contactsWithLinkedIn = (data || []).filter(
+      const leadsWithLinkedIn = (data || []).filter(
         lead => lead.contact_linkedin && lead.contact_linkedin.trim() !== ''
+      );
+      const contactsWithLinkedIn = leadsWithLinkedIn.length;
+      
+      // Get lead IDs with LinkedIn to check confidence from clay_enrichments
+      const leadIdsWithLinkedIn = leadsWithLinkedIn.map(l => l.id);
+      const { data: clayData } = await supabase
+        .from("clay_enrichments")
+        .select("lead_id, profile_match_score")
+        .in("lead_id", leadIdsWithLinkedIn.length > 0 ? leadIdsWithLinkedIn : ['none']);
+      
+      const contactsHighConfidence = (clayData || []).filter(
+        c => c.profile_match_score !== null && c.profile_match_score > 50
       ).length;
-      const contactsWithoutLinkedIn = contactsTotal - contactsWithLinkedIn;
+      const contactsLowConfidence = contactsWithLinkedIn - contactsHighConfidence;
 
       setStats({ 
         total: (data || []).length, 
@@ -156,9 +167,9 @@ const Index = () => {
         invalid, 
         notEnriched, 
         diagnosisCounts,
-        contactsTotal,
         contactsWithLinkedIn,
-        contactsWithoutLinkedIn
+        contactsHighConfidence,
+        contactsLowConfidence
       });
     } catch (error: any) {
       toast({
@@ -608,21 +619,24 @@ const Index = () => {
             {/* Contact Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground">Total Leads</p>
-                <p className="text-3xl font-bold">{stats.contactsTotal}</p>
+                <p className="text-sm text-muted-foreground">With LinkedIn Profile</p>
+                <p className="text-3xl font-bold">{stats.contactsWithLinkedIn}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.total > 0 ? ((stats.contactsWithLinkedIn / stats.total) * 100).toFixed(1) : 0}% of all leads
+                </p>
               </div>
               <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-600 dark:text-green-400">With LinkedIn Profile</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.contactsWithLinkedIn}</p>
+                <p className="text-sm text-green-600 dark:text-green-400">High Confidence (&gt;50)</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.contactsHighConfidence}</p>
                 <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                  {stats.contactsTotal > 0 ? ((stats.contactsWithLinkedIn / stats.contactsTotal) * 100).toFixed(1) : 0}% of leads
+                  {stats.contactsWithLinkedIn > 0 ? ((stats.contactsHighConfidence / stats.contactsWithLinkedIn) * 100).toFixed(1) : 0}% of LinkedIn profiles
                 </p>
               </div>
               <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-600 dark:text-amber-400">Without LinkedIn</p>
-                <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">{stats.contactsWithoutLinkedIn}</p>
+                <p className="text-sm text-amber-600 dark:text-amber-400">Low/No Confidence (≤50)</p>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">{stats.contactsLowConfidence}</p>
                 <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
-                  {stats.contactsTotal > 0 ? ((stats.contactsWithoutLinkedIn / stats.contactsTotal) * 100).toFixed(1) : 0}% of leads
+                  {stats.contactsWithLinkedIn > 0 ? ((stats.contactsLowConfidence / stats.contactsWithLinkedIn) * 100).toFixed(1) : 0}% of LinkedIn profiles
                 </p>
               </div>
             </div>
