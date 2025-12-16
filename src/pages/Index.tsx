@@ -11,6 +11,7 @@ import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as Set
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -943,7 +944,7 @@ const Index = () => {
 
               {/* Bulk Enrichment Modal */}
               <Dialog open={bulkEnrichmentModalOpen} onOpenChange={setBulkEnrichmentModalOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Bulk Enrichment Actions</DialogTitle>
                     <DialogDescription>
@@ -951,7 +952,8 @@ const Index = () => {
                     </DialogDescription>
                   </DialogHeader>
                   
-                  <div className="space-y-4 py-4">
+                  <ScrollArea className="flex-1 -mx-6 px-6">
+                    <div className="space-y-4 py-4">
                     {/* Find Domains */}
                     <div className="flex items-start gap-4 p-4 border rounded-lg">
                       <div className="flex-1">
@@ -1083,7 +1085,8 @@ const Index = () => {
                         {bulkEvaluatingMatches ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run"}
                       </Button>
                     </div>
-                  </div>
+                    </div>
+                  </ScrollArea>
                 </DialogContent>
               </Dialog>
             </div>
