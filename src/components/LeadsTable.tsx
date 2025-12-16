@@ -1888,9 +1888,9 @@ const LeadsTable = ({
         </div>
       )}
 
-      {/* Filter Bar */}
-      {!hideFilterBar && (
-        <div className="flex items-center gap-4 mb-4">
+      {/* Top Bar (filters + export) */}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        {!hideFilterBar && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Filter by:</span>
             <Select value={domainFilter} onValueChange={(value: "all" | "valid" | "invalid") => setDomainFilter(value)}>
@@ -1904,6 +1904,9 @@ const LeadsTable = ({
               </SelectContent>
             </Select>
           </div>
+        )}
+
+        <div className="flex items-center gap-3 ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -1912,19 +1915,16 @@ const LeadsTable = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportCompanyCSV}>
-                Export Company Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportContactsCSV}>
-                Export Contact Details
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
           <span className="text-sm text-muted-foreground">
             Showing {filteredLeads.length} of {leads.length} leads
           </span>
         </div>
-      )}
+      </div>
 
       <StickyScrollTable className="overflow-x-auto">
         <div className="min-w-max">
