@@ -363,6 +363,8 @@ const LeadsTable = ({
     profile_match_evaluated_at: string | null;
   }>>([]);
   const [evaluatingMatchId, setEvaluatingMatchId] = useState<string | null>(null);
+  const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
+  const [bulkEvaluateProgress, setBulkEvaluateProgress] = useState({ current: 0, total: 0 });
   const [allClayEnrichments, setAllClayEnrichments] = useState<Record<string, {
     title_clay: string | null;
     company_clay: string | null;
@@ -1638,6 +1640,76 @@ const LeadsTable = ({
       });
     } finally {
       setEvaluatingMatchId(null);
+    }
+  };
+
+  const handleBulkEvaluateMatches = async () => {
+    if (!selectedLead || clayEnrichments.length === 0) return;
+    
+    const unevaluated = clayEnrichments.filter(e => !e.profile_match_evaluated_at);
+    if (unevaluated.length === 0) {
+      toast({ title: "All Evaluated", description: "All Clay enrichments have already been evaluated." });
+      return;
+    }
+
+    setBulkEvaluatingMatches(true);
+    setBulkEvaluateProgress({ current: 0, total: unevaluated.length });
+
+    try {
+      for (let i = 0; i < unevaluated.length; i++) {
+        const enrichment = unevaluated[i];
+        setBulkEvaluateProgress({ current: i + 1, total: unevaluated.length });
+
+        const { data, error } = await supabase.functions.invoke('evaluate-profile-match', {
+          body: {
+            enrichmentId: enrichment.id,
+            leadData: {
+              name: selectedLead.full_name,
+              company: selectedLead.company,
+              email: selectedLead.email,
+              location: selectedLead.city && selectedLead.state 
+                ? `${selectedLead.city}, ${selectedLead.state}` 
+                : selectedLead.city || selectedLead.state || null,
+            },
+            profileData: {
+              platform: 'LinkedIn',
+              linkedin: enrichment.linkedin,
+              full_name: enrichment.full_name,
+              title_clay: enrichment.title_clay,
+              company_clay: enrichment.company_clay,
+              location_clay: enrichment.location_clay,
+            },
+          },
+        });
+
+        if (!error && data?.result) {
+          setClayEnrichments(prev => prev.map(e => 
+            e.id === enrichment.id 
+              ? {
+                  ...e,
+                  profile_match_score: data.result.match_score,
+                  profile_match_confidence: data.result.confidence_level,
+                  profile_match_reasons: data.result.reasons,
+                  profile_match_evaluated_at: new Date().toISOString(),
+                }
+              : e
+          ));
+        }
+      }
+
+      toast({
+        title: "Bulk Evaluation Complete",
+        description: `Evaluated ${unevaluated.length} profile${unevaluated.length > 1 ? 's' : ''}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Bulk Evaluation Error",
+        description: error.message || "Failed to evaluate some profiles.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkEvaluatingMatches(false);
+      setBulkEvaluateProgress({ current: 0, total: 0 });
     }
   };
 
@@ -5352,6 +5424,28 @@ const LeadsTable = ({
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="space-y-4">
+                                        {/* Bulk Evaluate Button */}
+                                        {clayEnrichments.length > 0 && clayEnrichments.some(e => !e.profile_match_evaluated_at) && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleBulkEvaluateMatches}
+                                            disabled={bulkEvaluatingMatches}
+                                            className="w-full h-8 text-xs gap-2"
+                                          >
+                                            {bulkEvaluatingMatches ? (
+                                              <>
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                Evaluating... ({bulkEvaluateProgress.current}/{bulkEvaluateProgress.total})
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Shield className="h-3 w-3" />
+                                                Evaluate All Matches ({clayEnrichments.filter(e => !e.profile_match_evaluated_at).length} pending)
+                                              </>
+                                            )}
+                                          </Button>
+                                        )}
                                         {clayEnrichments.length > 0 ? (
                                           clayEnrichments.map((enrichment) => (
                                             <div key={enrichment.id} className="p-4 border rounded-lg bg-muted/30 space-y-3">
