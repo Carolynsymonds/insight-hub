@@ -474,17 +474,19 @@ const LeadsTable = ({
       const leadIds = leads.map(l => l.id);
       const { data, error } = await supabase
         .from('clay_enrichments')
-        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay, profile_match_score, profile_match_confidence')
-        .in('lead_id', leadIds);
+        .select('lead_id, title_clay, company_clay, location_clay, phone_clay, summary_clay, profile_match_score, profile_match_confidence, created_at')
+        .in('lead_id', leadIds)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching all clay enrichments:', error);
         return;
       }
 
-      // Create a map of lead_id -> enrichment data (use the most recent one per lead)
+      // Create a map of lead_id -> enrichment data (use the most recent one per lead - first in desc order)
       const enrichmentMap: Record<string, { title_clay: string | null; company_clay: string | null; location_clay: string | null; phone_clay: string | null; summary_clay: string | null; profile_match_score: number | null; profile_match_confidence: string | null }> = {};
       data?.forEach(enrichment => {
+        // Only take the first (most recent) record for each lead_id
         if (!enrichmentMap[enrichment.lead_id]) {
           enrichmentMap[enrichment.lead_id] = {
             title_clay: enrichment.title_clay,
