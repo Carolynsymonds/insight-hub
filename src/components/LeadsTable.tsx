@@ -849,13 +849,17 @@ const LeadsTable = ({
       const {
         error: updateError
       } = await supabase.from("leads").update({
-        email_domain_validated: data.is_valid_domain
+        email_domain_validated: data.is_valid_domain,
+        match_score: data.is_valid_domain && !data.is_parked ? lead.match_score : (data.is_parked ? 25 : 0),
+        match_score_source: data.is_valid_domain && !data.is_parked ? lead.match_score_source : (data.is_parked ? "parked_domain" : "invalid_domain")
       }).eq("id", lead.id);
       if (updateError) throw updateError;
       toast({
-        title: data.is_valid_domain ? "Domain Valid ✓" : "Domain Invalid ✗",
+        title: data.is_parked 
+          ? "Domain Parked/For Sale" 
+          : (data.is_valid_domain ? "Domain Valid ✓" : "Domain Invalid ✗"),
         description: data.reason,
-        variant: data.is_valid_domain ? "default" : "destructive"
+        variant: data.is_parked ? "default" : (data.is_valid_domain ? "default" : "destructive")
       });
       onEnrichComplete();
     } catch (error: any) {
@@ -2429,13 +2433,21 @@ const LeadsTable = ({
                                                           {lead.email_domain_validated !== null && lead.domain === mostRecentLog.domain && <TooltipProvider>
                                                               <Tooltip>
                                                                 <TooltipTrigger asChild>
-                                                                  <Badge variant={lead.email_domain_validated ? "default" : "destructive"} className={`text-xs ${lead.email_domain_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
-                                                                    {lead.email_domain_validated ? "✓ VALID" : "✗ INVALID"}
-                                                                  </Badge>
+                                                                  {lead.match_score_source === "parked_domain" ? (
+                                                                    <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                                                                      ⚠ PARKED
+                                                                    </Badge>
+                                                                  ) : (
+                                                                    <Badge variant={lead.email_domain_validated ? "default" : "destructive"} className={`text-xs ${lead.email_domain_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
+                                                                      {lead.email_domain_validated ? "✓ VALID" : "✗ INVALID"}
+                                                                    </Badge>
+                                                                  )}
                                                                 </TooltipTrigger>
                                                                 <TooltipContent className="max-w-xs">
                                                                   <p className="text-xs">
-                                                                    {lead.domain_relevance_explanation || "Domain validation result"}
+                                                                    {lead.match_score_source === "parked_domain" 
+                                                                      ? "Domain is parked or for sale. The domain exists but may be available for purchase."
+                                                                      : (lead.domain_relevance_explanation || "Domain validation result")}
                                                                   </p>
                                                                 </TooltipContent>
                                                               </Tooltip>
@@ -2507,22 +2519,25 @@ const LeadsTable = ({
                                                             if (error) throw error;
                                                             
                                                             // Update the lead with the validation result
+                                                            // Parked domains are valid but flagged
                                                             const { error: updateError } = await supabase.from("leads").update({
                                                               domain: mostRecentLog.domain,
                                                               source_url: mostRecentLog.sourceUrl || mostRecentLog.domain,
                                                               email_domain_validated: data.is_valid_domain,
                                                               enrichment_confidence: data.is_valid_domain ? mostRecentLog.confidence : 0,
                                                               enrichment_status: "enriched",
-                                                              match_score: data.is_valid_domain ? null : 0,
-                                                              match_score_source: data.is_valid_domain ? null : "invalid_domain"
+                                                              match_score: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? 25 : 0),
+                                                              match_score_source: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? "parked_domain" : "invalid_domain")
                                                             }).eq("id", lead.id);
                                                             
                                                             if (updateError) throw updateError;
                                                             
                                                             toast({
-                                                              title: data.is_valid_domain ? "Domain Valid" : "Domain Invalid",
+                                                              title: data.is_parked 
+                                                                ? "Domain Parked/For Sale" 
+                                                                : (data.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
                                                               description: data.reason || (data.is_valid_domain ? "Domain validated successfully" : "Domain validation failed"),
-                                                              variant: data.is_valid_domain ? "default" : "destructive"
+                                                              variant: data.is_parked ? "default" : (data.is_valid_domain ? "default" : "destructive")
                                                             });
                                                             onEnrichComplete();
                                                           } catch (err) {

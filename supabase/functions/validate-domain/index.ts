@@ -56,6 +56,8 @@ interface ValidationResult {
   http_status: number | null;
   redirect_to: string | null;
   is_valid_domain: boolean;
+  is_parked: boolean;
+  parking_indicator: string | null;
   reason: string;
 }
 
@@ -112,6 +114,8 @@ serve(async (req) => {
         http_status: null,
         redirect_to: null,
         is_valid_domain: false,
+        is_parked: false,
+        parking_indicator: null,
         reason: `DNS lookup failed with status ${dnsData.Status}. Domain does not resolve.`
       };
       console.log(`[validate-domain] Result:`, JSON.stringify(result));
@@ -127,6 +131,8 @@ serve(async (req) => {
         http_status: null,
         redirect_to: null,
         is_valid_domain: false,
+        is_parked: false,
+        parking_indicator: null,
         reason: 'DNS lookup returned no A records. Domain has no IP address.'
       };
       console.log(`[validate-domain] Result:`, JSON.stringify(result));
@@ -143,6 +149,8 @@ serve(async (req) => {
     let httpStatus: number | null = null;
     let redirectTo: string | null = null;
     let isValid = false;
+    let isParked = false;
+    let parkingIndicator: string | null = null;
     let reason = '';
 
     // Create abort controller with 10 second timeout
@@ -177,8 +185,11 @@ serve(async (req) => {
         );
 
         if (isMarketplaceRedirect) {
-          isValid = false;
-          reason = `Domain redirects to a domain marketplace (${redirectTo}). Domain is parked or for sale.`;
+          // Parked domain - mark as VALID but flagged as parked
+          isValid = true;
+          isParked = true;
+          parkingIndicator = `Redirects to ${redirectTo}`;
+          reason = `Domain is parked or for sale (redirects to marketplace). Domain exists but may be available for purchase.`;
         } else {
           // Check if it's a normal self-redirect (www <-> non-www or http -> https)
           try {
@@ -208,8 +219,11 @@ serve(async (req) => {
         
         if (parkingMarker) {
           console.log(`[validate-domain] Parking marker found: "${parkingMarker}"`);
-          isValid = false;
-          reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}").`;
+          // Parked domain - mark as VALID but flagged as parked
+          isValid = true;
+          isParked = true;
+          parkingIndicator = parkingMarker;
+          reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}"). Domain exists but may be available for purchase.`;
         } else {
           // Also do a follow-redirect check to see where JS redirects might go
           console.log(`[validate-domain] No parking markers in content, checking for JS redirects`);
@@ -232,8 +246,11 @@ serve(async (req) => {
             console.log(`[validate-domain] Final URL after following redirects: ${finalUrl}`);
             
             if (isMarketplaceDomain(finalUrl)) {
-              isValid = false;
-              reason = `Domain redirects to marketplace: ${finalUrl}. Domain is parked or for sale.`;
+              // Parked domain - mark as VALID but flagged as parked
+              isValid = true;
+              isParked = true;
+              parkingIndicator = `Redirects to ${finalUrl}`;
+              reason = `Domain is parked or for sale (redirects to marketplace). Domain exists but may be available for purchase.`;
             } else {
               // Check the final page content as well
               const finalBodyText = await followResponse.text();
@@ -241,8 +258,11 @@ serve(async (req) => {
               
               if (finalParkingMarker) {
                 console.log(`[validate-domain] Parking marker found after redirect: "${finalParkingMarker}"`);
-                isValid = false;
-                reason = `Domain appears to be parked or for sale (detected: "${finalParkingMarker}").`;
+                // Parked domain - mark as VALID but flagged as parked
+                isValid = true;
+                isParked = true;
+                parkingIndicator = finalParkingMarker;
+                reason = `Domain appears to be parked or for sale (detected: "${finalParkingMarker}"). Domain exists but may be available for purchase.`;
               } else {
                 isValid = true;
                 reason = 'Domain resolves correctly and returns HTTP 200.';
@@ -305,8 +325,11 @@ serve(async (req) => {
           );
           
           if (isMarketplaceRedirect) {
-            isValid = false;
-            reason = `Domain redirects to a domain marketplace (${redirectTo}). Domain is parked or for sale.`;
+            // Parked domain - mark as VALID but flagged as parked
+            isValid = true;
+            isParked = true;
+            parkingIndicator = `Redirects to ${redirectTo}`;
+            reason = `Domain is parked or for sale (redirects to marketplace). Domain exists but may be available for purchase.`;
           } else {
             isValid = true;
             reason = `Domain accessible via HTTP and redirects to ${redirectTo}.`;
@@ -317,8 +340,11 @@ serve(async (req) => {
           const parkingMarker = containsParkingMarkers(bodyText);
           
           if (parkingMarker) {
-            isValid = false;
-            reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}").`;
+            // Parked domain - mark as VALID but flagged as parked
+            isValid = true;
+            isParked = true;
+            parkingIndicator = parkingMarker;
+            reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}"). Domain exists but may be available for purchase.`;
           } else {
             isValid = true;
             reason = 'Domain resolves correctly via HTTP and returns 200.';
@@ -342,6 +368,8 @@ serve(async (req) => {
       http_status: httpStatus,
       redirect_to: redirectTo,
       is_valid_domain: isValid,
+      is_parked: isParked,
+      parking_indicator: parkingIndicator,
       reason
     };
 

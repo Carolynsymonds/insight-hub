@@ -423,6 +423,8 @@ async function enrichWithGoogle(
   latitude?: number;
   longitude?: number;
   domainValidated?: boolean | null;
+  isParked?: boolean;
+  parkingIndicator?: string | null;
 }> {
   const serpApiKey = Deno.env.get("SERPAPI_KEY");
 
@@ -1047,6 +1049,9 @@ async function enrichWithGoogle(
     // Create enrichment log
     // Validate domain if found
     let domainValidated: boolean | null = null;
+    let isParked = false;
+    let parkingIndicator: string | null = null;
+    
     if (finalDomain) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -1067,7 +1072,21 @@ async function enrichWithGoogle(
           const validationResult = await validateResponse.json();
           console.log(`Google domain validation result:`, validationResult);
           
-          if (!validationResult.is_valid_domain) {
+          // Check if domain is parked (valid but parked)
+          if (validationResult.is_parked) {
+            console.log(`Google: Domain ${finalDomain} is parked/for sale - ${validationResult.parking_indicator}`);
+            domainValidated = true; // Parked domains are technically valid
+            isParked = true;
+            parkingIndicator = validationResult.parking_indicator;
+            // Keep original confidence for parked domains - they are valid
+            
+            searchSteps.push({
+              step: "Validation",
+              query: `validate-domain: ${finalDomain}`,
+              resultFound: true,
+              source: `PARKED: ${validationResult.parking_indicator} (DNS: ${validationResult.dns_valid}, HTTP: ${validationResult.http_status})`,
+            });
+          } else if (!validationResult.is_valid_domain) {
             console.log(`Google: Domain ${finalDomain} failed validation - ${validationResult.reason}`);
             // Keep the domain but set confidence to 0 for invalid domains
             finalConfidence = 0;
@@ -1130,6 +1149,8 @@ async function enrichWithGoogle(
       latitude: finalLatitude,
       longitude: finalLongitude,
       domainValidated,
+      isParked,
+      parkingIndicator,
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
@@ -1644,14 +1665,21 @@ serve(async (req) => {
       // Set domain validation status if available
       if ("domainValidated" in result && result.domainValidated !== undefined) {
         updateData.email_domain_validated = result.domainValidated;
-        if (result.domainValidated === false) {
+        
+        // Check if domain is parked
+        if ("isParked" in result && result.isParked) {
+          // Parked domain - valid but flagged
+          updateData.match_score = 25;
+          updateData.match_score_source = "parked_domain";
+          console.log(`Domain is parked/for sale: ${"parkingIndicator" in result ? result.parkingIndicator : 'unknown'}`);
+        } else if (result.domainValidated === false) {
           // Invalid domain - set match score to 0
           updateData.match_score = 0;
           updateData.match_score_source = "invalid_domain";
         }
       }
       
-      console.log(`Updating domain to: ${result.domain} from ${result.source}, validated: ${"domainValidated" in result ? result.domainValidated : 'N/A'}`);
+      console.log(`Updating domain to: ${result.domain} from ${result.source}, validated: ${"domainValidated" in result ? result.domainValidated : 'N/A'}, parked: ${"isParked" in result ? result.isParked : 'N/A'}`);
     } else if (!existingDomain && !result.domain) {
       // No existing domain and no new domain found - mark as failed
       updateData.enrichment_source = result.source;
