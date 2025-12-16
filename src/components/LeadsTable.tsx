@@ -1655,7 +1655,7 @@ const LeadsTable = ({
   const handleBulkEvaluateMatches = async () => {
     if (!selectedLead || clayEnrichments.length === 0) return;
     
-    const unevaluated = clayEnrichments.filter(e => !e.profile_match_evaluated_at);
+    const unevaluated = clayEnrichments.filter(e => e.profile_match_score === null || e.profile_match_score === undefined);
     if (unevaluated.length === 0) {
       toast({ title: "All Evaluated", description: "All Clay enrichments have already been evaluated." });
       return;
@@ -5458,7 +5458,7 @@ const LeadsTable = ({
                                     <AccordionContent>
                                       <div className="space-y-4">
                                         {/* Bulk Evaluate Button */}
-                                        {clayEnrichments.length > 0 && clayEnrichments.some(e => !e.profile_match_evaluated_at) && (
+                                        {clayEnrichments.length > 0 && clayEnrichments.some(e => e.profile_match_score === null || e.profile_match_score === undefined) && (
                                           <Button
                                             variant="outline"
                                             size="sm"
@@ -5474,7 +5474,7 @@ const LeadsTable = ({
                                             ) : (
                                               <>
                                                 <Shield className="h-3 w-3" />
-                                                Evaluate All Matches ({clayEnrichments.filter(e => !e.profile_match_evaluated_at).length} pending)
+                                                Evaluate All Matches ({clayEnrichments.filter(e => e.profile_match_score === null || e.profile_match_score === undefined).length} pending)
                                               </>
                                             )}
                                           </Button>
