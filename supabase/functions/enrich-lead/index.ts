@@ -422,6 +422,7 @@ async function enrichWithGoogle(
   log: EnrichmentLog;
   latitude?: number;
   longitude?: number;
+  domainValidated?: boolean | null;
 }> {
   const serpApiKey = Deno.env.get("SERPAPI_KEY");
 
@@ -1045,6 +1046,7 @@ async function enrichWithGoogle(
 
     // Create enrichment log
     // Validate domain if found
+    let domainValidated: boolean | null = null;
     if (finalDomain) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -1069,6 +1071,7 @@ async function enrichWithGoogle(
             console.log(`Google: Domain ${finalDomain} failed validation - ${validationResult.reason}`);
             // Keep the domain but set confidence to 0 for invalid domains
             finalConfidence = 0;
+            domainValidated = false;
             
             searchSteps.push({
               step: "Validation",
@@ -1078,6 +1081,7 @@ async function enrichWithGoogle(
             });
           } else {
             console.log(`Google: Domain ${finalDomain} validated successfully`);
+            domainValidated = true;
             
             searchSteps.push({
               step: "Validation",
@@ -1125,6 +1129,7 @@ async function enrichWithGoogle(
       log,
       latitude: finalLatitude,
       longitude: finalLongitude,
+      domainValidated,
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
@@ -1635,7 +1640,18 @@ serve(async (req) => {
       updateData.enrichment_source = result.source;
       updateData.enrichment_confidence = result.confidence;
       updateData.enrichment_status = "enriched";
-      console.log(`Updating domain to: ${result.domain} from ${result.source}`);
+      
+      // Set domain validation status if available
+      if ("domainValidated" in result && result.domainValidated !== undefined) {
+        updateData.email_domain_validated = result.domainValidated;
+        if (result.domainValidated === false) {
+          // Invalid domain - set match score to 0
+          updateData.match_score = 0;
+          updateData.match_score_source = "invalid_domain";
+        }
+      }
+      
+      console.log(`Updating domain to: ${result.domain} from ${result.source}, validated: ${"domainValidated" in result ? result.domainValidated : 'N/A'}`);
     } else if (!existingDomain && !result.domain) {
       // No existing domain and no new domain found - mark as failed
       updateData.enrichment_source = result.source;

@@ -2492,6 +2492,67 @@ const LeadsTable = ({
                                                       {showLogsForSource === source ? "Hide Logs" : "View Logs"}
                                                     </Button>
 
+                                                    {/* Validate Domain Button - show when domain found but not validated or not saved */}
+                                                    {mostRecentLog.domain && (lead.domain !== mostRecentLog.domain || lead.email_domain_validated === null) && (
+                                                      <Button 
+                                                        size="sm" 
+                                                        variant="outline" 
+                                                        onClick={async (e) => {
+                                                          e.stopPropagation();
+                                                          setCheckingDomain(lead.id);
+                                                          try {
+                                                            const { data, error } = await supabase.functions.invoke("validate-domain", {
+                                                              body: { domain: mostRecentLog.domain }
+                                                            });
+                                                            if (error) throw error;
+                                                            
+                                                            // Update the lead with the validation result
+                                                            const { error: updateError } = await supabase.from("leads").update({
+                                                              domain: mostRecentLog.domain,
+                                                              source_url: mostRecentLog.sourceUrl || mostRecentLog.domain,
+                                                              email_domain_validated: data.is_valid_domain,
+                                                              enrichment_confidence: data.is_valid_domain ? mostRecentLog.confidence : 0,
+                                                              enrichment_status: "enriched",
+                                                              match_score: data.is_valid_domain ? null : 0,
+                                                              match_score_source: data.is_valid_domain ? null : "invalid_domain"
+                                                            }).eq("id", lead.id);
+                                                            
+                                                            if (updateError) throw updateError;
+                                                            
+                                                            toast({
+                                                              title: data.is_valid_domain ? "Domain Valid" : "Domain Invalid",
+                                                              description: data.reason || (data.is_valid_domain ? "Domain validated successfully" : "Domain validation failed"),
+                                                              variant: data.is_valid_domain ? "default" : "destructive"
+                                                            });
+                                                            onEnrichComplete();
+                                                          } catch (err) {
+                                                            console.error("Domain validation error:", err);
+                                                            toast({
+                                                              title: "Validation Error",
+                                                              description: "Failed to validate domain",
+                                                              variant: "destructive"
+                                                            });
+                                                          } finally {
+                                                            setCheckingDomain(null);
+                                                          }
+                                                        }} 
+                                                        disabled={checkingDomain === lead.id}
+                                                        className="w-full select-none mt-2"
+                                                      >
+                                                        {checkingDomain === lead.id ? (
+                                                          <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Validating...
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <Shield className="mr-2 h-4 w-4" />
+                                                            Validate Domain
+                                                          </>
+                                                        )}
+                                                      </Button>
+                                                    )}
+
                                                     {/* Collapsible Logs Section */}
                                                     {showLogsForSource === source && <div className="space-y-2 max-h-96 overflow-y-auto pt-2 border-t" style={{
                                             userSelect: "text"
