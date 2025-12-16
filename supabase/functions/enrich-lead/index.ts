@@ -1584,10 +1584,10 @@ serve(async (req) => {
           ? await enrichWithEmail(email, company)
           : await enrichWithApollo(company, city, state);
 
-    // Get existing lead data including current domain and confidence
+    // Get existing lead data including current domain, confidence, and validation status
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source")
+      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source, email_domain_validated")
       .eq("id", leadId)
       .single();
 
@@ -1598,13 +1598,17 @@ serve(async (req) => {
     // Only overwrite if: new enrichment found a domain AND (no existing domain OR new confidence > existing confidence)
     const existingConfidence = existingLead?.enrichment_confidence ?? 0;
     const existingDomain = existingLead?.domain;
+    const existingDomainIsInvalid = existingLead?.email_domain_validated === false;
     
     const shouldUpdateDomain = result.domain && (
       !existingDomain || 
       result.confidence > existingConfidence
     );
 
-    console.log(`Domain update check: existing=${existingDomain} (${existingConfidence}%), new=${result.domain} (${result.confidence}%), shouldUpdate=${shouldUpdateDomain}`);
+    // Check if we should clear an invalid domain when new enrichment finds nothing
+    const shouldClearInvalidDomain = !result.domain && existingDomain && existingDomainIsInvalid;
+
+    console.log(`Domain update check: existing=${existingDomain} (${existingConfidence}%, validated=${existingLead?.email_domain_validated}), new=${result.domain} (${result.confidence}%), shouldUpdate=${shouldUpdateDomain}, shouldClearInvalid=${shouldClearInvalidDomain}`);
 
     // Build update data - always log the enrichment attempt
     const updateData: any = {
@@ -1612,8 +1616,18 @@ serve(async (req) => {
       enriched_at: new Date().toISOString(),
     };
 
+    // Clear invalid domain if new enrichment found nothing and existing domain was validated as INVALID
+    if (shouldClearInvalidDomain) {
+      console.log(`Clearing invalid domain: ${existingDomain} (validated as INVALID)`);
+      updateData.domain = null;
+      updateData.source_url = null;
+      updateData.enrichment_source = result.source;
+      updateData.enrichment_confidence = 0;
+      updateData.enrichment_status = "failed";
+      updateData.email_domain_validated = null;
+    }
     // Only update domain fields if new enrichment is better
-    if (shouldUpdateDomain) {
+    else if (shouldUpdateDomain) {
       updateData.domain = result.domain;
       updateData.source_url = result.sourceUrl || null;
       updateData.enrichment_source = result.source;
