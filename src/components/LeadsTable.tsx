@@ -2028,11 +2028,11 @@ const LeadsTable = ({
                                 </div>;
                   })() : "—"}
                         </TableCell>}
-                      {/* Company View: Socials (right after Company Domain) - only show validated */}
+                      {/* Company View: Socials (right after Company Domain) - show if exists and not explicitly invalidated */}
                       {viewMode === 'company' && <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
-                            {/* LinkedIn - only show if validated as true */}
-                            {lead.linkedin_validated === true && lead.linkedin && <div className="flex items-center gap-1.5">
+                            {/* LinkedIn - show if exists and not explicitly invalidated (from Apollo/Clay/scraping or validated) */}
+                            {lead.linkedin && lead.linkedin_validated !== false && <div className="flex items-center gap-1.5">
                                 <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                                 <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
@@ -2044,8 +2044,8 @@ const LeadsTable = ({
                         })()}
                                 </a>
                               </div>}
-                            {/* Instagram - only show if validated as true */}
-                            {lead.instagram_validated === true && lead.instagram && <div className="flex items-center gap-1.5">
+                            {/* Instagram - show if exists and not explicitly invalidated */}
+                            {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
                                 <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                                 <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
@@ -2057,8 +2057,8 @@ const LeadsTable = ({
                         })()}
                                 </a>
                               </div>}
-                            {/* Facebook - only show if validated as true */}
-                            {lead.facebook_validated === true && lead.facebook && <div className="flex items-center gap-1.5">
+                            {/* Facebook - show if exists and not explicitly invalidated */}
+                            {lead.facebook && lead.facebook_validated !== false && <div className="flex items-center gap-1.5">
                                 <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                                 <a href={lead.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
@@ -2070,10 +2070,10 @@ const LeadsTable = ({
                         })()}
                                 </a>
                               </div>}
-                            {/* Show dash if nothing validated */}
-                            {!(lead.linkedin_validated === true && lead.linkedin) && 
-                             !(lead.instagram_validated === true && lead.instagram) && 
-                             !(lead.facebook_validated === true && lead.facebook) && 
+                            {/* Show dash if no socials exist or all are invalidated */}
+                            {!(lead.linkedin && lead.linkedin_validated !== false) && 
+                             !(lead.instagram && lead.instagram_validated !== false) && 
+                             !(lead.facebook && lead.facebook_validated !== false) && 
                              <span className="text-muted-foreground">—</span>}
                           </div>
                         </TableCell>}
