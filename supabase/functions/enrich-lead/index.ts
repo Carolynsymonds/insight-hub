@@ -1625,6 +1625,8 @@ serve(async (req) => {
       updateData.enrichment_confidence = 0;
       updateData.enrichment_status = "failed";
       updateData.email_domain_validated = null;
+      updateData.match_score = null;
+      updateData.match_score_source = null;
     }
     // Only update domain fields if new enrichment is better
     else if (shouldUpdateDomain) {
