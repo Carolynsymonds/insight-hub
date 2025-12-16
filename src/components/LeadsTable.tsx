@@ -441,7 +441,8 @@ const LeadsTable = ({
         .from('clay_enrichments')
         .select('*')
         .eq('lead_id', selectedLead.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) {
         console.error('Error fetching clay enrichments:', error);
