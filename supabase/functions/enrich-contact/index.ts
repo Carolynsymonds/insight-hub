@@ -51,7 +51,7 @@ interface EnrichedContact {
 }
 
 // Helper function to extract clean profile URL
-function extractCleanProfileUrl(url: string, platform: string): string {
+function extractCleanProfileUrl(url: string, platform: string): string | null {
   try {
     const parsed = new URL(url);
     // Remove tracking params and normalize
@@ -59,29 +59,42 @@ function extractCleanProfileUrl(url: string, platform: string): string {
     
     switch (platform) {
       case 'linkedin':
-        // Extract /in/username format
+        // Extract /in/username format only - reject company pages, posts, etc.
         const linkedinMatch = cleanPath.match(/\/in\/([^\/]+)/);
-        return linkedinMatch ? `https://linkedin.com/in/${linkedinMatch[1]}` : url;
+        return linkedinMatch ? `https://linkedin.com/in/${linkedinMatch[1]}` : null;
+        
       case 'facebook':
-        // Extract profile name
+        // Extract profile name, filter out non-profile URLs
         const fbMatch = cleanPath.match(/\/([^\/]+)/);
-        if (fbMatch && !['pages', 'groups', 'events', 'profile.php'].includes(fbMatch[1])) {
+        const fbNonProfilePaths = ['pages', 'groups', 'events', 'profile.php', 'posts', 'watch', 'videos', 'photos', 'story', 'stories', 'reel', 'reels', 'share'];
+        if (fbMatch && !fbNonProfilePaths.includes(fbMatch[1])) {
           return `https://facebook.com/${fbMatch[1]}`;
         }
-        return url;
+        return null;
+        
       case 'twitter':
         const twitterMatch = cleanPath.match(/\/([^\/]+)/);
-        if (twitterMatch && !['search', 'explore', 'home', 'i'].includes(twitterMatch[1])) {
+        const twitterNonProfilePaths = ['search', 'explore', 'home', 'i', 'status', 'hashtag', 'compose', 'intent'];
+        if (twitterMatch && !twitterNonProfilePaths.includes(twitterMatch[1])) {
           return `https://twitter.com/${twitterMatch[1]}`;
         }
-        return url;
+        return null;
+        
       case 'github':
         const githubMatch = cleanPath.match(/\/([^\/]+)/);
-        if (githubMatch && !['search', 'explore', 'trending', 'topics'].includes(githubMatch[1])) {
+        const githubNonProfilePaths = ['search', 'explore', 'trending', 'topics', 'issues', 'pull', 'blob', 'tree', 'commit', 'releases', 'orgs'];
+        if (githubMatch && !githubNonProfilePaths.includes(githubMatch[1])) {
           return `https://github.com/${githubMatch[1]}`;
         }
-        return url;
+        return null;
+        
       case 'youtube':
+        // Check for non-profile paths first
+        const ytNonProfilePaths = ['watch', 'playlist', 'shorts', 'results', 'feed', 'gaming', 'music'];
+        const firstPath = cleanPath.split('/')[1];
+        if (firstPath && ytNonProfilePaths.includes(firstPath)) {
+          return null;
+        }
         // Extract channel or user URL
         const ytChannelMatch = cleanPath.match(/\/(channel|c|user|@)\/([^\/]+)/);
         if (ytChannelMatch) {
@@ -92,12 +105,13 @@ function extractCleanProfileUrl(url: string, platform: string): string {
         if (ytAtMatch) {
           return `https://youtube.com/${ytAtMatch[1]}`;
         }
-        return url;
+        return null;
+        
       default:
-        return url;
+        return null;
     }
   } catch {
-    return url;
+    return null;
   }
 }
 
