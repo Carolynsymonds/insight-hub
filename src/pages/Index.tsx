@@ -74,7 +74,10 @@ const Index = () => {
     valid: 0,
     invalid: 0,
     notEnriched: 0,
-    diagnosisCounts: {} as Record<string, number>
+    diagnosisCounts: {} as Record<string, number>,
+    contactsTotal: 0,
+    contactsHighConfidence: 0,
+    contactsLowConfidence: 0
   });
   useEffect(() => {
     checkAuth();
@@ -140,7 +143,27 @@ const Index = () => {
         diagnosisCounts[category] = (diagnosisCounts[category] || 0) + 1;
       });
 
-      setStats({ total: (data || []).length, valid, invalid, notEnriched, diagnosisCounts });
+      // Fetch contact statistics from clay_enrichments
+      const { data: clayData } = await supabase
+        .from("clay_enrichments")
+        .select("profile_match_score");
+      
+      const contactsTotal = clayData?.length || 0;
+      const contactsHighConfidence = (clayData || []).filter(
+        c => c.profile_match_score !== null && c.profile_match_score > 50
+      ).length;
+      const contactsLowConfidence = contactsTotal - contactsHighConfidence;
+
+      setStats({ 
+        total: (data || []).length, 
+        valid, 
+        invalid, 
+        notEnriched, 
+        diagnosisCounts,
+        contactsTotal,
+        contactsHighConfidence,
+        contactsLowConfidence
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -576,6 +599,31 @@ const Index = () => {
               </div>
             </div>
           )}
+
+          {/* Contact Enrichment Stats */}
+          <div className="p-6 border rounded-lg">
+            <h3 className="font-medium mb-4">Contact Enrichment (Clay)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg bg-card">
+                <p className="text-sm text-muted-foreground">Total Contacts</p>
+                <p className="text-3xl font-bold">{stats.contactsTotal}</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-600 dark:text-green-400">High Confidence (&gt;50)</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.contactsHighConfidence}</p>
+                <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                  {stats.contactsTotal > 0 ? ((stats.contactsHighConfidence / stats.contactsTotal) * 100).toFixed(1) : 0}% of contacts
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-600 dark:text-amber-400">Low/No Confidence (≤50)</p>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">{stats.contactsLowConfidence}</p>
+                <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
+                  {stats.contactsTotal > 0 ? ((stats.contactsLowConfidence / stats.contactsTotal) * 100).toFixed(1) : 0}% of contacts
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Category Breakdown */}
           <div className="p-6 border rounded-lg">
