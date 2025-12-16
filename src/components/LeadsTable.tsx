@@ -2426,10 +2426,12 @@ const LeadsTable = ({
                           <Drawer
                             direction="right"
                             open={openDrawer === lead.id}
-                            onOpenChange={(open) => {
+                          onOpenChange={(open) => {
                               setOpenDrawer(open ? lead.id : null);
                               if (open) {
                                 setSelectedLead(lead);
+                                setEnrichContactSteps(null);
+                                setEnrichedContactResult(null);
                               }
                             }}
                             dismissible={false}
