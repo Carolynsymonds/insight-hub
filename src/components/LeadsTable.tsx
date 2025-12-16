@@ -1890,6 +1890,8 @@ const LeadsTable = ({
                         Company Domain
                       </div>
                     </TableHead>}
+                  {/* Company View: Socials (right after Company Domain) */}
+                  {viewMode === 'company' && <TableHead>Socials</TableHead>}
                   {/* Clay Enrichment Columns */}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Job Title Clay</TableHead>}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead>Company Clay</TableHead>}
@@ -1910,9 +1912,8 @@ const LeadsTable = ({
                   {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
                       Contact Socials
                     </TableHead>}
-                  {/* View All & Company: Socials */}
+                  {/* View All: Socials */}
                   {viewMode === 'all' && showEnrichedColumns && <TableHead className="border-t-2 border-lavender">Socials</TableHead>}
-                  {viewMode === 'company' && <TableHead>Socials</TableHead>}
                   {/* Company View: Additional columns */}
                   {viewMode === 'company' && <>
                       <TableHead>Industry</TableHead>
@@ -2022,6 +2023,55 @@ const LeadsTable = ({
                                     </Badge>}
                                 </div>;
                   })() : "—"}
+                        </TableCell>}
+                      {/* Company View: Socials (right after Company Domain) - only show validated */}
+                      {viewMode === 'company' && <TableCell>
+                          <div className="flex flex-col gap-1 text-xs">
+                            {/* LinkedIn - only show if validated as true */}
+                            {lead.linkedin_validated === true && lead.linkedin && <div className="flex items-center gap-1.5">
+                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                                  {(() => {
+                          try {
+                            return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
+                          } catch {
+                            return lead.linkedin;
+                          }
+                        })()}
+                                </a>
+                              </div>}
+                            {/* Instagram - only show if validated as true */}
+                            {lead.instagram_validated === true && lead.instagram && <div className="flex items-center gap-1.5">
+                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                                  {(() => {
+                          try {
+                            return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                          } catch {
+                            return lead.instagram;
+                          }
+                        })()}
+                                </a>
+                              </div>}
+                            {/* Facebook - only show if validated as true */}
+                            {lead.facebook_validated === true && lead.facebook && <div className="flex items-center gap-1.5">
+                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <a href={lead.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                                  {(() => {
+                          try {
+                            return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
+                          } catch {
+                            return lead.facebook;
+                          }
+                        })()}
+                                </a>
+                              </div>}
+                            {/* Show dash if nothing validated */}
+                            {!(lead.linkedin_validated === true && lead.linkedin) && 
+                             !(lead.instagram_validated === true && lead.instagram) && 
+                             !(lead.facebook_validated === true && lead.facebook) && 
+                             <span className="text-muted-foreground">—</span>}
+                          </div>
                         </TableCell>}
                       {/* Clay Enrichment Cells */}
                       {(viewMode === 'all' || viewMode === 'contact') && <TableCell>{allClayEnrichments[lead.id]?.title_clay || "—"}</TableCell>}
@@ -2225,50 +2275,6 @@ const LeadsTable = ({
                             </div>
                           </TableCell>
                         </>}
-                      {/* Company View: Socials */}
-                      {viewMode === 'company' && <TableCell>
-                          <div className="flex flex-col gap-1 text-xs">
-                            {/* LinkedIn - hide if validated as false */}
-                            {lead.linkedin_validated !== false && <div className="flex items-center gap-1.5">
-                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.linkedin ? <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
-                                    {(() => {
-                          try {
-                            return new URL(lead.linkedin).pathname.replace(/\/$/, "") || "/";
-                          } catch {
-                            return lead.linkedin;
-                          }
-                        })()}
-                                  </a> : <span className="text-muted-foreground">—</span>}
-                              </div>}
-                            {/* Instagram - hide if validated as false */}
-                            {lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
-                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.instagram ? <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
-                                    {(() => {
-                          try {
-                            return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
-                          } catch {
-                            return lead.instagram;
-                          }
-                        })()}
-                                  </a> : <span className="text-muted-foreground">—</span>}
-                              </div>}
-                            {/* Facebook - hide if validated as false */}
-                            {lead.facebook_validated !== false && <div className="flex items-center gap-1.5">
-                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                {lead.facebook ? <a href={lead.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
-                                    {(() => {
-                          try {
-                            return new URL(lead.facebook).pathname.replace(/\/$/, "") || "/";
-                          } catch {
-                            return lead.facebook;
-                          }
-                        })()}
-                                  </a> : <span className="text-muted-foreground">—</span>}
-                              </div>}
-                          </div>
-                        </TableCell>}
                       {/* Company View: Industry, Founded, Contacts, Logo, Products/Services, News */}
                       {viewMode === 'company' && <>
                           <TableCell>{lead.company_industry || "—"}</TableCell>
