@@ -1170,7 +1170,7 @@ const LeadsTable = ({
     if (!lead.description && !lead.products_services && !lead.company_industry) {
       toast({
         title: "Cannot Generate",
-        description: "Company details are required. Run Enrich Company Details first.",
+        description: "Company details are required. Run 'Enrich with Apollo + Scrape Website' first.",
         variant: "destructive"
       });
       return;
@@ -1220,7 +1220,7 @@ const LeadsTable = ({
     if (!lead.description && !lead.products_services && !lead.company_industry) {
       toast({
         title: "Cannot Generate",
-        description: "Company details are required. Run Enrich Company Details first.",
+        description: "Company details are required. Run 'Enrich with Apollo + Scrape Website' first.",
         variant: "destructive"
       });
       return;
@@ -1278,7 +1278,7 @@ const LeadsTable = ({
     if (!lead.products_services && !lead.description && !lead.company_industry) {
       toast({
         title: "Cannot Generate",
-        description: "Products/services, description, or industry data is required. Run Enrich Company Details first.",
+        description: "Products/services, description, or industry data is required. Run 'Enrich with Apollo + Scrape Website' first.",
         variant: "destructive"
       });
       return;
@@ -1384,7 +1384,7 @@ const LeadsTable = ({
     if (!lead.description) {
       toast({
         title: "Cannot Generate",
-        description: "Company description is required. Run Enrich Company Details first.",
+        description: "Company description is required. Run 'Enrich with Apollo + Scrape Website' first.",
         variant: "destructive"
       });
       return;
@@ -1733,7 +1733,7 @@ const LeadsTable = ({
   const handleEnrichCompanyDetails = async (lead: Lead) => {
     if (!lead.domain) {
       toast({
-        title: "Cannot Enrich Company Details",
+        title: "Cannot Enrich with Apollo + Scrape Website",
         description: "Domain is required. Run enrichment first.",
         variant: "destructive"
       });
@@ -2772,7 +2772,7 @@ const LeadsTable = ({
                                               </div> : null;
                                   })()}
 
-                                        {/* Enrich Company Details Button - only show when domain is found and match_score >= 50% */}
+                                        {/* Enrich with Apollo + Scrape Website Button - only show when domain is found and match_score >= 50% */}
                                         {lead.domain && (lead.match_score ?? 0) >= 50 && <div className="pt-4 border-t space-y-2">
                                             {lead.enrichment_source === "apollo_api" && <p className="text-xs text-primary">
                                                 ✓ Domain found via Apollo - direct retrieval
@@ -2783,7 +2783,7 @@ const LeadsTable = ({
                                                   {companyDetailsStep?.message || "Enriching..."}
                                                 </> : <>
                                                   <Sparkles className="mr-2 h-4 w-4" />
-                                                  Enrich Company Details
+                                  Enrich with Apollo + Scrape Website
                                                 </>}
                                             </Button>
                                             {enrichingCompanyDetails !== lead.id && <p className="text-xs text-muted-foreground text-center">
@@ -3396,7 +3396,7 @@ const LeadsTable = ({
                                                 {companyDetailsStep?.message || "Enriching..."}
                                               </> : <>
                                                 <Sparkles className="mr-2 h-4 w-4" />
-                                                Enrich Company Details
+                                                Enrich with Apollo + Scrape Website
                                               </>}
                                           </Button>
                                           {(lead.match_score === null || (lead.match_score ?? 0) < 50) && <p className="text-xs text-destructive/70">
@@ -4461,7 +4461,7 @@ const LeadsTable = ({
                     </>}
                 </Button>
                 {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive mt-2">
-                    Company details required. Run "Enrich Company Details" first.
+                    Company details required. Run "Enrich with Apollo + Scrape Website" first.
                   </p>}
               </div>}
 
@@ -4516,7 +4516,7 @@ const LeadsTable = ({
                           </>}
                       </Button>
                       {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive">
-                          Company details required. Run "Enrich Company Details" first.
+                          Company details required. Run "Enrich with Apollo + Scrape Website" first.
                         </p>}
                     </div>}
                 </AccordionContent>
@@ -4545,7 +4545,7 @@ const LeadsTable = ({
                           </>}
                       </Button>
                       {!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive">
-                          Products/services, description, or industry data required. Run "Enrich Company Details" first.
+                          Products/services, description, or industry data required. Run "Enrich with Apollo + Scrape Website" first.
                         </p>}
                     </div>}
                 </AccordionContent>
