@@ -914,6 +914,11 @@ const LeadsTable = ({
 
       const domainFound = !!updatedLead?.domain;
 
+      // Mark domain search as completed (regardless of whether domain was found)
+      if (!domainFound) {
+        setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
+      }
+
       if (domainFound) {
         // Step 2: Validate Domain
         setPipelineStep('Validating Domain (2/9)...');
