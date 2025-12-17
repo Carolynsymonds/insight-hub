@@ -1183,6 +1183,8 @@ const LeadsTable = ({
         variant: "destructive"
       });
     } finally {
+      const duration = (Date.now() - startTime) / 1000;
+      setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
       setRunningPipeline(null);
       setPipelineStep(null);
     }
