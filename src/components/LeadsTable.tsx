@@ -345,6 +345,7 @@ const LeadsTable = ({
   const [runningPipeline, setRunningPipeline] = useState<string | null>(null);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [pipelineCompleted, setPipelineCompleted] = useState<{ domainValidated: boolean; socialsSearched: boolean }>({ domainValidated: false, socialsSearched: false });
+  const [pipelineDuration, setPipelineDuration] = useState<Record<string, number>>({});
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
@@ -858,6 +859,7 @@ const LeadsTable = ({
     }
   };
   const handleRunPipeline = async (lead: Lead) => {
+    const startTime = Date.now();
     setRunningPipeline(lead.id);
     setPipelineCompleted({ domainValidated: false, socialsSearched: false });
     try {
@@ -1063,6 +1065,9 @@ const LeadsTable = ({
             // Wait for Path B (contact enrichment) to complete
             await contactEnrichmentPromise;
 
+            const duration = (Date.now() - startTime) / 1000;
+            setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
+
             toast({
               title: "Full Pipeline Complete",
               description: `Enriched ${updatedLead.domain} (Score: ${leadWithScore.match_score})`
@@ -1070,6 +1075,9 @@ const LeadsTable = ({
           } else {
             // Score ≤ 50: Wait for contact enrichment to complete
             await contactEnrichmentPromise;
+
+            const duration = (Date.now() - startTime) / 1000;
+            setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
 
             toast({
               title: "Pipeline Complete",
@@ -1085,6 +1093,9 @@ const LeadsTable = ({
 
           // Wait for Path B (contact enrichment) to complete
           await contactEnrichmentPromise;
+
+          const duration = (Date.now() - startTime) / 1000;
+          setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
 
           toast({
             title: "Pipeline Complete",
@@ -1132,6 +1143,9 @@ const LeadsTable = ({
 
         // Wait for Path B (contact enrichment) to complete
         await contactEnrichmentPromise;
+
+        const duration = (Date.now() - startTime) / 1000;
+        setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
 
         toast({
           title: "Pipeline Complete",
@@ -2780,6 +2794,11 @@ const LeadsTable = ({
                 <br />
                 <span className="text-muted-foreground/70">If no domain: Search Socials → Score → Diagnose</span>
               </p>
+              {pipelineDuration[lead.id] && runningPipeline !== lead.id && (
+                <p className="text-xs text-muted-foreground text-center mt-2 font-medium">
+                  ⏱️ Last run: {pipelineDuration[lead.id].toFixed(1)}s
+                </p>
+              )}
                                 </div>
 
                                 <Accordion type="single" collapsible className="w-full">
