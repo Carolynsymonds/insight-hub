@@ -886,6 +886,14 @@ const LeadsTable = ({
           }
           
           console.log('[Pipeline] Contact enrichment completed:', data);
+          
+          // Update UI state to display results (same as manual button)
+          if (data?.steps) {
+            setEnrichContactSteps(data.steps);
+          }
+          if (data?.enrichedContact) {
+            setEnrichedContactResult(data.enrichedContact);
+          }
 
           // Check if LinkedIn was found and send to Clay
           const { data: enrichedLead } = await supabase
