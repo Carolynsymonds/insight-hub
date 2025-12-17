@@ -1608,6 +1608,43 @@ const LeadsTable = ({
       setEnrichingWithClay(null);
     }
   };
+  const [enrichingCompanyWithClay, setEnrichingCompanyWithClay] = useState<string | null>(null);
+  const handleEnrichCompanyWithClay = async (lead: Lead) => {
+    if (!lead.domain) {
+      toast({
+        title: "Cannot Enrich with Clay",
+        description: "Domain is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setEnrichingCompanyWithClay(lead.id);
+    try {
+      console.log('Sending domain to Clay for company enrichment:', lead.domain);
+      const { data, error } = await supabase.functions.invoke('enrich-company-clay', {
+        body: {
+          domain: lead.domain
+        }
+      });
+      if (error) {
+        throw new Error(error.message || 'Failed to send to Clay');
+      }
+      console.log('Clay company enrichment response:', data);
+      toast({
+        title: "Sent to Clay",
+        description: "Company domain sent to Clay for enrichment."
+      });
+    } catch (error) {
+      console.error('Clay company enrichment error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send to Clay.",
+        variant: "destructive"
+      });
+    } finally {
+      setEnrichingCompanyWithClay(null);
+    }
+  };
   const handleEvaluateMatch = async (enrichment: typeof clayEnrichments[0]) => {
     if (!selectedLead) return;
     setEvaluatingMatchId(enrichment.id);
@@ -2789,6 +2826,18 @@ const LeadsTable = ({
                                             {enrichingCompanyDetails !== lead.id && <p className="text-xs text-muted-foreground text-center">
                                                 Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
                                               </p>}
+                                            <Button size="sm" variant="outline" onClick={() => handleEnrichCompanyWithClay(lead)} disabled={enrichingCompanyWithClay === lead.id} className="w-full mt-2">
+                                              {enrichingCompanyWithClay === lead.id ? <>
+                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                  Sending to Clay...
+                                                </> : <>
+                                                  <Sparkles className="mr-2 h-4 w-4" />
+                                                  Enrich with Clay
+                                                </>}
+                                            </Button>
+                                            {enrichingCompanyWithClay !== lead.id && <p className="text-xs text-muted-foreground text-center">
+                                                Sends domain to Clay for company enrichment
+                                              </p>}
                                           </div>}
                                         {lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && <div className="pt-4 border-t">
                                             <p className="text-xs text-destructive/70 text-center">
@@ -3397,6 +3446,15 @@ const LeadsTable = ({
                                               </> : <>
                                                 <Sparkles className="mr-2 h-4 w-4" />
                                                 Enrich with Apollo + Scrape Website
+                                              </>}
+                                          </Button>
+                                          <Button size="sm" variant="outline" className="w-full mt-2" disabled={enrichingCompanyWithClay === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50} onClick={() => handleEnrichCompanyWithClay(lead)}>
+                                            {enrichingCompanyWithClay === lead.id ? <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Sending to Clay...
+                                              </> : <>
+                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                Enrich with Clay
                                               </>}
                                           </Button>
                                           {(lead.match_score === null || (lead.match_score ?? 0) < 50) && <p className="text-xs text-destructive/70">

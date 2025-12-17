@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.evaluate-profile-match]
 verify_jwt = false
+
+[functions.enrich-company-clay]
+verify_jwt = false
