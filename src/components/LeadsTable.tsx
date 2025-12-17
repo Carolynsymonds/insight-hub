@@ -867,31 +867,45 @@ const LeadsTable = ({
 
       // PATH B: Contact enrichment - runs completely in parallel from the start
       const contactEnrichmentPromise = (async () => {
-        await supabase.functions.invoke("enrich-contact", {
-          body: {
-            leadId: lead.id,
-            full_name: lead.full_name,
-            email: lead.email,
-            domain: lead.domain,
-            company: lead.company
-          }
-        });
-
-        // Check if LinkedIn was found and send to Clay
-        const { data: enrichedLead } = await supabase
-          .from("leads")
-          .select("contact_linkedin")
-          .eq("id", lead.id)
-          .single();
-
-        if (enrichedLead?.contact_linkedin) {
-          await supabase.functions.invoke("send-to-clay", {
+        try {
+          console.log('[Pipeline] Starting contact enrichment for lead:', lead.id);
+          
+          const { data, error } = await supabase.functions.invoke("enrich-contact", {
             body: {
-              fullName: lead.full_name,
+              leadId: lead.id,
+              full_name: lead.full_name,
               email: lead.email,
-              linkedin: enrichedLead.contact_linkedin
+              domain: lead.domain,
+              company: lead.company
             }
           });
+          
+          if (error) {
+            console.error('[Pipeline] Contact enrichment error:', error);
+            return;
+          }
+          
+          console.log('[Pipeline] Contact enrichment completed:', data);
+
+          // Check if LinkedIn was found and send to Clay
+          const { data: enrichedLead } = await supabase
+            .from("leads")
+            .select("contact_linkedin")
+            .eq("id", lead.id)
+            .single();
+
+          if (enrichedLead?.contact_linkedin) {
+            console.log('[Pipeline] Sending to Clay with LinkedIn:', enrichedLead.contact_linkedin);
+            await supabase.functions.invoke("send-to-clay", {
+              body: {
+                fullName: lead.full_name,
+                email: lead.email,
+                linkedin: enrichedLead.contact_linkedin
+              }
+            });
+          }
+        } catch (err) {
+          console.error('[Pipeline] Contact enrichment failed:', err);
         }
       })();
 
