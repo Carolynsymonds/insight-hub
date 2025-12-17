@@ -3522,7 +3522,7 @@ const LeadsTable = ({
                                                 <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
                                                   <div className="flex items-center gap-2">
                                                     {(lead.scraped_data_log.primary_source === "apollo" || lead.scraped_data_log.source?.startsWith("apollo")) ? <>
-                                                        <span>🚀 Apollo Enrichment Log</span>
+                                                        <span>📋 Enrichment Log</span>
                                                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
                                                           {lead.scraped_data_log.apollo_data?.fields_populated?.length || lead.scraped_data_log.fields_populated?.length || 0} fields
                                                         </Badge>
@@ -3538,6 +3538,9 @@ const LeadsTable = ({
                                                   <div className="space-y-2 text-xs">
                                                     {/* Apollo Data Display */}
                                                     {(lead.scraped_data_log.primary_source === "apollo" || lead.scraped_data_log.source?.startsWith("apollo")) && lead.scraped_data_log.apollo_data && <div className="grid gap-1.5">
+                                                          <span className="text-muted-foreground font-medium block mb-2">
+                                                            🚀 Apollo Enrichment Log
+                                                          </span>
                                                           <div className="flex justify-between">
                                                             <span className="text-muted-foreground">Organization:</span>
                                                             <span className="font-medium">
