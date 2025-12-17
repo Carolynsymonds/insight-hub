@@ -8,7 +8,7 @@ import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, Drawer
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -342,6 +342,8 @@ const LeadsTable = ({
   const [findingDomain, setFindingDomain] = useState<string | null>(null);
   const [findDomainStep, setFindDomainStep] = useState<string | null>(null);
   const [checkingDomain, setCheckingDomain] = useState<string | null>(null);
+  const [runningPipeline, setRunningPipeline] = useState<string | null>(null);
+  const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
@@ -854,6 +856,122 @@ const LeadsTable = ({
       setFindDomainStep(null);
     }
   };
+  const handleRunPipeline = async (lead: Lead) => {
+    setRunningPipeline(lead.id);
+    try {
+      // Step 1: Find Domain (runs all 3 sources)
+      setPipelineStep('Finding Domain (1/2)...');
+      
+      // Apollo
+      await supabase.functions.invoke("enrich-lead", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          email: lead.email,
+          source: "apollo"
+        }
+      });
+
+      // Google
+      await supabase.functions.invoke("enrich-lead", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          email: lead.email,
+          source: "google"
+        }
+      });
+
+      // Email (if exists)
+      if (lead.email) {
+        await supabase.functions.invoke("enrich-lead", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            city: lead.city,
+            state: lead.state,
+            mics_sector: lead.mics_sector,
+            email: lead.email,
+            source: "email"
+          }
+        });
+      }
+
+      // Refetch lead to check if domain was found
+      const { data: updatedLead } = await supabase
+        .from("leads")
+        .select("domain, enrichment_logs")
+        .eq("id", lead.id)
+        .single();
+
+      const domainFound = !!updatedLead?.domain;
+
+      if (domainFound) {
+        // Step 2: Validate Domain
+        setPipelineStep('Validating Domain (2/2)...');
+        
+        const { data: validationData, error: validationError } = await supabase.functions.invoke("validate-domain", {
+          body: { domain: updatedLead.domain }
+        });
+
+        if (!validationError && validationData) {
+          await supabase.from("leads").update({
+            email_domain_validated: validationData.is_valid_domain,
+            match_score: validationData.is_valid_domain && !validationData.is_parked ? lead.match_score : (validationData.is_parked ? 25 : 0),
+            match_score_source: validationData.is_valid_domain && !validationData.is_parked ? lead.match_score_source : (validationData.is_parked ? "parked_domain" : "invalid_domain")
+          }).eq("id", lead.id);
+        }
+
+        toast({
+          title: "Pipeline Complete",
+          description: validationData?.is_valid_domain 
+            ? `Domain found and validated: ${updatedLead.domain}` 
+            : `Domain found but ${validationData?.is_parked ? 'parked/for sale' : 'invalid'}: ${updatedLead.domain}`
+        });
+      } else {
+        // Run diagnosis if no domain found
+        setPipelineStep('Diagnosing...');
+        await supabase.functions.invoke("diagnose-enrichment", {
+          body: {
+            leadId: lead.id,
+            leadData: {
+              company: lead.company,
+              city: lead.city,
+              state: lead.state,
+              zipcode: lead.zipcode,
+              email: lead.email,
+              mics_sector: lead.mics_sector,
+              full_name: lead.full_name
+            },
+            enrichmentLogs: updatedLead?.enrichment_logs || []
+          }
+        });
+
+        toast({
+          title: "Pipeline Complete",
+          description: "No domain found. AI diagnosis generated."
+        });
+      }
+
+      onEnrichComplete();
+    } catch (error: any) {
+      toast({
+        title: "Pipeline Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setRunningPipeline(null);
+      setPipelineStep(null);
+    }
+  };
+
   const handleCheckDomain = async (lead: Lead) => {
     if (!lead.domain) {
       toast({
@@ -2452,6 +2570,32 @@ const LeadsTable = ({
                               <div className="px-4 pb-8 select-text overflow-y-auto" style={{
                           userSelect: "text"
                         }}>
+                                {/* Pipeline Button */}
+                                <div className="mb-4 p-3 border rounded-lg bg-muted/10">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleRunPipeline(lead)} 
+                                    disabled={runningPipeline === lead.id || !lead.company}
+                                    className="w-full"
+                                    variant="default"
+                                  >
+                                    {runningPipeline === lead.id ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        {pipelineStep || "Running Pipeline..."}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Zap className="mr-2 h-4 w-4" />
+                                        Run Pipeline
+                                      </>
+                                    )}
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground text-center mt-2">
+                                    Find Domain → Validate Domain
+                                  </p>
+                                </div>
+
                                 <Accordion type="single" collapsible className="w-full">
                                   <AccordionItem value="company-domain" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
