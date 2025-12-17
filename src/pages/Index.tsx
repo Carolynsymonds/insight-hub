@@ -12,6 +12,7 @@ import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AdminDashboard } from "@/components/AdminDashboard";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -724,7 +725,9 @@ const Index = () => {
       </div>;
   }
   return <DashboardLayout activeView={activeView} onViewChange={handleViewChange}>
-      {activeView === "statistics" ? (
+      {activeView === "admin" ? (
+        <AdminDashboard />
+      ) : activeView === "statistics" ? (
         <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-semibold mb-2">Lead Statistics</h2>
