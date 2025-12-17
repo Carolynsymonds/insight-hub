@@ -2660,7 +2660,12 @@ const LeadsTable = ({
                                 <Accordion type="single" collapsible className="w-full">
                                   <AccordionItem value="company-domain" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                      Company Domain
+                                      <div className="flex items-center gap-2">
+                                        Company Domain
+                                        {lead.domain && lead.email_domain_validated !== null && (
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                        )}
+                                      </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="select-text" style={{
                                 userSelect: "text"
@@ -3416,7 +3421,12 @@ const LeadsTable = ({
 
                                   <AccordionItem value="match-score" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                      Match Score
+                                      <div className="flex items-center gap-2">
+                                        Match Score
+                                        {lead.match_score !== null && (
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                        )}
+                                      </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="space-y-3 pt-2">
