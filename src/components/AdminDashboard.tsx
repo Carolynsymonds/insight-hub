@@ -408,6 +408,7 @@ export function AdminDashboard() {
                 <TableHead>Status</TableHead>
                 <TableHead>Registered</TableHead>
                 <TableHead>Last Login</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -424,6 +425,33 @@ export function AdminDashboard() {
                       ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true })
                       : "Never"
                     }
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={async () => {
+                        const { data, error } = await supabase.functions.invoke("delete-user", {
+                          body: { userId: user.id }
+                        });
+                        if (error || data?.error) {
+                          toast({
+                            title: "Error",
+                            description: data?.error || "Failed to remove user",
+                            variant: "destructive",
+                          });
+                        } else {
+                          toast({
+                            title: "Removed",
+                            description: `User ${user.email} has been removed`,
+                          });
+                          fetchUsers();
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
