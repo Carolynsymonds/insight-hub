@@ -15,7 +15,6 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Get auth header - the SDK passes it automatically
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -34,13 +33,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Create admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create user client with the auth header to verify the user
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Get the user from the token
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    // Extract the JWT token from the Authorization header
+    const jwtToken = authHeader.replace("Bearer ", "");
+    
+    // Get current user using the admin client with the token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwtToken);
     
     if (userError) {
       console.error("User auth error:", userError);
