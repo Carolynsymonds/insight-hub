@@ -10,7 +10,6 @@ import { Loader2 } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 
 const Auth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,34 +38,17 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          },
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        toast({
-          title: "Success!",
-          description: "Account created successfully. You can now log in.",
-        });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in.",
-        });
-      }
+      toast({
+        title: "Welcome back!",
+        description: "Successfully logged in.",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -86,12 +68,10 @@ const Auth = () => {
             <img src={logo} alt="LeadFlow" className="h-12" />
           </div>
           <CardTitle className="text-2xl text-center">
-            {isSignUp ? "Create an account" : "Welcome back"}
+            Welcome back
           </CardTitle>
           <CardDescription className="text-center">
-            {isSignUp
-              ? "Enter your email to create your account"
-              : "Enter your email to sign in to your account"}
+            Enter your email to sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -122,21 +102,9 @@ const Auth = () => {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Sign Up" : "Sign In"}
+              Sign In
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary hover:underline"
-              disabled={loading}
-            >
-              {isSignUp
-                ? "Already have an account? Sign in"
-                : "Don't have an account? Sign up"}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>
