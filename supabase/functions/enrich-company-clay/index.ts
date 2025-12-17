@@ -43,8 +43,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const result = await response.json();
-    console.log('Clay response:', result);
+    const responseText = await response.text();
+    console.log('Clay response:', responseText);
+
+    // Clay webhook may return plain "OK" or JSON
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = { message: responseText };
+    }
 
     return new Response(
       JSON.stringify({ success: true, data: result }),
