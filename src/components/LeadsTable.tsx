@@ -1098,6 +1098,12 @@ const LeadsTable = ({
           body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
         });
 
+        // Calculate match score after social searches
+        setPipelineStep('Calculating Score...');
+        await supabase.functions.invoke("calculate-match-score", {
+          body: { leadId: lead.id }
+        });
+
         // Then run diagnosis
         setPipelineStep('Diagnosing...');
         await supabase.functions.invoke("diagnose-enrichment", {
