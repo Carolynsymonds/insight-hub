@@ -183,8 +183,9 @@ interface Lead {
     }>;
   }> | null;
   scraped_data_log: {
-    // Common
-    source?: "apollo" | "scraper";
+    // Common (older versions used `source`; newer uses `primary_source`)
+    source?: string;
+    primary_source?: string;
     // Apollo-specific
     organization_name?: string;
     fields_populated?: string[];
@@ -196,6 +197,8 @@ interface Lead {
       details?: Record<string, any>;
     }>;
     apollo_data?: {
+      organization_name?: string;
+      fields_populated?: string[];
       estimated_employees?: number;
       revenue?: string;
       industry?: string;
@@ -3538,10 +3541,10 @@ const LeadsTable = ({
                                               <AccordionItem value="scraped-data" className="border rounded-lg bg-muted/30">
                                                 <AccordionTrigger className="text-xs hover:no-underline px-3 py-2">
                                                   <div className="flex items-center gap-2">
-                                                    {lead.scraped_data_log.source?.startsWith("apollo") ? <>
+                                                    {(lead.scraped_data_log.primary_source === "apollo" || lead.scraped_data_log.source?.startsWith("apollo")) ? <>
                                                         <span>🚀 Apollo Enrichment Log</span>
                                                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
-                                                          {lead.scraped_data_log.fields_populated?.length || 0} fields
+                                                          {lead.scraped_data_log.apollo_data?.fields_populated?.length || lead.scraped_data_log.fields_populated?.length || 0} fields
                                                         </Badge>
                                                       </> : <>
                                                         <span>📄 View Scraped Data</span>
@@ -3554,11 +3557,11 @@ const LeadsTable = ({
                                                 <AccordionContent className="px-3 pb-3">
                                                   <div className="space-y-2 text-xs">
                                                     {/* Apollo Data Display */}
-                                                    {lead.scraped_data_log.source?.startsWith("apollo") && lead.scraped_data_log.apollo_data && <div className="grid gap-1.5">
+                                                    {(lead.scraped_data_log.primary_source === "apollo" || lead.scraped_data_log.source?.startsWith("apollo")) && lead.scraped_data_log.apollo_data && <div className="grid gap-1.5">
                                                           <div className="flex justify-between">
                                                             <span className="text-muted-foreground">Organization:</span>
                                                             <span className="font-medium">
-                                                              {lead.scraped_data_log.organization_name}
+                                                              {lead.scraped_data_log.apollo_data?.organization_name || lead.scraped_data_log.organization_name}
                                                             </span>
                                                           </div>
                                                           {lead.scraped_data_log.apollo_data.industry && <div className="flex justify-between">
@@ -3599,12 +3602,12 @@ const LeadsTable = ({
                                                                       </span>)}
                                                                 </div>
                                                               </div>}
-                                                          {lead.scraped_data_log.fields_populated && lead.scraped_data_log.fields_populated.length > 0 && <div className="mt-2 pt-2 border-t border-dashed">
+                                                          {(lead.scraped_data_log.apollo_data?.fields_populated || lead.scraped_data_log.fields_populated) && (lead.scraped_data_log.apollo_data?.fields_populated || lead.scraped_data_log.fields_populated)!.length > 0 && <div className="mt-2 pt-2 border-t border-dashed">
                                                                 <span className="text-muted-foreground block mb-1">
                                                                   Fields Populated:
                                                                 </span>
                                                                 <div className="flex flex-wrap gap-1">
-                                                                  {lead.scraped_data_log.fields_populated.map((field, idx) => <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                  {(lead.scraped_data_log.apollo_data?.fields_populated || lead.scraped_data_log.fields_populated)!.map((field, idx) => <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
                                                                         {field}
                                                                       </Badge>)}
                                                                 </div>
@@ -3631,7 +3634,7 @@ const LeadsTable = ({
                                                         </div>}
 
                                                     {/* Supplemental Scraped Data for Apollo sources */}
-                                                    {lead.scraped_data_log.source?.startsWith("apollo") && lead.scraped_data_log.supplemental_scrape?.scraped_data && <div className="mt-3 pt-3 border-t border-dashed">
+                                                    {(lead.scraped_data_log.primary_source === "apollo" || lead.scraped_data_log.source?.startsWith("apollo")) && lead.scraped_data_log.supplemental_scrape?.scraped_data && <div className="mt-3 pt-3 border-t border-dashed">
                                                         <span className="text-muted-foreground font-medium block mb-2">
                                                           📄 View Scraped Data
                                                         </span>
