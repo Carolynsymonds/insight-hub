@@ -20,7 +20,6 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     // Get auth header
@@ -35,13 +34,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Create admin client for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create user client to verify the requesting user
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    // Extract the JWT token from the Authorization header
+    const jwtToken = authHeader.replace("Bearer ", "");
+    
+    // Get current user using the admin client with the token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwtToken);
     if (userError || !user) {
       console.error("User auth error:", userError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
