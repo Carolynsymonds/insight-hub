@@ -4264,7 +4264,6 @@ const LeadsTable = ({
                                   <AccordionItem value="find-contacts" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4" />
                                         <span>Find Contacts</span>
                                         {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
                                           <>
@@ -4339,7 +4338,6 @@ const LeadsTable = ({
                                   <AccordionItem value="enrich-contact" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4" />
                                         <span>Enrich Contact</span>
                                         {(() => {
                                     // Check if lead exists in company_contacts by email or name
@@ -4537,7 +4535,6 @@ const LeadsTable = ({
                                   <AccordionItem value="company-news" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
-                                        <Newspaper className="h-4 w-4" />
                                         <span>Company News</span>
                                         {lead.news && (() => {
                                     try {
@@ -4642,7 +4639,6 @@ const LeadsTable = ({
                                   <AccordionItem value="clay-enrichments" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
                                         <span>Enrichment Logs from Clay</span>
                                         {clayEnrichments.length > 0 && <Badge variant="secondary" className="ml-2">
                                             {clayEnrichments.length} {clayEnrichments.length === 1 ? 'log' : 'logs'}
