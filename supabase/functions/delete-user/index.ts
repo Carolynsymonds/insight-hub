@@ -70,6 +70,18 @@ Deno.serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
+      const status = (deleteError as unknown as { status?: number }).status;
+      const code = (deleteError as unknown as { code?: string }).code;
+      const isNotFound = status === 404 || code === "user_not_found" || deleteError.message?.toLowerCase().includes("user not found");
+
+      if (isNotFound) {
+        console.log(`User ${userId} already deleted (requested by admin ${requestingUser.email})`);
+        return new Response(
+          JSON.stringify({ success: true, alreadyDeleted: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.error("Error deleting user:", deleteError);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
