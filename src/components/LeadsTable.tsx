@@ -344,6 +344,7 @@ const LeadsTable = ({
   const [checkingDomain, setCheckingDomain] = useState<string | null>(null);
   const [runningPipeline, setRunningPipeline] = useState<string | null>(null);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
+  const [pipelineCompleted, setPipelineCompleted] = useState<{ domainValidated: boolean; socialsSearched: boolean }>({ domainValidated: false, socialsSearched: false });
   const [descriptionModalLead, setDescriptionModalLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [enrichContactSteps, setEnrichContactSteps] = useState<{
@@ -858,6 +859,7 @@ const LeadsTable = ({
   };
   const handleRunPipeline = async (lead: Lead) => {
     setRunningPipeline(lead.id);
+    setPipelineCompleted({ domainValidated: false, socialsSearched: false });
     try {
       // Step 1: Find Domain (runs all 3 sources)
       setPipelineStep('Finding Domain (1/9)...');
@@ -924,6 +926,7 @@ const LeadsTable = ({
           await supabase.from("leads").update({
             email_domain_validated: validationData.is_valid_domain
           }).eq("id", lead.id);
+          setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
         }
 
         // Only continue with scoring if domain is valid and not parked
@@ -1097,8 +1100,8 @@ const LeadsTable = ({
         await supabase.functions.invoke("search-instagram-serper", {
           body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
         });
+        setPipelineCompleted(prev => ({ ...prev, socialsSearched: true }));
 
-        // Calculate match score after social searches
         setPipelineStep('Calculating Score...');
         await supabase.functions.invoke("calculate-match-score", {
           body: { leadId: lead.id }
@@ -1138,6 +1141,7 @@ const LeadsTable = ({
     } finally {
       setRunningPipeline(null);
       setPipelineStep(null);
+      setPipelineCompleted({ domainValidated: false, socialsSearched: false });
     }
   };
 
@@ -2772,7 +2776,7 @@ const LeadsTable = ({
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
                                         Company Domain
-                                        {lead.domain && lead.email_domain_validated !== null && (
+                                        {(pipelineCompleted.domainValidated || (lead.domain && lead.email_domain_validated !== null)) && (
                                           <CheckCircle className="h-4 w-4 text-green-500" />
                                         )}
                                       </div>
@@ -3246,7 +3250,12 @@ const LeadsTable = ({
                                   {/* Socials Search Section */}
                                   <AccordionItem value="socials-search" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                      Socials Search
+                                      <div className="flex items-center gap-2">
+                                        Socials Search
+                                        {(pipelineCompleted.socialsSearched || lead.facebook || lead.linkedin || lead.instagram) && (
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                        )}
+                                      </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="space-y-4 pt-2">
