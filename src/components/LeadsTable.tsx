@@ -1132,7 +1132,7 @@ const LeadsTable = ({
 
         toast({
           title: "Pipeline Complete",
-          description: "No domain found. Socials searched & AI diagnosis generated."
+          description: "No domain found. Socials searched, score calculated & AI diagnosis generated."
         });
       }
 
