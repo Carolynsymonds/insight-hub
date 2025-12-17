@@ -860,7 +860,7 @@ const LeadsTable = ({
     setRunningPipeline(lead.id);
     try {
       // Step 1: Find Domain (runs all 3 sources)
-      setPipelineStep('Finding Domain (1/6)...');
+      setPipelineStep('Finding Domain (1/9)...');
       
       // Apollo
       await supabase.functions.invoke("enrich-lead", {
@@ -914,7 +914,7 @@ const LeadsTable = ({
 
       if (domainFound) {
         // Step 2: Validate Domain
-        setPipelineStep('Validating Domain (2/6)...');
+        setPipelineStep('Validating Domain (2/9)...');
         
         const { data: validationData, error: validationError } = await supabase.functions.invoke("validate-domain", {
           body: { domain: updatedLead.domain }
@@ -929,7 +929,7 @@ const LeadsTable = ({
         // Only continue with scoring if domain is valid and not parked
         if (validationData?.is_valid_domain && !validationData?.is_parked) {
           // Step 3: Find Coordinates
-          setPipelineStep('Finding Coordinates (3/6)...');
+          setPipelineStep('Finding Coordinates (3/9)...');
           await supabase.functions.invoke("find-company-coordinates", {
             body: {
               leadId: lead.id,
@@ -947,7 +947,7 @@ const LeadsTable = ({
 
           // Step 4: Calculate Distance (only if coordinates found)
           if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
-            setPipelineStep('Calculating Distance (4/6)...');
+            setPipelineStep('Calculating Distance (4/9)...');
             await supabase.functions.invoke("calculate-distance", {
               body: {
                 leadId: lead.id,
@@ -961,7 +961,7 @@ const LeadsTable = ({
           }
 
           // Step 5: Score Domain Relevance
-          setPipelineStep('Scoring Domain Relevance (5/6)...');
+          setPipelineStep('Scoring Domain Relevance (5/9)...');
           await supabase.functions.invoke("score-domain-relevance", {
             body: {
               leadId: lead.id,
@@ -974,15 +974,65 @@ const LeadsTable = ({
           });
 
           // Step 6: Calculate Match Score
-          setPipelineStep('Calculating Match Score (6/6)...');
+          setPipelineStep('Calculating Match Score (6/9)...');
           await supabase.functions.invoke("calculate-match-score", {
             body: { leadId: lead.id }
           });
 
-          toast({
-            title: "Pipeline Complete",
-            description: `Domain validated and scored: ${updatedLead.domain}`
-          });
+          // Refetch to get the calculated match score
+          const { data: leadWithScore } = await supabase
+            .from("leads")
+            .select("match_score, enrichment_source, apollo_not_found")
+            .eq("id", lead.id)
+            .single();
+
+          // Steps 7-9 only run if match score > 50
+          if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
+            // Get current user for contact search
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // Step 7: Enrich with Apollo + Scrape Website
+            setPipelineStep('Enriching Company (7/9)...');
+            await supabase.functions.invoke("enrich-company-details", {
+              body: {
+                leadId: lead.id,
+                domain: updatedLead.domain,
+                enrichmentSource: leadWithScore.enrichment_source,
+                apolloNotFound: leadWithScore.apollo_not_found
+              }
+            });
+
+            // Step 8: Find Contacts
+            setPipelineStep('Finding Contacts (8/9)...');
+            await supabase.functions.invoke("find-company-contacts", {
+              body: {
+                leadId: lead.id,
+                domain: updatedLead.domain,
+                category: lead.category,
+                userId: user?.id
+              }
+            });
+
+            // Step 9: Get Company News
+            setPipelineStep('Getting News (9/9)...');
+            await supabase.functions.invoke("get-company-news", {
+              body: {
+                leadId: lead.id,
+                company: lead.company,
+                domain: updatedLead.domain
+              }
+            });
+
+            toast({
+              title: "Full Pipeline Complete",
+              description: `Enriched ${updatedLead.domain} (Score: ${leadWithScore.match_score})`
+            });
+          } else {
+            toast({
+              title: "Pipeline Complete",
+              description: `Domain scored: ${updatedLead.domain} (Score: ${leadWithScore?.match_score || 0} - below threshold)`
+            });
+          }
         } else {
           // Domain is invalid or parked - set appropriate match score
           await supabase.from("leads").update({
@@ -2654,6 +2704,8 @@ const LeadsTable = ({
                                   </Button>
                                   <p className="text-xs text-muted-foreground text-center mt-2">
                                     Find Domain → Validate → Coordinates → Distance → Relevance → Match Score
+                                    <br />
+                                    <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
                                   </p>
                                 </div>
 
