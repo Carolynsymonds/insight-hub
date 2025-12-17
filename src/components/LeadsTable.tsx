@@ -206,6 +206,33 @@ interface Lead {
       state?: string;
       country?: string;
     };
+    // Supplemental scrape for Apollo sources (website data collected in addition to Apollo)
+    supplemental_scrape?: {
+      scraped_data?: {
+        title?: string;
+        h1?: string;
+        meta_description?: string;
+        meta_keywords?: string;
+        logo_url?: string;
+        linkedin?: string;
+        facebook?: string;
+        about_pages?: string[];
+        nav_links?: string[];
+        services?: string[];
+      };
+      deep_scrape?: {
+        pages_scraped?: string[];
+        founded_year?: string | null;
+        employee_count?: string | null;
+        contact_email?: string | null;
+        contact_email_personal?: boolean;
+        sources?: {
+          founded_year_source?: string;
+          employee_count_source?: string;
+          contact_email_source?: string;
+        } | null;
+      };
+    };
     // Scraper-specific
     title?: string;
     h1?: string;
@@ -3544,6 +3571,117 @@ const LeadsTable = ({
                                                                 </div>
                                                               </div>}
                                                         </div>}
+
+                                                    {/* Supplemental Scraped Data for Apollo sources */}
+                                                    {lead.scraped_data_log.source === "apollo" && lead.scraped_data_log.supplemental_scrape?.scraped_data && <div className="mt-3 pt-3 border-t border-dashed">
+                                                        <span className="text-muted-foreground font-medium block mb-2">
+                                                          📄 View Scraped Data
+                                                        </span>
+                                                        <div className="grid gap-1.5">
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">Title:</span>
+                                                            <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.supplemental_scrape.scraped_data.title || ""}>
+                                                              {lead.scraped_data_log.supplemental_scrape.scraped_data.title || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">H1:</span>
+                                                            <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.supplemental_scrape.scraped_data.h1 || ""}>
+                                                              {lead.scraped_data_log.supplemental_scrape.scraped_data.h1 || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">Meta Description:</span>
+                                                            <span className="text-right max-w-[200px] truncate" title={lead.scraped_data_log.supplemental_scrape.scraped_data.meta_description || ""}>
+                                                              {lead.scraped_data_log.supplemental_scrape.scraped_data.meta_description || <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                            </span>
+                                                          </div>
+                                                          {lead.scraped_data_log.supplemental_scrape.scraped_data.meta_keywords && <div>
+                                                              <span className="text-muted-foreground block mb-1">Meta Keywords:</span>
+                                                              <span className="text-[10px] block bg-muted/50 p-1.5 rounded break-words">
+                                                                {lead.scraped_data_log.supplemental_scrape.scraped_data.meta_keywords}
+                                                              </span>
+                                                            </div>}
+                                                          {lead.scraped_data_log.supplemental_scrape.scraped_data.services && lead.scraped_data_log.supplemental_scrape.scraped_data.services.length > 0 && <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                Services Found ({lead.scraped_data_log.supplemental_scrape.scraped_data.services.length}):
+                                                              </span>
+                                                              <div className="text-[10px] bg-muted/50 p-1.5 rounded max-h-24 overflow-y-auto">
+                                                                {lead.scraped_data_log.supplemental_scrape.scraped_data.services.join(" • ")}
+                                                              </div>
+                                                            </div>}
+                                                          {lead.scraped_data_log.supplemental_scrape.scraped_data.about_pages && lead.scraped_data_log.supplemental_scrape.scraped_data.about_pages.length > 0 && <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                About Pages ({lead.scraped_data_log.supplemental_scrape.scraped_data.about_pages.length}):
+                                                              </span>
+                                                              <div className="text-[10px] space-y-0.5">
+                                                                {lead.scraped_data_log.supplemental_scrape.scraped_data.about_pages.slice(0, 5).map((page, idx) => <a key={idx} href={page.startsWith("http") ? page : `https://${lead.domain}${page}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block truncate">
+                                                                    {page}
+                                                                  </a>)}
+                                                              </div>
+                                                            </div>}
+                                                          {lead.scraped_data_log.supplemental_scrape.scraped_data.nav_links && lead.scraped_data_log.supplemental_scrape.scraped_data.nav_links.length > 0 && <div>
+                                                              <span className="text-muted-foreground block mb-1">
+                                                                Nav Links ({lead.scraped_data_log.supplemental_scrape.scraped_data.nav_links.length}):
+                                                              </span>
+                                                              <div className="flex flex-wrap gap-1">
+                                                                {lead.scraped_data_log.supplemental_scrape.scraped_data.nav_links.slice(0, 15).map((link, idx) => <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                                                                    {link}
+                                                                  </span>)}
+                                                              </div>
+                                                            </div>}
+                                                        </div>
+
+                                                        {/* Deep Scrape Results for supplemental */}
+                                                        {lead.scraped_data_log.supplemental_scrape.deep_scrape && <div className="mt-3 pt-3 border-t border-dashed">
+                                                            <span className="text-muted-foreground font-medium block mb-2">
+                                                              🔍 Deep Scrape Results
+                                                            </span>
+                                                            {lead.scraped_data_log.supplemental_scrape.deep_scrape.pages_scraped?.length > 0 ? <div className="mb-2">
+                                                                <span className="text-muted-foreground block mb-1">
+                                                                  Pages Scraped ({lead.scraped_data_log.supplemental_scrape.deep_scrape.pages_scraped.length}):
+                                                                </span>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                  {lead.scraped_data_log.supplemental_scrape.deep_scrape.pages_scraped.map((url, idx) => <a key={idx} href={url.startsWith("http") ? url : `https://${lead.domain}${url.startsWith("/") ? "" : "/"}${url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20">
+                                                                      {url.split("/").pop() || url}
+                                                                    </a>)}
+                                                                </div>
+                                                              </div> : <div className="mb-2 text-muted-foreground/50 italic text-[10px]">
+                                                                No high-value pages found to scrape
+                                                              </div>}
+                                                            <div className="grid gap-1.5 text-[11px]">
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">Founded Year:</span>
+                                                                {lead.scraped_data_log.supplemental_scrape.deep_scrape.founded_year ? <span className="flex items-center gap-1">
+                                                                    {lead.scraped_data_log.supplemental_scrape.deep_scrape.founded_year}
+                                                                    {lead.scraped_data_log.supplemental_scrape.deep_scrape.sources?.founded_year_source && <Badge variant="outline" className="text-[9px] px-1 py-0">
+                                                                        from {lead.scraped_data_log.supplemental_scrape.deep_scrape.sources.founded_year_source}
+                                                                      </Badge>}
+                                                                  </span> : <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                              </div>
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">Employee Count:</span>
+                                                                {lead.scraped_data_log.supplemental_scrape.deep_scrape.employee_count ? <span className="flex items-center gap-1">
+                                                                    {lead.scraped_data_log.supplemental_scrape.deep_scrape.employee_count}
+                                                                    {lead.scraped_data_log.supplemental_scrape.deep_scrape.sources?.employee_count_source && <Badge variant="outline" className="text-[9px] px-1 py-0">
+                                                                        from {lead.scraped_data_log.supplemental_scrape.deep_scrape.sources.employee_count_source}
+                                                                      </Badge>}
+                                                                  </span> : <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                              </div>
+                                                              <div className="flex justify-between items-center">
+                                                                <span className="text-muted-foreground">Contact Email:</span>
+                                                                {lead.scraped_data_log.supplemental_scrape.deep_scrape.contact_email ? <span className="flex items-center gap-1">
+                                                                    <a href={`mailto:${lead.scraped_data_log.supplemental_scrape.deep_scrape.contact_email}`} className="text-primary hover:underline">
+                                                                      {lead.scraped_data_log.supplemental_scrape.deep_scrape.contact_email}
+                                                                    </a>
+                                                                    {lead.scraped_data_log.supplemental_scrape.deep_scrape.contact_email_personal && <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-100 text-amber-700">
+                                                                        Personal
+                                                                      </Badge>}
+                                                                  </span> : <span className="text-muted-foreground/50 italic">Not found</span>}
+                                                              </div>
+                                                            </div>
+                                                          </div>}
+                                                      </div>}
 
                                                     {/* Scraper Data Display (existing) */}
                                                     {lead.scraped_data_log.source !== "apollo" && <div className="grid gap-1.5">
