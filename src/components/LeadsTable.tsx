@@ -3862,24 +3862,39 @@ const LeadsTable = ({
                                                                       </Badge>)}
                                                                 </div>
                                                               </div>}
-                                                          {/* Enrichment Steps */}
-                                                          {lead.scraped_data_log.enrichment_steps && lead.scraped_data_log.enrichment_steps.length > 0 && <div className="mt-2 pt-2 border-t border-dashed">
-                                                                <span className="text-muted-foreground block mb-1">
-                                                                  Enrichment Steps:
-                                                                </span>
-                                                                <div className="space-y-1">
-                                                                  {lead.scraped_data_log.enrichment_steps.map((step, idx) => <div key={idx} className="flex items-center gap-2 text-[10px]">
-                                                                        <Badge variant={step.status === "success" ? "default" : step.status === "failed" ? "destructive" : "secondary"} className="text-[9px] px-1 py-0">
-                                                                          Step {step.step}
-                                                                        </Badge>
-                                                                        <span className="text-muted-foreground">
-                                                                          {step.action.replace(/_/g, " ")}
-                                                                        </span>
-                                                                        <span className={step.status === "success" ? "text-green-600" : step.status === "failed" ? "text-red-600" : "text-muted-foreground"}>
-                                                                          {step.status === "success" ? "✓" : step.status === "failed" ? "✗" : "..."}
-                                                                        </span>
-                                                                      </div>)}
-                                                                </div>
+                                                          {/* Logs Section - Collapsible */}
+                                                          {lead.scraped_data_log.enrichment_steps && lead.scraped_data_log.enrichment_steps.length > 0 && <div className="mt-3 pt-3 border-t border-dashed">
+                                                                <Collapsible>
+                                                                  <CollapsibleTrigger className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground w-full justify-start">
+                                                                    <ChevronRight className="h-3 w-3 transition-transform data-[state=open]:rotate-90" />
+                                                                    <span>📋 Logs</span>
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                                      {lead.scraped_data_log.enrichment_steps.length} steps
+                                                                    </Badge>
+                                                                  </CollapsibleTrigger>
+                                                                  <CollapsibleContent className="mt-2">
+                                                                    <div className="space-y-2 text-xs bg-muted/30 rounded-lg p-3">
+                                                                      {lead.scraped_data_log.enrichment_steps.map((step, idx) => <div key={idx} className="flex items-start gap-2 text-[11px]">
+                                                                            <Badge variant={step.status === "success" ? "default" : step.status === "failed" ? "destructive" : "secondary"} className="text-[9px] px-1 py-0 mt-0.5 flex-shrink-0">
+                                                                              Step {step.step}
+                                                                            </Badge>
+                                                                            <div className="flex-1">
+                                                                              <span className="text-muted-foreground">
+                                                                                {step.action.replace(/_/g, " ")}
+                                                                              </span>
+                                                                              <span className={`ml-2 ${step.status === "success" ? "text-green-600" : step.status === "failed" ? "text-red-600" : "text-muted-foreground"}`}>
+                                                                                {step.status === "success" ? "✓" : step.status === "failed" ? "✗" : "..."}
+                                                                              </span>
+                                                                              {step.details && (
+                                                                                <p className="text-[10px] text-muted-foreground/70 mt-0.5 break-words">
+                                                                                  {typeof step.details === 'string' ? step.details : JSON.stringify(step.details)}
+                                                                                </p>
+                                                                              )}
+                                                                            </div>
+                                                                          </div>)}
+                                                                    </div>
+                                                                  </CollapsibleContent>
+                                                                </Collapsible>
                                                               </div>}
                                                         </div>}
 
@@ -4197,6 +4212,41 @@ const LeadsTable = ({
                                                             <span className="text-muted-foreground/50 italic text-[10px]">
                                                               🔍 Deep Scrape: Not performed
                                                             </span>
+                                                          </div>}
+
+                                                        {/* Logs Section - Collapsible (for non-Apollo sources) */}
+                                                        {lead.scraped_data_log.enrichment_steps && lead.scraped_data_log.enrichment_steps.length > 0 && <div className="mt-3 pt-3 border-t border-dashed">
+                                                            <Collapsible>
+                                                              <CollapsibleTrigger className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground w-full justify-start">
+                                                                <ChevronRight className="h-3 w-3 transition-transform data-[state=open]:rotate-90" />
+                                                                <span>📋 Logs</span>
+                                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                                  {lead.scraped_data_log.enrichment_steps.length} steps
+                                                                </Badge>
+                                                              </CollapsibleTrigger>
+                                                              <CollapsibleContent className="mt-2">
+                                                                <div className="space-y-2 text-xs bg-muted/30 rounded-lg p-3">
+                                                                  {lead.scraped_data_log.enrichment_steps.map((step, idx) => <div key={idx} className="flex items-start gap-2 text-[11px]">
+                                                                        <Badge variant={step.status === "success" ? "default" : step.status === "failed" ? "destructive" : "secondary"} className="text-[9px] px-1 py-0 mt-0.5 flex-shrink-0">
+                                                                          Step {step.step}
+                                                                        </Badge>
+                                                                        <div className="flex-1">
+                                                                          <span className="text-muted-foreground">
+                                                                            {step.action.replace(/_/g, " ")}
+                                                                          </span>
+                                                                          <span className={`ml-2 ${step.status === "success" ? "text-green-600" : step.status === "failed" ? "text-red-600" : "text-muted-foreground"}`}>
+                                                                            {step.status === "success" ? "✓" : step.status === "failed" ? "✗" : "..."}
+                                                                          </span>
+                                                                          {step.details && (
+                                                                            <p className="text-[10px] text-muted-foreground/70 mt-0.5 break-words">
+                                                                              {typeof step.details === 'string' ? step.details : JSON.stringify(step.details)}
+                                                                            </p>
+                                                                          )}
+                                                                        </div>
+                                                                      </div>)}
+                                                                </div>
+                                                              </CollapsibleContent>
+                                                            </Collapsible>
                                                           </div>}
                                                       </div>}
                                                   </div>
