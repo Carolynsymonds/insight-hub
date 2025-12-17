@@ -19,7 +19,8 @@ import {
   RefreshCw,
   Shield,
   AlertCircle,
-  Copy
+  Copy,
+  Trash2
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -309,6 +310,7 @@ export function AdminDashboard() {
                   <TableHead>Invited</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -348,6 +350,34 @@ export function AdminDashboard() {
                         <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
                           Pending
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from("user_invitations")
+                              .delete()
+                              .eq("id", invitation.id);
+                            if (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to remove invitation",
+                                variant: "destructive",
+                              });
+                            } else {
+                              toast({
+                                title: "Removed",
+                                description: `Invitation for ${invitation.email} has been removed`,
+                              });
+                              fetchUsers();
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
