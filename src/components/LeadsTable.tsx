@@ -860,7 +860,7 @@ const LeadsTable = ({
     setRunningPipeline(lead.id);
     try {
       // Step 1: Find Domain (runs all 3 sources)
-      setPipelineStep('Finding Domain (1/2)...');
+      setPipelineStep('Finding Domain (1/6)...');
       
       // Apollo
       await supabase.functions.invoke("enrich-lead", {
@@ -906,7 +906,7 @@ const LeadsTable = ({
       // Refetch lead to check if domain was found
       const { data: updatedLead } = await supabase
         .from("leads")
-        .select("domain, enrichment_logs")
+        .select("domain, enrichment_logs, source_url")
         .eq("id", lead.id)
         .single();
 
@@ -914,7 +914,7 @@ const LeadsTable = ({
 
       if (domainFound) {
         // Step 2: Validate Domain
-        setPipelineStep('Validating Domain (2/2)...');
+        setPipelineStep('Validating Domain (2/6)...');
         
         const { data: validationData, error: validationError } = await supabase.functions.invoke("validate-domain", {
           body: { domain: updatedLead.domain }
@@ -922,18 +922,79 @@ const LeadsTable = ({
 
         if (!validationError && validationData) {
           await supabase.from("leads").update({
-            email_domain_validated: validationData.is_valid_domain,
-            match_score: validationData.is_valid_domain && !validationData.is_parked ? lead.match_score : (validationData.is_parked ? 25 : 0),
-            match_score_source: validationData.is_valid_domain && !validationData.is_parked ? lead.match_score_source : (validationData.is_parked ? "parked_domain" : "invalid_domain")
+            email_domain_validated: validationData.is_valid_domain
           }).eq("id", lead.id);
         }
 
-        toast({
-          title: "Pipeline Complete",
-          description: validationData?.is_valid_domain 
-            ? `Domain found and validated: ${updatedLead.domain}` 
-            : `Domain found but ${validationData?.is_parked ? 'parked/for sale' : 'invalid'}: ${updatedLead.domain}`
-        });
+        // Only continue with scoring if domain is valid and not parked
+        if (validationData?.is_valid_domain && !validationData?.is_parked) {
+          // Step 3: Find Coordinates
+          setPipelineStep('Finding Coordinates (3/6)...');
+          await supabase.functions.invoke("find-company-coordinates", {
+            body: {
+              leadId: lead.id,
+              domain: updatedLead.domain,
+              sourceUrl: updatedLead.source_url
+            }
+          });
+
+          // Refetch to get coordinates
+          const { data: leadWithCoords } = await supabase
+            .from("leads")
+            .select("latitude, longitude")
+            .eq("id", lead.id)
+            .single();
+
+          // Step 4: Calculate Distance (only if coordinates found)
+          if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
+            setPipelineStep('Calculating Distance (4/6)...');
+            await supabase.functions.invoke("calculate-distance", {
+              body: {
+                leadId: lead.id,
+                city: lead.city,
+                state: lead.state,
+                zipcode: lead.zipcode,
+                latitude: leadWithCoords.latitude,
+                longitude: leadWithCoords.longitude
+              }
+            });
+          }
+
+          // Step 5: Score Domain Relevance
+          setPipelineStep('Scoring Domain Relevance (5/6)...');
+          await supabase.functions.invoke("score-domain-relevance", {
+            body: {
+              leadId: lead.id,
+              companyName: lead.company,
+              domain: updatedLead.domain,
+              city: lead.city,
+              state: lead.state,
+              dma: lead.dma
+            }
+          });
+
+          // Step 6: Calculate Match Score
+          setPipelineStep('Calculating Match Score (6/6)...');
+          await supabase.functions.invoke("calculate-match-score", {
+            body: { leadId: lead.id }
+          });
+
+          toast({
+            title: "Pipeline Complete",
+            description: `Domain validated and scored: ${updatedLead.domain}`
+          });
+        } else {
+          // Domain is invalid or parked - set appropriate match score
+          await supabase.from("leads").update({
+            match_score: validationData?.is_parked ? 25 : 0,
+            match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
+          }).eq("id", lead.id);
+
+          toast({
+            title: "Pipeline Complete",
+            description: `Domain found but ${validationData?.is_parked ? 'parked/for sale' : 'invalid'}: ${updatedLead.domain}`
+          });
+        }
       } else {
         // Run diagnosis if no domain found
         setPipelineStep('Diagnosing...');
@@ -2592,7 +2653,7 @@ const LeadsTable = ({
                                     )}
                                   </Button>
                                   <p className="text-xs text-muted-foreground text-center mt-2">
-                                    Find Domain → Validate Domain
+                                    Find Domain → Validate → Coordinates → Distance → Relevance → Match Score
                                   </p>
                                 </div>
 
