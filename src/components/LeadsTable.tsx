@@ -986,16 +986,47 @@ const LeadsTable = ({
             .eq("id", lead.id)
             .single();
 
-          // Steps 7-10 only run if match score > 50
+          // CONTACT ENRICHMENT: Always runs for valid domains (regardless of score)
+          const contactEnrichmentTrack = async () => {
+            await supabase.functions.invoke("enrich-contact", {
+              body: {
+                leadId: lead.id,
+                full_name: lead.full_name,
+                email: lead.email,
+                domain: updatedLead.domain,
+                company: lead.company
+              }
+            });
+
+            // Refetch to check if LinkedIn was found
+            const { data: enrichedLead } = await supabase
+              .from("leads")
+              .select("contact_linkedin")
+              .eq("id", lead.id)
+              .single();
+
+            // If LinkedIn found, send to Clay for additional enrichment
+            if (enrichedLead?.contact_linkedin) {
+              await supabase.functions.invoke("send-to-clay", {
+                body: {
+                  fullName: lead.full_name,
+                  email: lead.email,
+                  linkedin: enrichedLead.contact_linkedin
+                }
+              });
+            }
+          };
+
+          // Start contact enrichment immediately (runs regardless of score)
+          const contactPromise = contactEnrichmentTrack();
+
+          // COMPANY ENRICHMENT: Only runs if match score > 50
           if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
-            // Get current user for contact search
             const { data: { user } } = await supabase.auth.getUser();
 
-            setPipelineStep('Enriching (7-10/10)...');
+            setPipelineStep('Enriching Company & Contact...');
 
-            // TRACK A: Company enrichment (sequential)
             const companyEnrichmentTrack = async () => {
-              // Step 7a: Enrich with Apollo + Scrape Website
               await supabase.functions.invoke("enrich-company-details", {
                 body: {
                   leadId: lead.id,
@@ -1005,7 +1036,6 @@ const LeadsTable = ({
                 }
               });
 
-              // Step 8a: Find Contacts
               await supabase.functions.invoke("find-company-contacts", {
                 body: {
                   leadId: lead.id,
@@ -1015,7 +1045,6 @@ const LeadsTable = ({
                 }
               });
 
-              // Step 9a: Get Company News
               await supabase.functions.invoke("get-company-news", {
                 body: {
                   leadId: lead.id,
@@ -1025,52 +1054,21 @@ const LeadsTable = ({
               });
             };
 
-            // TRACK B: Contact enrichment with Clay (sequential)
-            const contactEnrichmentTrack = async () => {
-              // Step 7b: Enrich Contact (search socials via Apollo & Google)
-              await supabase.functions.invoke("enrich-contact", {
-                body: {
-                  leadId: lead.id,
-                  full_name: lead.full_name,
-                  email: lead.email,
-                  domain: updatedLead.domain,
-                  company: lead.company
-                }
-              });
-
-              // Refetch to check if LinkedIn was found
-              const { data: enrichedLead } = await supabase
-                .from("leads")
-                .select("contact_linkedin")
-                .eq("id", lead.id)
-                .single();
-
-              // Step 10b: If LinkedIn found, send to Clay for additional enrichment
-              if (enrichedLead?.contact_linkedin) {
-                await supabase.functions.invoke("send-to-clay", {
-                  body: {
-                    fullName: lead.full_name,
-                    email: lead.email,
-                    linkedin: enrichedLead.contact_linkedin
-                  }
-                });
-              }
-            };
-
-            // Run both tracks in parallel
-            await Promise.all([
-              companyEnrichmentTrack(),
-              contactEnrichmentTrack()
-            ]);
+            // Run company enrichment in parallel with already-started contact enrichment
+            await Promise.all([contactPromise, companyEnrichmentTrack()]);
 
             toast({
               title: "Full Pipeline Complete",
               description: `Enriched ${updatedLead.domain} (Score: ${leadWithScore.match_score})`
             });
           } else {
+            setPipelineStep('Enriching Contact...');
+            // Score ≤ 50: Only wait for contact enrichment to complete
+            await contactPromise;
+
             toast({
               title: "Pipeline Complete",
-              description: `Domain scored: ${updatedLead.domain} (Score: ${leadWithScore?.match_score || 0} - below threshold)`
+              description: `Contact enriched. Domain scored: ${updatedLead.domain} (Score: ${leadWithScore?.match_score || 0} - below threshold for company enrichment)`
             });
           }
         } else {
