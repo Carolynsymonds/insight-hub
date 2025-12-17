@@ -3421,26 +3421,6 @@ const LeadsTable = ({
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="space-y-3 pt-2">
-                                          <p className="text-sm text-muted-foreground mb-3">
-                                            {lead.apollo_not_found ? <>
-                                                {lead.scraped_data_log ? <>
-                                                    Company details enriched via website scraping
-                                                    <span className="block text-xs text-green-600 mt-1">
-                                                      ✓ Scraped from website (Apollo: Company not found)
-                                                    </span>
-                                                  </> : <>
-                                                    Enrich this lead by scraping the company website
-                                                    <span className="block text-xs text-yellow-600 mt-1">
-                                                      ⚠ Apollo: Company not found - will use website scraping
-                                                    </span>
-                                                  </>}
-                                              </> : lead.enrichment_source === "apollo_api" ? <>
-                                                Enrich this lead with detailed company information from Apollo
-                                                <span className="block text-xs text-primary mt-1">
-                                                  ✓ Domain found via Apollo - direct retrieval available
-                                                </span>
-                                              </> : "Enrich this lead with detailed company information"}
-                                          </p>
 
                                           <Button size="sm" variant="default" className="w-full" disabled={enrichingCompanyDetails === lead.id || lead.match_score === null || (lead.match_score ?? 0) < 50} onClick={() => handleEnrichCompanyDetails(lead)}>
                                             {enrichingCompanyDetails === lead.id ? <>
