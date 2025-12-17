@@ -15,36 +15,66 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Get auth header
-    const authHeader = req.headers.get("Authorization");
+    // Get auth header - the SDK passes it automatically
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+    
+    console.log("Request received");
+    console.log("Auth header present:", !!authHeader);
+    
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      console.error("No Authorization header found in request");
+      return new Response(JSON.stringify({ error: "Unauthorized", details: "No auth header" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
+    // Create admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create user client to verify the requesting user
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    // Create user client with the auth header to verify the user
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // Get the user from the token
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    
+    if (userError) {
+      console.error("User auth error:", userError);
+      return new Response(JSON.stringify({ error: "Unauthorized", details: userError.message }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
+    if (!user) {
+      console.error("No user found from token");
+      return new Response(JSON.stringify({ error: "Unauthorized", details: "No user" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Check if user is admin
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+    console.log("User authenticated:", user.email);
+
+    // Check if user is admin using the security definer function
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
       _user_id: user.id,
       _role: "admin",
     });
+
+    console.log("Admin check result:", isAdmin, roleError);
+
+    if (roleError) {
+      console.error("Role check error:", roleError);
+      return new Response(JSON.stringify({ error: "Failed to check role" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Only admins can view users" }), {
@@ -105,6 +135,8 @@ const handler = async (req: Request): Promise<Response> => {
       inv.status === "pending" && 
       !authUsers.users.some(u => u.email === inv.email)
     ) || [];
+
+    console.log("Returning", users.length, "users and", pendingInvitations.length, "pending invitations");
 
     return new Response(JSON.stringify({
       users,

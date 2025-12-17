@@ -57,13 +57,13 @@ export function AdminDashboard() {
   const fetchUsers = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        console.log("No session found");
+        return;
+      }
 
-      const response = await supabase.functions.invoke("get-admin-users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      console.log("Calling get-admin-users with session");
+      const response = await supabase.functions.invoke("get-admin-users");
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -108,9 +108,6 @@ export function AdminDashboard() {
 
       const response = await supabase.functions.invoke("send-invitation", {
         body: { email: inviteEmail.trim().toLowerCase() },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (response.error) {
