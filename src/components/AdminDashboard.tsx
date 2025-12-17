@@ -18,7 +18,8 @@ import {
   Loader2,
   RefreshCw,
   Shield,
-  AlertCircle
+  AlertCircle,
+  Copy
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -41,6 +42,7 @@ interface PendingInvitation {
   invited_at: string;
   expires_at: string;
   status: string;
+  invitation_token: string;
 }
 
 export function AdminDashboard() {
@@ -303,28 +305,53 @@ export function AdminDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
+                  <TableHead>Invite Link</TableHead>
                   <TableHead>Invited</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingInvitations.map((invitation) => (
-                  <TableRow key={invitation.id}>
-                    <TableCell className="font-medium">{invitation.email}</TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(invitation.invited_at), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(invitation.expires_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
-                        Pending
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {pendingInvitations.map((invitation) => {
+                  const inviteLink = `${window.location.origin}/auth?invite=${invitation.invitation_token}`;
+                  return (
+                    <TableRow key={invitation.id}>
+                      <TableCell className="font-medium">{invitation.email}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
+                            {inviteLink}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              navigator.clipboard.writeText(inviteLink);
+                              toast({
+                                title: "Copied",
+                                description: "Invite link copied to clipboard",
+                              });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {formatDistanceToNow(new Date(invitation.invited_at), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(invitation.expires_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                          Pending
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
