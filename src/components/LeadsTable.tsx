@@ -986,42 +986,82 @@ const LeadsTable = ({
             .eq("id", lead.id)
             .single();
 
-          // Steps 7-9 only run if match score > 50
+          // Steps 7-10 only run if match score > 50
           if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
             // Get current user for contact search
             const { data: { user } } = await supabase.auth.getUser();
 
-            // Step 7: Enrich with Apollo + Scrape Website
-            setPipelineStep('Enriching Company (7/9)...');
-            await supabase.functions.invoke("enrich-company-details", {
-              body: {
-                leadId: lead.id,
-                domain: updatedLead.domain,
-                enrichmentSource: leadWithScore.enrichment_source,
-                apolloNotFound: leadWithScore.apollo_not_found
-              }
-            });
+            setPipelineStep('Enriching (7-10/10)...');
 
-            // Step 8: Find Contacts
-            setPipelineStep('Finding Contacts (8/9)...');
-            await supabase.functions.invoke("find-company-contacts", {
-              body: {
-                leadId: lead.id,
-                domain: updatedLead.domain,
-                category: lead.category,
-                userId: user?.id
-              }
-            });
+            // TRACK A: Company enrichment (sequential)
+            const companyEnrichmentTrack = async () => {
+              // Step 7a: Enrich with Apollo + Scrape Website
+              await supabase.functions.invoke("enrich-company-details", {
+                body: {
+                  leadId: lead.id,
+                  domain: updatedLead.domain,
+                  enrichmentSource: leadWithScore.enrichment_source,
+                  apolloNotFound: leadWithScore.apollo_not_found
+                }
+              });
 
-            // Step 9: Get Company News
-            setPipelineStep('Getting News (9/9)...');
-            await supabase.functions.invoke("get-company-news", {
-              body: {
-                leadId: lead.id,
-                company: lead.company,
-                domain: updatedLead.domain
+              // Step 8a: Find Contacts
+              await supabase.functions.invoke("find-company-contacts", {
+                body: {
+                  leadId: lead.id,
+                  domain: updatedLead.domain,
+                  category: lead.category,
+                  userId: user?.id
+                }
+              });
+
+              // Step 9a: Get Company News
+              await supabase.functions.invoke("get-company-news", {
+                body: {
+                  leadId: lead.id,
+                  company: lead.company,
+                  domain: updatedLead.domain
+                }
+              });
+            };
+
+            // TRACK B: Contact enrichment with Clay (sequential)
+            const contactEnrichmentTrack = async () => {
+              // Step 7b: Enrich Contact (search socials via Apollo & Google)
+              await supabase.functions.invoke("enrich-contact", {
+                body: {
+                  leadId: lead.id,
+                  full_name: lead.full_name,
+                  email: lead.email,
+                  domain: updatedLead.domain,
+                  company: lead.company
+                }
+              });
+
+              // Refetch to check if LinkedIn was found
+              const { data: enrichedLead } = await supabase
+                .from("leads")
+                .select("contact_linkedin")
+                .eq("id", lead.id)
+                .single();
+
+              // Step 10b: If LinkedIn found, send to Clay for additional enrichment
+              if (enrichedLead?.contact_linkedin) {
+                await supabase.functions.invoke("send-to-clay", {
+                  body: {
+                    fullName: lead.full_name,
+                    email: lead.email,
+                    linkedin: enrichedLead.contact_linkedin
+                  }
+                });
               }
-            });
+            };
+
+            // Run both tracks in parallel
+            await Promise.all([
+              companyEnrichmentTrack(),
+              contactEnrichmentTrack()
+            ]);
 
             toast({
               title: "Full Pipeline Complete",
@@ -1046,7 +1086,21 @@ const LeadsTable = ({
           });
         }
       } else {
-        // Run diagnosis if no domain found
+        // No domain found - trigger social searches as fallback
+        setPipelineStep('Searching Socials...');
+        await supabase.functions.invoke("search-facebook-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        });
+        
+        await supabase.functions.invoke("search-linkedin-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        });
+        
+        await supabase.functions.invoke("search-instagram-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        });
+
+        // Then run diagnosis
         setPipelineStep('Diagnosing...');
         await supabase.functions.invoke("diagnose-enrichment", {
           body: {
@@ -1066,7 +1120,7 @@ const LeadsTable = ({
 
         toast({
           title: "Pipeline Complete",
-          description: "No domain found. AI diagnosis generated."
+          description: "No domain found. Socials searched & AI diagnosis generated."
         });
       }
 
