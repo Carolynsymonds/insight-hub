@@ -80,3 +80,18 @@ verify_jwt = false
 
 [functions.enrich-company-clay]
 verify_jwt = false
+
+[functions.send-invitation]
+verify_jwt = false
+
+[functions.validate-invitation]
+verify_jwt = false
+
+[functions.accept-invitation]
+verify_jwt = false
+
+[functions.log-activity]
+verify_jwt = false
+
+[functions.get-admin-users]
+verify_jwt = false

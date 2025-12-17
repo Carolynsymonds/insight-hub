@@ -1,14 +1,14 @@
-import { Home, UserPlus, LogOut, BarChart3 } from "lucide-react";
+import { Home, UserPlus, LogOut, BarChart3, Shield } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -16,34 +16,52 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+
 const menuItems = [
   {
     title: "Home",
     icon: Home,
     view: "home",
+    adminOnly: false,
   },
   {
     title: "Add Leads",
     icon: UserPlus,
     view: "add-leads",
+    adminOnly: false,
   },
   {
     title: "Statistics",
     icon: BarChart3,
     view: "statistics",
+    adminOnly: false,
+  },
+  {
+    title: "Admin",
+    icon: Shield,
+    view: "admin",
+    adminOnly: true,
   },
 ];
+
 interface AppSidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
 }
+
 export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   const { open } = useSidebar();
   const navigate = useNavigate();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
+
+  // Filter menu items based on admin status
+  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || isAdmin);
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
@@ -54,7 +72,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     onClick={() => onViewChange(item.view)}
