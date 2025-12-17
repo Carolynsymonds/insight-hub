@@ -2764,11 +2764,13 @@ const LeadsTable = ({
                                       </>
                                     )}
                                   </Button>
-                                  <p className="text-xs text-muted-foreground text-center mt-2">
-                                    Find Domain → Validate → Coordinates → Distance → Relevance → Match Score
-                                    <br />
-                                    <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
-                                  </p>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Find Domain → Validate → Coordinates → Distance → Relevance → Match Score
+                <br />
+                <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
+                <br />
+                <span className="text-muted-foreground/70">If no domain: Search Socials → Calculate Score → Diagnose</span>
+              </p>
                                 </div>
 
                                 <Accordion type="single" collapsible className="w-full">
