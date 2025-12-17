@@ -1146,7 +1146,8 @@ const LeadsTable = ({
     } finally {
       setRunningPipeline(null);
       setPipelineStep(null);
-      setPipelineCompleted({ domainValidated: false, socialsSearched: false });
+      // Don't reset pipelineCompleted here - keep ticks visible after pipeline finishes
+      // They reset when a new pipeline run starts (line 862)
     }
   };
 
