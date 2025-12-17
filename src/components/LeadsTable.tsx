@@ -861,6 +861,39 @@ const LeadsTable = ({
     setRunningPipeline(lead.id);
     setPipelineCompleted({ domainValidated: false, socialsSearched: false });
     try {
+      setPipelineStep('Running Pipeline...');
+
+      // PATH B: Contact enrichment - runs completely in parallel from the start
+      const contactEnrichmentPromise = (async () => {
+        await supabase.functions.invoke("enrich-contact", {
+          body: {
+            leadId: lead.id,
+            full_name: lead.full_name,
+            email: lead.email,
+            domain: lead.domain,
+            company: lead.company
+          }
+        });
+
+        // Check if LinkedIn was found and send to Clay
+        const { data: enrichedLead } = await supabase
+          .from("leads")
+          .select("contact_linkedin")
+          .eq("id", lead.id)
+          .single();
+
+        if (enrichedLead?.contact_linkedin) {
+          await supabase.functions.invoke("send-to-clay", {
+            body: {
+              fullName: lead.full_name,
+              email: lead.email,
+              linkedin: enrichedLead.contact_linkedin
+            }
+          });
+        }
+      })();
+
+      // PATH A: Domain enrichment flow (main sequential flow)
       // Step 1: Find Domain (runs all 3 sources)
       setPipelineStep('Finding Domain (1/9)...');
       
@@ -994,85 +1027,49 @@ const LeadsTable = ({
             .eq("id", lead.id)
             .single();
 
-          // CONTACT ENRICHMENT: Always runs for valid domains (regardless of score)
-          const contactEnrichmentTrack = async () => {
-            await supabase.functions.invoke("enrich-contact", {
-              body: {
-                leadId: lead.id,
-                full_name: lead.full_name,
-                email: lead.email,
-                domain: updatedLead.domain,
-                company: lead.company
-              }
-            });
-
-            // Refetch to check if LinkedIn was found
-            const { data: enrichedLead } = await supabase
-              .from("leads")
-              .select("contact_linkedin")
-              .eq("id", lead.id)
-              .single();
-
-            // If LinkedIn found, send to Clay for additional enrichment
-            if (enrichedLead?.contact_linkedin) {
-              await supabase.functions.invoke("send-to-clay", {
-                body: {
-                  fullName: lead.full_name,
-                  email: lead.email,
-                  linkedin: enrichedLead.contact_linkedin
-                }
-              });
-            }
-          };
-
-          // Start contact enrichment immediately (runs regardless of score)
-          const contactPromise = contactEnrichmentTrack();
-
           // COMPANY ENRICHMENT: Only runs if match score > 50
           if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
             const { data: { user } } = await supabase.auth.getUser();
 
-            setPipelineStep('Enriching Company & Contact...');
+            setPipelineStep('Enriching Company (7/9)...');
+            await supabase.functions.invoke("enrich-company-details", {
+              body: {
+                leadId: lead.id,
+                domain: updatedLead.domain,
+                enrichmentSource: leadWithScore.enrichment_source,
+                apolloNotFound: leadWithScore.apollo_not_found
+              }
+            });
 
-            const companyEnrichmentTrack = async () => {
-              await supabase.functions.invoke("enrich-company-details", {
-                body: {
-                  leadId: lead.id,
-                  domain: updatedLead.domain,
-                  enrichmentSource: leadWithScore.enrichment_source,
-                  apolloNotFound: leadWithScore.apollo_not_found
-                }
-              });
+            setPipelineStep('Finding Contacts (8/9)...');
+            await supabase.functions.invoke("find-company-contacts", {
+              body: {
+                leadId: lead.id,
+                domain: updatedLead.domain,
+                category: lead.category,
+                userId: user?.id
+              }
+            });
 
-              await supabase.functions.invoke("find-company-contacts", {
-                body: {
-                  leadId: lead.id,
-                  domain: updatedLead.domain,
-                  category: lead.category,
-                  userId: user?.id
-                }
-              });
+            setPipelineStep('Getting News (9/9)...');
+            await supabase.functions.invoke("get-company-news", {
+              body: {
+                leadId: lead.id,
+                company: lead.company,
+                domain: updatedLead.domain
+              }
+            });
 
-              await supabase.functions.invoke("get-company-news", {
-                body: {
-                  leadId: lead.id,
-                  company: lead.company,
-                  domain: updatedLead.domain
-                }
-              });
-            };
-
-            // Run company enrichment in parallel with already-started contact enrichment
-            await Promise.all([contactPromise, companyEnrichmentTrack()]);
+            // Wait for Path B (contact enrichment) to complete
+            await contactEnrichmentPromise;
 
             toast({
               title: "Full Pipeline Complete",
               description: `Enriched ${updatedLead.domain} (Score: ${leadWithScore.match_score})`
             });
           } else {
-            setPipelineStep('Enriching Contact...');
-            // Score ≤ 50: Only wait for contact enrichment to complete
-            await contactPromise;
+            // Score ≤ 50: Wait for contact enrichment to complete
+            await contactEnrichmentPromise;
 
             toast({
               title: "Pipeline Complete",
@@ -1086,6 +1083,9 @@ const LeadsTable = ({
             match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
           }).eq("id", lead.id);
 
+          // Wait for Path B (contact enrichment) to complete
+          await contactEnrichmentPromise;
+
           toast({
             title: "Pipeline Complete",
             description: `Domain found but ${validationData?.is_parked ? 'parked/for sale' : 'invalid'}: ${updatedLead.domain}`
@@ -1094,17 +1094,17 @@ const LeadsTable = ({
       } else {
         // No domain found - trigger social searches as fallback
         setPipelineStep('Searching Socials...');
-        await supabase.functions.invoke("search-facebook-serper", {
-          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-        });
-        
-        await supabase.functions.invoke("search-linkedin-serper", {
-          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-        });
-        
-        await supabase.functions.invoke("search-instagram-serper", {
-          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-        });
+        await Promise.all([
+          supabase.functions.invoke("search-facebook-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          }),
+          supabase.functions.invoke("search-linkedin-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          }),
+          supabase.functions.invoke("search-instagram-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          })
+        ]);
         setPipelineCompleted(prev => ({ ...prev, socialsSearched: true }));
 
         setPipelineStep('Calculating Score...');
@@ -1130,6 +1130,9 @@ const LeadsTable = ({
           }
         });
 
+        // Wait for Path B (contact enrichment) to complete
+        await contactEnrichmentPromise;
+
         toast({
           title: "Pipeline Complete",
           description: "No domain found. Socials searched, score calculated & AI diagnosis generated."
@@ -1146,8 +1149,6 @@ const LeadsTable = ({
     } finally {
       setRunningPipeline(null);
       setPipelineStep(null);
-      // Don't reset pipelineCompleted here - keep ticks visible after pipeline finishes
-      // They reset when a new pipeline run starts (line 862)
     }
   };
 
@@ -2771,11 +2772,13 @@ const LeadsTable = ({
                                     )}
                                   </Button>
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Find Domain → Validate → Coordinates → Distance → Relevance → Match Score
+                Find Domain → Validate → Coords → Distance → Relevance → Match Score
+                <br />
+                <span className="text-muted-foreground/70">+ Enrich Contact (parallel)</span>
                 <br />
                 <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
                 <br />
-                <span className="text-muted-foreground/70">If no domain: Search Socials → Calculate Score → Diagnose</span>
+                <span className="text-muted-foreground/70">If no domain: Search Socials → Score → Diagnose</span>
               </p>
                                 </div>
 
