@@ -4663,14 +4663,14 @@ const LeadsTable = ({
                                         {lead.news && (() => {
                                     try {
                                       const newsData = JSON.parse(lead.news);
-                                      if (newsData.news_count > 0) {
-                                        return <>
-                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                      return <>
+                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        {newsData.news_count > 0 && (
                                           <Badge variant="secondary" className="ml-1">
                                             {newsData.news_count} articles
                                           </Badge>
-                                        </>;
-                                      }
+                                        )}
+                                      </>;
                                     } catch {}
                                     return null;
                                   })()}
