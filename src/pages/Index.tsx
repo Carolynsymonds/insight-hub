@@ -277,10 +277,23 @@ const Index = () => {
           });
         }
 
-        // Check if domain found - if not, run diagnosis
+        // Check if domain found - if not, run social searches then diagnosis
         const { data: updated } = await supabase.from("leads").select("domain, enrichment_logs").eq("id", lead.id).maybeSingle();
         if (!updated?.domain) {
-          // No domain found, run diagnosis
+          // No domain found - trigger social searches as fallback
+          await supabase.functions.invoke("search-facebook-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          });
+          
+          await supabase.functions.invoke("search-linkedin-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          });
+          
+          await supabase.functions.invoke("search-instagram-serper", {
+            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+          });
+          
+          // Then run diagnosis
           await supabase.functions.invoke("diagnose-enrichment", {
             body: {
               leadId: lead.id,
