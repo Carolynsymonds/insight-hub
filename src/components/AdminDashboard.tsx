@@ -8,6 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Users, 
   UserPlus, 
@@ -427,31 +438,51 @@ export function AdminDashboard() {
                     }
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={async () => {
-                        const { data, error } = await supabase.functions.invoke("delete-user", {
-                          body: { userId: user.id }
-                        });
-                        if (error || data?.error) {
-                          toast({
-                            title: "Error",
-                            description: data?.error || "Failed to remove user",
-                            variant: "destructive",
-                          });
-                        } else {
-                          toast({
-                            title: "Removed",
-                            description: `User ${user.email} has been removed`,
-                          });
-                          fetchUsers();
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove User</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to remove <span className="font-semibold">{user.email}</span>? This action cannot be undone and will permanently delete their account.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={async () => {
+                              const { data, error } = await supabase.functions.invoke("delete-user", {
+                                body: { userId: user.id }
+                              });
+                              if (error || data?.error) {
+                                toast({
+                                  title: "Error",
+                                  description: data?.error || "Failed to remove user",
+                                  variant: "destructive",
+                                });
+                              } else {
+                                toast({
+                                  title: "Removed",
+                                  description: `User ${user.email} has been removed`,
+                                });
+                                fetchUsers();
+                              }
+                            }}
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
