@@ -4265,12 +4265,16 @@ const LeadsTable = ({
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
                                         <span>Find Contacts</span>
-                                        {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
+                                        {lead.company_contacts && Array.isArray(lead.company_contacts) && (
                                           <>
                                             <CheckCircle className="h-4 w-4 text-green-500" />
-                                            <Badge variant="secondary" className="ml-1">
-                                              {lead.company_contacts.filter(c => c.name).length} found
-                                            </Badge>
+                                            {lead.company_contacts.filter(c => c.name).length > 0 ? (
+                                              <Badge variant="secondary" className="ml-1">
+                                                {lead.company_contacts.filter(c => c.name).length} found
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground ml-1">No contacts found</span>
+                                            )}
                                           </>
                                         )}
                                       </div>

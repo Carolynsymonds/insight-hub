@@ -214,11 +214,11 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully processed ${discoveredContacts.length} contacts (fallback: ${usedFallback})`);
 
-    // Update the lead with discovered contacts
+    // Update the lead with discovered contacts (always set to array, even empty, to indicate search was run)
     const { error: updateError } = await supabase
       .from('leads')
       .update({
-        company_contacts: discoveredContacts.length > 0 ? discoveredContacts : null
+        company_contacts: discoveredContacts
       })
       .eq('id', leadId);
 
