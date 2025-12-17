@@ -3684,7 +3684,10 @@ const LeadsTable = ({
                                   {/* Company Details Accordion Item - Only visible when domain exists */}
                                   {lead.domain && <AccordionItem value="company-details" className="border-border">
                                       <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
-                                        Company Details
+                                        <div className="flex items-center gap-2">
+                                          <span>Company Details</span>
+                                          {lead.scraped_data_log && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                        </div>
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="space-y-3 pt-2">
@@ -4263,9 +4266,14 @@ const LeadsTable = ({
                                       <div className="flex items-center gap-2">
                                         <Users className="h-4 w-4" />
                                         <span>Find Contacts</span>
-                                        {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && <Badge variant="secondary" className="ml-2">
+                                        {lead.company_contacts && lead.company_contacts.filter(c => c.name).length > 0 && (
+                                          <>
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                            <Badge variant="secondary" className="ml-1">
                                               {lead.company_contacts.filter(c => c.name).length} found
-                                            </Badge>}
+                                            </Badge>
+                                          </>
+                                        )}
                                       </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -4535,9 +4543,12 @@ const LeadsTable = ({
                                     try {
                                       const newsData = JSON.parse(lead.news);
                                       if (newsData.news_count > 0) {
-                                        return <Badge variant="secondary" className="ml-2">
-                                                    {newsData.news_count} articles
-                                                  </Badge>;
+                                        return <>
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                          <Badge variant="secondary" className="ml-1">
+                                            {newsData.news_count} articles
+                                          </Badge>
+                                        </>;
                                       }
                                     } catch {}
                                     return null;
