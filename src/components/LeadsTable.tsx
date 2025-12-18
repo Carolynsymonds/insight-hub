@@ -2818,10 +2818,10 @@ const LeadsTable = ({
                 <br />
                 <span className="text-muted-foreground/70">If no domain: Search Socials → Score → Diagnose</span>
               </p>
-              {pipelineDuration[lead.id] && runningPipeline !== lead.id && (
-                <p className="text-xs text-muted-foreground text-center mt-2 font-medium">
-                  ⏱️ Last run: {pipelineDuration[lead.id].toFixed(1)}s
-                </p>
+              {pipelineDuration[lead.id] !== undefined && runningPipeline !== lead.id && (
+                <div className="text-xs text-center mt-3 py-2 px-3 bg-muted/50 rounded-md">
+                  <span className="font-medium">⏱️ Last run: {pipelineDuration[lead.id].toFixed(1)}s</span>
+                </div>
               )}
                                 </div>
 
