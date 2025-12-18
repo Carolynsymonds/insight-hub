@@ -60,7 +60,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid' | 'not_enriched'>('valid');
+  const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid' | 'not_enriched' | 'today_enriched'>('valid');
   const [batchFilter, setBatchFilter] = useState<'all' | number>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
@@ -659,6 +659,13 @@ const Index = () => {
     if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
     if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
     if (domainFilter === 'not_enriched') return lead.enriched_at === null;
+    if (domainFilter === 'today_enriched') {
+      if (!lead.enriched_at) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const enrichedDate = new Date(lead.enriched_at);
+      return enrichedDate >= today;
+    }
     return true;
   });
 
@@ -859,7 +866,7 @@ const Index = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Filter by:</span>
-                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid' | 'not_enriched') => setDomainFilter(value)}>
+                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid' | 'not_enriched' | 'today_enriched') => setDomainFilter(value)}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Domain Status" />
                     </SelectTrigger>
@@ -868,6 +875,7 @@ const Index = () => {
                       <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
                       <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
                       <SelectItem value="not_enriched">Not Enriched</SelectItem>
+                      <SelectItem value="today_enriched">Enriched Today</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select 
