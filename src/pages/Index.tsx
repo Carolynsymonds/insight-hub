@@ -654,10 +654,21 @@ const Index = () => {
     // Batch filter
     if (batchFilter !== 'all' && lead.upload_batch !== batchFilter) return false;
     
+    // Check if lead has validated socials
+    const hasValidatedSocials = (lead.facebook && lead.facebook_validated) || 
+                                 (lead.linkedin && lead.linkedin_validated) || 
+                                 (lead.instagram && lead.instagram_validated);
+    
     // Domain filter
     if (domainFilter === 'all') return true;
-    if (domainFilter === 'valid') return lead.match_score !== null && lead.match_score >= 50;
-    if (domainFilter === 'invalid') return lead.match_score === null || lead.match_score < 50;
+    if (domainFilter === 'valid') {
+      // Valid if match_score >= 50 OR has validated socials found
+      return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials;
+    }
+    if (domainFilter === 'invalid') {
+      // Invalid if no valid match score AND no validated socials
+      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials;
+    }
     if (domainFilter === 'not_enriched') return lead.enriched_at === null;
     if (domainFilter === 'today_enriched') {
       if (!lead.enriched_at) return false;
