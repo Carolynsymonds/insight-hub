@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import LeadUpload from "@/components/LeadUpload";
@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2 } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -83,6 +83,7 @@ const Index = () => {
     currentCompany: '', 
     currentStep: '' 
   });
+  const pipelineStopRef = useRef(false);
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
@@ -660,11 +661,21 @@ const Index = () => {
       return;
     }
 
+    pipelineStopRef.current = false;
     setBulkRunningPipeline(true);
     setPipelineProgress({ current: 0, total: nonEnrichedLeads.length, currentCompany: '', currentStep: '' });
 
     try {
       for (let i = 0; i < nonEnrichedLeads.length; i++) {
+        // Check if user requested to stop
+        if (pipelineStopRef.current) {
+          toast({
+            title: "Pipeline Paused",
+            description: `Stopped after processing ${i} of ${nonEnrichedLeads.length} leads.`,
+          });
+          break;
+        }
+
         const lead = nonEnrichedLeads[i];
         setPipelineProgress(prev => ({ 
           ...prev, 
@@ -1272,6 +1283,16 @@ const Index = () => {
                               "Start Pipeline"
                             )}
                           </Button>
+                          {bulkRunningPipeline && (
+                            <Button 
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => { pipelineStopRef.current = true; }}
+                            >
+                              <Pause className="mr-2 h-4 w-4" />
+                              Pause
+                            </Button>
+                          )}
                         </div>
                         
                         {/* Progress indicator when running */}
