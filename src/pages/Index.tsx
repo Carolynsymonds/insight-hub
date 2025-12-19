@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause, ChevronRight, ChevronDown } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -84,11 +84,31 @@ const Index = () => {
     currentStep: '' 
   });
   const pipelineStopRef = useRef(false);
+  const [statsCategoryFilter, setStatsCategoryFilter] = useState<string | null>(null);
+  const [expandedValidSocials, setExpandedValidSocials] = useState(false);
+  const [expandedValidLeads, setExpandedValidLeads] = useState(false);
+  const [expandedValidLeadsSocials, setExpandedValidLeadsSocials] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
     invalid: 0,
     notEnriched: 0,
+    validSocials: 0,
+    validSocialsBreakdown: {
+      facebook: 0,
+      instagram: 0,
+      linkedin: 0
+    },
+    validLeads: 0,
+    validLeadsWithDomain: 0,
+    validLeadsWithBoth: 0,
+    validLeadsWithSocialsOnly: 0,
+    validLeadsSocialsBreakdown: {
+      facebook: 0,
+      instagram: 0,
+      linkedin: 0
+    },
+    invalidNoDomainNoSocials: 0,
     diagnosisCounts: {} as Record<string, number>,
     contactsTotal: 0,
     contactsValid: 0,
@@ -99,6 +119,165 @@ const Index = () => {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Recalculate stats when category filter changes
+  useEffect(() => {
+    if (leads.length > 0) {
+      // Recalculate stats with current filter
+      const calculateStatsWithFilter = async () => {
+        // Filter by category if selected
+        const filteredData = statsCategoryFilter 
+          ? leads.filter(lead => lead.category === statsCategoryFilter)
+          : leads;
+
+        // Calculate category counts
+        const counts: Record<string, number> = {};
+        CATEGORIES.forEach(cat => counts[cat.name] = 0);
+        leads.forEach((lead: any) => {
+          if (lead.category && counts[lead.category] !== undefined) {
+            counts[lead.category]++;
+          }
+        });
+        setCategoryCounts(counts);
+
+        // Calculate statistics
+        // Valid: match_score >= 50 OR at least 1 social validated
+        const valid = filteredData.filter(lead => 
+          (lead.match_score !== null && lead.match_score >= 50) ||
+          (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
+        ).length;
+        
+        // Count leads with valid socials (at least one social validated as true)
+        const validSocials = filteredData.filter(lead => 
+          lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true
+        ).length;
+        
+        // Count valid socials by platform
+        const validSocialsBreakdown = {
+          facebook: filteredData.filter(lead => lead.facebook_validated === true).length,
+          instagram: filteredData.filter(lead => lead.instagram_validated === true).length,
+          linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
+        };
+        
+        // Valid Leads: leads with domain OR socials (validated or not)
+        const validLeads = filteredData.filter(lead => 
+          lead.domain || 
+          lead.facebook || 
+          lead.instagram || 
+          lead.linkedin
+        ).length;
+        
+        // Valid Leads breakdown
+        const validLeadsWithDomain = filteredData.filter(lead => 
+          lead.domain && 
+          (lead.match_score !== null && lead.match_score >= 50)
+        ).length;
+        
+        const validLeadsWithBoth = filteredData.filter(lead => 
+          lead.domain && 
+          (lead.match_score !== null && lead.match_score >= 50) &&
+          (lead.facebook || lead.instagram || lead.linkedin)
+        ).length;
+        
+        const validLeadsWithSocialsOnly = filteredData.filter(lead => 
+          !lead.domain &&
+          (lead.facebook || lead.instagram || lead.linkedin)
+        ).length;
+        
+        // Socials breakdown for valid leads
+        const validLeadsSocialsBreakdown = {
+          facebook: filteredData.filter(lead => 
+            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+            lead.facebook
+          ).length,
+          instagram: filteredData.filter(lead => 
+            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+            lead.instagram
+          ).length,
+          linkedin: filteredData.filter(lead => 
+            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+            lead.linkedin
+          ).length
+        };
+        
+        // Invalid: match_score < 50 AND no validated socials
+        const invalid = filteredData.filter(lead => 
+          (lead.match_score === null || lead.match_score < 50) &&
+          !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
+        ).length;
+        
+        // Invalid: leads with no domain AND no socials found
+        const invalidNoDomainNoSocials = filteredData.filter(lead => 
+          !lead.domain &&
+          !lead.facebook &&
+          !lead.instagram &&
+          !lead.linkedin
+        ).length;
+        
+        // Not Enriched: leads that haven't been processed (no match_score and no domain)
+        const notEnriched = filteredData.filter(lead => 
+          lead.match_score === null && !lead.domain
+        ).length;
+
+        // Count diagnosis categories only for leads without domains (failed enrichment)
+        const diagnosisCounts: Record<string, number> = {};
+        filteredData.filter(lead => !lead.domain).forEach(lead => {
+          const category = lead.diagnosis_category || 'Not Diagnosed';
+          diagnosisCounts[category] = (diagnosisCounts[category] || 0) + 1;
+        });
+
+        // Calculate contact enrichment stats
+        const contactsTotal = filteredData.length;
+        const leadsWithLinkedIn = filteredData.filter(
+          lead => lead.contact_linkedin && lead.contact_linkedin.trim() !== ''
+        );
+        
+        // Get lead IDs with LinkedIn to check confidence from clay_enrichments
+        const leadIdsWithLinkedIn = leadsWithLinkedIn.map(l => l.id);
+        const { data: clayData } = await supabase
+          .from("clay_enrichments")
+          .select("lead_id, profile_match_score")
+          .in("lead_id", leadIdsWithLinkedIn.length > 0 ? leadIdsWithLinkedIn : ['none']);
+        
+        // Valid = LinkedIn + high confidence (>50)
+        const contactsValid = (clayData || []).filter(
+          c => c.profile_match_score !== null && c.profile_match_score > 50
+        ).length;
+        
+        // Low confidence = has LinkedIn but score <=50
+        const contactsLowConfidence = leadsWithLinkedIn.length - contactsValid;
+        
+        // Not found = no LinkedIn at all
+        const contactsNotFound = contactsTotal - leadsWithLinkedIn.length;
+        
+        // Invalid = everyone else (low confidence + no LinkedIn)
+        const contactsInvalid = contactsTotal - contactsValid;
+
+        setStats({ 
+          total: filteredData.length, 
+          valid, 
+          invalid, 
+          notEnriched,
+          validSocials,
+          validSocialsBreakdown,
+          validLeads,
+          validLeadsWithDomain,
+          validLeadsWithBoth,
+          validLeadsWithSocialsOnly,
+          validLeadsSocialsBreakdown,
+          invalidNoDomainNoSocials,
+          diagnosisCounts,
+          contactsTotal,
+          contactsValid,
+          contactsInvalid,
+          contactsLowConfidence,
+          contactsNotFound
+        });
+      };
+
+      calculateStatsWithFilter();
+    }
+  }, [statsCategoryFilter, leads]);
   const checkAuth = async () => {
     const {
       data: {
@@ -142,27 +321,100 @@ const Index = () => {
       });
       setCategoryCounts(counts);
 
+      // Filter by category if selected
+      const filteredData = statsCategoryFilter 
+        ? (data || []).filter(lead => lead.category === statsCategoryFilter)
+        : (data || []);
+
       // Calculate statistics
-      const valid = (data || []).filter(lead => 
-        lead.enrichment_confidence !== null && lead.enrichment_confidence >= 50
+      // Valid: match_score >= 50 OR at least 1 social validated
+      const valid = filteredData.filter(lead => 
+        (lead.match_score !== null && lead.match_score >= 50) ||
+        (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
       ).length;
-      const invalid = (data || []).filter(lead => 
-        lead.enrichment_confidence !== null && lead.enrichment_confidence < 50
+      
+      // Count leads with valid socials (at least one social validated as true)
+      const validSocials = filteredData.filter(lead => 
+        lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true
       ).length;
-      const notEnriched = (data || []).filter(lead => 
-        lead.enrichment_confidence === null && !lead.domain
+      
+      // Count valid socials by platform
+      const validSocialsBreakdown = {
+        facebook: filteredData.filter(lead => lead.facebook_validated === true).length,
+        instagram: filteredData.filter(lead => lead.instagram_validated === true).length,
+        linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
+      };
+      
+      // Valid Leads: leads with domain OR socials (validated or not)
+      const validLeads = filteredData.filter(lead => 
+        lead.domain || 
+        lead.facebook || 
+        lead.instagram || 
+        lead.linkedin
+      ).length;
+      
+      // Valid Leads breakdown
+      const validLeadsWithDomain = filteredData.filter(lead => 
+        lead.domain && 
+        (lead.match_score !== null && lead.match_score >= 50)
+      ).length;
+      
+      const validLeadsWithBoth = filteredData.filter(lead => 
+        lead.domain && 
+        (lead.match_score !== null && lead.match_score >= 50) &&
+        (lead.facebook || lead.instagram || lead.linkedin)
+      ).length;
+      
+      const validLeadsWithSocialsOnly = filteredData.filter(lead => 
+        !lead.domain &&
+        (lead.facebook || lead.instagram || lead.linkedin)
+      ).length;
+      
+      // Socials breakdown for valid leads
+      const validLeadsSocialsBreakdown = {
+        facebook: filteredData.filter(lead => 
+          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+          lead.facebook
+        ).length,
+        instagram: filteredData.filter(lead => 
+          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+          lead.instagram
+        ).length,
+        linkedin: filteredData.filter(lead => 
+          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
+          lead.linkedin
+        ).length
+      };
+      
+      // Invalid: match_score < 50 AND no validated socials
+      const invalid = filteredData.filter(lead => 
+        (lead.match_score === null || lead.match_score < 50) &&
+        !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
+      ).length;
+      
+      // Invalid: leads with no domain AND no socials found
+      const invalidNoDomainNoSocials = filteredData.filter(lead => 
+        !lead.domain &&
+        !lead.facebook &&
+        !lead.instagram &&
+        !lead.linkedin
+      ).length;
+      
+      // Not Enriched: leads that haven't been processed (no match_score and no domain)
+      const notEnriched = filteredData.filter(lead => 
+        lead.match_score === null && !lead.domain
       ).length;
 
       // Count diagnosis categories only for leads without domains (failed enrichment)
       const diagnosisCounts: Record<string, number> = {};
-      (data || []).filter(lead => !lead.domain).forEach(lead => {
-        const category = lead.diagnosis_category || 'Not diagnosed';
+      filteredData.filter(lead => !lead.domain).forEach(lead => {
+        const category = lead.diagnosis_category || 'Not Diagnosed';
         diagnosisCounts[category] = (diagnosisCounts[category] || 0) + 1;
       });
 
       // Calculate contact enrichment stats
-      const contactsTotal = (data || []).length;
-      const leadsWithLinkedIn = (data || []).filter(
+      const contactsTotal = filteredData.length;
+      const leadsWithLinkedIn = filteredData.filter(
         lead => lead.contact_linkedin && lead.contact_linkedin.trim() !== ''
       );
       
@@ -188,10 +440,18 @@ const Index = () => {
       const contactsInvalid = contactsTotal - contactsValid;
 
       setStats({ 
-        total: (data || []).length, 
+        total: filteredData.length, 
         valid, 
         invalid, 
-        notEnriched, 
+        notEnriched,
+        validSocials,
+        validSocialsBreakdown,
+        validLeads,
+        validLeadsWithDomain,
+        validLeadsWithBoth,
+        validLeadsWithSocialsOnly,
+        validLeadsSocialsBreakdown,
+        invalidNoDomainNoSocials,
         diagnosisCounts,
         contactsTotal,
         contactsValid,
@@ -1041,44 +1301,191 @@ const Index = () => {
         <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-semibold mb-2">Lead Statistics</h2>
-            <p className="text-muted-foreground">Overview of your lead enrichment status</p>
+            <p className="text-muted-foreground mb-4">Overview of your lead enrichment status</p>
+            
+            {/* Category Filter */}
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-sm font-medium text-muted-foreground">Filter by Category:</span>
+              <Select 
+                value={statsCategoryFilter || "all"} 
+                onValueChange={(value) => setStatsCategoryFilter(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="View All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">View All Categories</SelectItem>
+                  {CATEGORIES.filter(cat => categoryCounts[cat.name] > 0).map(category => {
+                    const Icon = category.icon;
+                    return (
+                      <SelectItem key={category.name} value={category.name}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{category.name}</span>
+                          <span className="text-muted-foreground">({categoryCounts[category.name]})</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          {/* Company Enrichment Section */}
+          {/* Lead Overview */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Company Enrichment</h3>
+            <h3 className="text-lg font-semibold border-b pb-2">Lead Overview</h3>
+            <div className="p-4 border rounded-lg bg-card">
+              <p className="text-sm text-muted-foreground mb-1">Total Leads</p>
+              <p className="text-3xl font-bold">{stats.total}</p>
+            </div>
+          </div>
+
+          {/* Company Statistics */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Company Statistics</h3>
             
-            {/* Company Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground">Total Leads</p>
-                <p className="text-3xl font-bold">{stats.total}</p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Valid Domains */}
               <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
                 <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
                 <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
-                <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
                   {stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(1) : 0}% of total
+                  {stats.validSocials > 0 && (
+                    <span className="ml-2">• {stats.validSocials} with valid socials</span>
+                  )}
                 </p>
               </div>
+
+              {/* Valid Socials */}
+              <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-blue-600 dark:text-blue-400">Valid Socials</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setExpandedValidSocials(!expandedValidSocials)}
+                  >
+                    {expandedValidSocials ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.validSocials}</p>
+                {expandedValidSocials && (
+                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-blue-600/80 dark:text-blue-400/80">Facebook</span>
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.facebook}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-blue-600/80 dark:text-blue-400/80">Instagram</span>
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.instagram}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-blue-600/80 dark:text-blue-400/80">LinkedIn</span>
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.linkedin}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Invalid Leads */}
               <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">Invalid Domains</p>
-                <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalid}</p>
-                <p className="text-xs text-red-600/70 dark:text-red-400/70">
-                  {stats.total > 0 ? ((stats.invalid / stats.total) * 100).toFixed(1) : 0}% of total
+                <p className="text-sm text-red-600 dark:text-red-400">Invalid Leads</p>
+                <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalidNoDomainNoSocials}</p>
+                <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">
+                  No domain and no socials found
                 </p>
               </div>
+
+              {/* Not Enriched */}
               <div className="p-4 border rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">Not Enriched</p>
                 <p className="text-3xl font-bold">{stats.notEnriched}</p>
-                <p className="text-xs text-muted-foreground">Awaiting enrichment</p>
+                <p className="text-xs text-muted-foreground mt-1">Leads not yet processed</p>
               </div>
             </div>
 
-            {/* Diagnosis Breakdown */}
+            {/* Valid Leads Component */}
+            <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Valid Leads</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setExpandedValidLeads(!expandedValidLeads)}
+                >
+                  {expandedValidLeads ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.validLeads}</p>
+              <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
+                Leads with company domain and/or socials
+              </p>
+              
+              {expandedValidLeads && (
+                <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Valid Domains</span>
+                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithDomain}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Both (Domain + Socials)</span>
+                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithBoth}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Socials Only</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithSocialsOnly}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0"
+                        onClick={() => setExpandedValidLeadsSocials(!expandedValidLeadsSocials)}
+                      >
+                        {expandedValidLeadsSocials ? (
+                          <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {expandedValidLeadsSocials && (
+                    <div className="ml-4 mt-2 pt-2 border-t border-green-200/50 dark:border-green-800/50 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-green-600/70 dark:text-green-400/70">Facebook</span>
+                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.facebook}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-green-600/70 dark:text-green-400/70">Instagram</span>
+                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.instagram}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-green-600/70 dark:text-green-400/70">LinkedIn</span>
+                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.linkedin}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Leads Without Domain — Diagnosis Breakdown */}
             {Object.keys(stats.diagnosisCounts).length > 0 && (
               <div className="p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Leads Without Domain by Diagnosis</h4>
+                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Leads Without Domain — Diagnosis Breakdown</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {Object.entries(stats.diagnosisCounts)
                     .sort(([,a], [,b]) => b - a)

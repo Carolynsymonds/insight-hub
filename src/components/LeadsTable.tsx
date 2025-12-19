@@ -568,11 +568,27 @@ const LeadsTable = ({
     fetchAllClayEnrichments();
   }, [leads]);
 
-  // Filter leads based on domain validity (Match Score >= 50% = valid)
+  // Filter leads based on domain validity (Match Score >= 50% = valid OR at least 1 social validated)
   const filteredLeads = leads.filter(lead => {
     if (domainFilter === "all") return true;
-    if (domainFilter === "valid") return lead.match_score !== null && lead.match_score >= 50;
-    if (domainFilter === "invalid") return lead.match_score === null || lead.match_score < 50;
+    
+    // Check if at least one social is validated
+    const hasValidatedSocial = (
+      lead.facebook_validated === true ||
+      lead.linkedin_validated === true ||
+      lead.instagram_validated === true
+    );
+    
+    // Valid: match score >= 50 OR at least 1 social validated
+    if (domainFilter === "valid") {
+      return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocial;
+    }
+    
+    // Invalid: match score is null or < 50 AND no socials validated
+    if (domainFilter === "invalid") {
+      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocial;
+    }
+    
     return true;
   }).sort((a, b) => {
     // Sort by name when in contact view
@@ -868,6 +884,12 @@ const LeadsTable = ({
       // PATH B: Contact enrichment - runs completely in parallel from the start
       const contactEnrichmentPromise = (async () => {
         try {
+          // Skip contact enrichment if email is missing (required by function)
+          if (!lead.email) {
+            console.log('[Pipeline] Skipping contact enrichment - no email provided');
+            return;
+          }
+
           console.log('[Pipeline] Starting contact enrichment for lead:', lead.id);
           
           const { data, error } = await supabase.functions.invoke("enrich-contact", {
@@ -917,9 +939,9 @@ const LeadsTable = ({
         }
       })();
 
-      // PATH A: Domain enrichment flow (main sequential flow)
-      // Step 1: Find Domain (runs all 3 sources)
-      setPipelineStep('Finding Domain (1/9)...');
+      // PATH A: Domain enrichment flow (sequential)
+      // Step 1: Find Domain
+      setPipelineStep('Finding Domain...');
       
       // Apollo
       await supabase.functions.invoke("enrich-lead", {
@@ -970,15 +992,11 @@ const LeadsTable = ({
         .single();
 
       const domainFound = !!updatedLead?.domain;
-
-      // Mark domain search as completed (regardless of whether domain was found)
-      if (!domainFound) {
-        setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
-      }
+      let matchScore = null;
 
       if (domainFound) {
         // Step 2: Validate Domain
-        setPipelineStep('Validating Domain (2/9)...');
+        setPipelineStep('Validating Domain...');
         
         const { data: validationData, error: validationError } = await supabase.functions.invoke("validate-domain", {
           body: { domain: updatedLead.domain }
@@ -994,7 +1012,7 @@ const LeadsTable = ({
         // Only continue with scoring if domain is valid and not parked
         if (validationData?.is_valid_domain && !validationData?.is_parked) {
           // Step 3: Find Coordinates
-          setPipelineStep('Finding Coordinates (3/9)...');
+          setPipelineStep('Finding Coordinates...');
           await supabase.functions.invoke("find-company-coordinates", {
             body: {
               leadId: lead.id,
@@ -1012,7 +1030,7 @@ const LeadsTable = ({
 
           // Step 4: Calculate Distance (only if coordinates found)
           if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
-            setPipelineStep('Calculating Distance (4/9)...');
+            setPipelineStep('Calculating Distance...');
             await supabase.functions.invoke("calculate-distance", {
               body: {
                 leadId: lead.id,
@@ -1026,7 +1044,7 @@ const LeadsTable = ({
           }
 
           // Step 5: Score Domain Relevance
-          setPipelineStep('Scoring Domain Relevance (5/9)...');
+          setPipelineStep('Scoring Domain Relevance...');
           await supabase.functions.invoke("score-domain-relevance", {
             body: {
               leadId: lead.id,
@@ -1039,7 +1057,7 @@ const LeadsTable = ({
           });
 
           // Step 6: Calculate Match Score
-          setPipelineStep('Calculating Match Score (6/9)...');
+          setPipelineStep('Calculating Match Score...');
           await supabase.functions.invoke("calculate-match-score", {
             body: { leadId: lead.id }
           });
@@ -1051,21 +1069,86 @@ const LeadsTable = ({
             .eq("id", lead.id)
             .single();
 
-          // COMPANY ENRICHMENT: Only runs if match score > 50
-          if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
+          matchScore = leadWithScore?.match_score;
+        } else {
+          // Domain is invalid or parked - set appropriate match score
+          await supabase.from("leads").update({
+            match_score: validationData?.is_parked ? 25 : 0,
+            match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
+          }).eq("id", lead.id);
+          matchScore = validationData?.is_parked ? 25 : 0;
+        }
+      }
+
+      // ALWAYS: Run social searches in parallel
+      setPipelineStep('Searching Socials...');
+      const socialSearchPromise = Promise.all([
+        supabase.functions.invoke("search-facebook-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        }),
+        supabase.functions.invoke("search-linkedin-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        }),
+        supabase.functions.invoke("search-instagram-serper", {
+          body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
+        })
+      ]);
+      await socialSearchPromise;
+      setPipelineCompleted(prev => ({ ...prev, socialsSearched: true }));
+
+      // ALWAYS: Validate socials in parallel after searches
+      setPipelineStep('Validating Socials...');
+      const { data: leadWithSocials } = await supabase
+        .from("leads")
+        .select("enrichment_logs, facebook, instagram, linkedin")
+        .eq("id", lead.id)
+        .single();
+
+      // Extract organic results from enrichment logs
+      const enrichmentLogs = (leadWithSocials?.enrichment_logs as unknown as EnrichmentLog[]) || [];
+      const fbLog = enrichmentLogs.slice().reverse().find((log: any) => log.action === "facebook_search_serper") as any;
+      const liLog = enrichmentLogs.slice().reverse().find((log: any) => log.action === "linkedin_search_serper") as any;
+      const igLog = enrichmentLogs.slice().reverse().find((log: any) => log.action === "instagram_search_serper") as any;
+      const facebookResults = fbLog?.top3Results || fbLog?.searchSteps?.[0]?.organicResults || (leadWithSocials?.facebook ? [leadWithSocials.facebook] : []);
+      const linkedinResults = liLog?.top3Results || liLog?.searchSteps?.[0]?.organicResults || (leadWithSocials?.linkedin ? [leadWithSocials.linkedin] : []);
+      const instagramResults = igLog?.top3Results || (leadWithSocials?.instagram ? [leadWithSocials.instagram] : []);
+
+      await supabase.functions.invoke("score-social-relevance", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          city: lead.city,
+          state: lead.state,
+          mics_sector: lead.mics_sector,
+          mics_subsector: lead.mics_subsector,
+          mics_segment: lead.mics_segment,
+          facebookResults,
+          linkedinResults,
+          instagramResults
+        }
+      });
+
+      // If score > 50: Enrich Company → Find Contacts → Get News
+      if (matchScore !== null && matchScore > 50) {
+        const { data: leadWithScore } = await supabase
+          .from("leads")
+          .select("match_score, enrichment_source, apollo_not_found")
+          .eq("id", lead.id)
+          .single();
+
             const { data: { user } } = await supabase.auth.getUser();
 
-            setPipelineStep('Enriching Company (7/9)...');
+        setPipelineStep('Enriching Company...');
             await supabase.functions.invoke("enrich-company-details", {
               body: {
                 leadId: lead.id,
                 domain: updatedLead.domain,
-                enrichmentSource: leadWithScore.enrichment_source,
-                apolloNotFound: leadWithScore.apollo_not_found
+            enrichmentSource: leadWithScore?.enrichment_source,
+            apolloNotFound: leadWithScore?.apollo_not_found
               }
             });
 
-            setPipelineStep('Finding Contacts (8/9)...');
+        setPipelineStep('Finding Contacts...');
             await supabase.functions.invoke("find-company-contacts", {
               body: {
                 leadId: lead.id,
@@ -1075,7 +1158,7 @@ const LeadsTable = ({
               }
             });
 
-            setPipelineStep('Getting News (9/9)...');
+        setPipelineStep('Getting News...');
             await supabase.functions.invoke("get-company-news", {
               body: {
                 leadId: lead.id,
@@ -1084,7 +1167,7 @@ const LeadsTable = ({
               }
             });
 
-            // Wait for Path B (contact enrichment) to complete
+        // Wait for contact enrichment to complete
             await contactEnrichmentPromise;
 
             const duration = (Date.now() - startTime) / 1000;
@@ -1092,60 +1175,15 @@ const LeadsTable = ({
 
             toast({
               title: "Full Pipeline Complete",
-              description: `Enriched ${updatedLead.domain} (Score: ${leadWithScore.match_score})`
-            });
-          } else {
-            // Score ≤ 50: Wait for contact enrichment to complete
-            await contactEnrichmentPromise;
-
-            const duration = (Date.now() - startTime) / 1000;
-            setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
-
-            toast({
-              title: "Pipeline Complete",
-              description: `Contact enriched. Domain scored: ${updatedLead.domain} (Score: ${leadWithScore?.match_score || 0} - below threshold for company enrichment)`
-            });
-          }
-        } else {
-          // Domain is invalid or parked - set appropriate match score
-          await supabase.from("leads").update({
-            match_score: validationData?.is_parked ? 25 : 0,
-            match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
-          }).eq("id", lead.id);
-
-          // Wait for Path B (contact enrichment) to complete
-          await contactEnrichmentPromise;
-
-          const duration = (Date.now() - startTime) / 1000;
-          setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
-
-          toast({
-            title: "Pipeline Complete",
-            description: `Domain found but ${validationData?.is_parked ? 'parked/for sale' : 'invalid'}: ${updatedLead.domain}`
-          });
-        }
-      } else {
-        // No domain found - trigger social searches as fallback
-        setPipelineStep('Searching Socials...');
-        await Promise.all([
-          supabase.functions.invoke("search-facebook-serper", {
-            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-          }),
-          supabase.functions.invoke("search-linkedin-serper", {
-            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-          }),
-          supabase.functions.invoke("search-instagram-serper", {
-            body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-          })
-        ]);
-        setPipelineCompleted(prev => ({ ...prev, socialsSearched: true }));
-
+          description: `Enriched ${updatedLead.domain} (Score: ${matchScore})`
+        });
+      } else if (!domainFound) {
+        // If no domain: Score → Diagnose
         setPipelineStep('Calculating Score...');
         await supabase.functions.invoke("calculate-match-score", {
           body: { leadId: lead.id }
         });
 
-        // Then run diagnosis
         setPipelineStep('Diagnosing...');
         await supabase.functions.invoke("diagnose-enrichment", {
           body: {
@@ -1159,11 +1197,11 @@ const LeadsTable = ({
               mics_sector: lead.mics_sector,
               full_name: lead.full_name
             },
-            enrichmentLogs: updatedLead?.enrichment_logs || []
+            enrichmentLogs: leadWithSocials?.enrichment_logs || []
           }
         });
 
-        // Wait for Path B (contact enrichment) to complete
+        // Wait for contact enrichment to complete
         await contactEnrichmentPromise;
 
         const duration = (Date.now() - startTime) / 1000;
@@ -1171,7 +1209,18 @@ const LeadsTable = ({
 
         toast({
           title: "Pipeline Complete",
-          description: "No domain found. Socials searched, score calculated & AI diagnosis generated."
+          description: "No domain found. Socials searched, validated, score calculated & AI diagnosis generated."
+        });
+      } else {
+        // Domain found but score <= 50 - just wait for contact enrichment
+        await contactEnrichmentPromise;
+
+        const duration = (Date.now() - startTime) / 1000;
+        setPipelineDuration(prev => ({ ...prev, [lead.id]: duration }));
+
+        toast({
+          title: "Pipeline Complete",
+          description: `Domain found (Score: ${matchScore}). Socials searched and validated.`
         });
       }
 
@@ -1903,9 +1952,11 @@ const LeadsTable = ({
       }
       onEnrichComplete();
     } catch (error: any) {
+      console.error('[Contact Enrichment] Error:', error);
+      const errorMessage = error?.message || error?.error?.message || 'Failed to send a request to the Edge Function';
       toast({
         title: "Contact Enrichment Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
       setEnrichContactSteps(null);
@@ -2364,11 +2415,10 @@ const LeadsTable = ({
                       {/* Contact only: Contact Socials (after Company) */}
                       {viewMode === 'contact' && <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
-                            {/* LinkedIn */}
-                            <div className="flex items-center gap-1.5">
+                    {/* LinkedIn - show if exists */}
+                    {lead.contact_linkedin && <div className="flex items-center gap-1.5">
                               <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.contact_linkedin ? <>
-                                  <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[100px]" onClick={e => e.stopPropagation()}>
+                      <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                     {(() => {
                             try {
                               return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
@@ -2380,12 +2430,24 @@ const LeadsTable = ({
                                   {allClayEnrichments[lead.id]?.profile_match_score !== null && allClayEnrichments[lead.id]?.profile_match_score !== undefined && <Badge variant="outline" className={`text-[10px] px-1 py-0 ${allClayEnrichments[lead.id]?.profile_match_confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200' : allClayEnrichments[lead.id]?.profile_match_confidence === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                                       {allClayEnrichments[lead.id]?.profile_match_score}%
                                     </Badge>}
-                                </> : <span className="text-muted-foreground">—</span>}
-                            </div>
-                            {/* Facebook */}
-                            <div className="flex items-center gap-1.5">
+                    </div>}
+                    {/* Instagram - show if exists (from company socials, as contact may not have separate instagram) */}
+                    {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
+                      <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                        {(() => {
+                          try {
+                            return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                          } catch {
+                            return lead.instagram;
+                          }
+                        })()}
+                      </a>
+                    </div>}
+                    {/* Facebook - show if exists */}
+                    {lead.contact_facebook && <div className="flex items-center gap-1.5">
                               <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.contact_facebook ? <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                      <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
                             return new URL(lead.contact_facebook).pathname.replace(/\/$/, "") || "/";
@@ -2393,8 +2455,35 @@ const LeadsTable = ({
                             return lead.contact_facebook;
                           }
                         })()}
-                                </a> : <span className="text-muted-foreground">—</span>}
-                            </div>
+                      </a>
+                    </div>}
+                    {/* Show dash if no socials exist or all are invalidated */}
+                    {!lead.contact_linkedin &&
+                      !(lead.instagram && lead.instagram_validated !== false) &&
+                      !lead.contact_facebook &&
+                      (() => {
+                        // Check if socials were searched
+                        const socialsSearched = lead.enrichment_logs && (
+                          lead.enrichment_logs.some(log => log.action === "facebook_search_serper") ||
+                          lead.enrichment_logs.some(log => log.action === "linkedin_search_serper") ||
+                          lead.enrichment_logs.some(log => log.action === "instagram_search_serper")
+                        );
+                        
+                        // Check if social validations were run
+                        const validationsRun = (
+                          lead.facebook_validated !== null ||
+                          lead.linkedin_validated !== null ||
+                          lead.instagram_validated !== null
+                        );
+                        
+                        // Show "socials not found" if socials were searched/validated but none are valid
+                        if (socialsSearched || validationsRun) {
+                          return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                        }
+                        
+                        // Otherwise show dash
+                        return <span className="text-muted-foreground">—</span>;
+                      })()}
                           </div>
                         </TableCell>}
                       {/* View All only */}
@@ -2477,7 +2566,42 @@ const LeadsTable = ({
                             {!(lead.linkedin && lead.linkedin_validated !== false) && 
                              !(lead.instagram && lead.instagram_validated !== false) && 
                              !(lead.facebook && lead.facebook_validated !== false) && 
-                             <span className="text-muted-foreground">—</span>}
+                      (() => {
+                        // Check if socials were searched
+                        const socialsSearched = lead.enrichment_logs && (
+                          lead.enrichment_logs.some(log => log.action === "facebook_search_serper") ||
+                          lead.enrichment_logs.some(log => log.action === "linkedin_search_serper") ||
+                          lead.enrichment_logs.some(log => log.action === "instagram_search_serper")
+                        );
+                        
+                        // Check if social validations were run
+                        const validationsRun = (
+                          lead.facebook_validated !== null ||
+                          lead.linkedin_validated !== null ||
+                          lead.instagram_validated !== null
+                        );
+                        
+                        // Check if any social URLs exist (even if invalidated)
+                        const hasSocialUrls = (
+                          lead.linkedin !== null ||
+                          lead.instagram !== null ||
+                          lead.facebook !== null
+                        );
+                        
+                        // Show specific message if socials were searched/validated
+                        if (socialsSearched || validationsRun) {
+                          if (hasSocialUrls) {
+                            // Socials were found but all are invalid
+                            return <span className="text-muted-foreground text-xs italic">socials found but invalid</span>;
+                          } else {
+                            // No socials were found at all
+                            return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                          }
+                        }
+                        
+                        // Otherwise show dash
+                        return <span className="text-muted-foreground">—</span>;
+                      })()}                
                           </div>
                         </TableCell>}
                       {/* Clay Enrichment Cells */}
@@ -2541,10 +2665,10 @@ const LeadsTable = ({
                       {/* View All: Contact Socials */}
                       {viewMode === 'all' && <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
-                            {/* LinkedIn */}
-                            <div className="flex items-center gap-1.5">
+                            {/* LinkedIn - show if exists */}
+                            {lead.contact_linkedin && <div className="flex items-center gap-1.5">
                               <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.contact_linkedin ? <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                              <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
                             return new URL(lead.contact_linkedin).pathname.replace(/\/$/, "") || "/";
@@ -2552,12 +2676,25 @@ const LeadsTable = ({
                             return lead.contact_linkedin;
                           }
                         })()}
-                                </a> : <span className="text-muted-foreground">—</span>}
-                            </div>
-                            {/* Facebook */}
-                            <div className="flex items-center gap-1.5">
+                              </a>
+                            </div>}
+                            {/* Instagram - show if exists (from company socials) */}
+                            {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
+                              <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                                {(() => {
+                                  try {
+                                    return new URL(lead.instagram).pathname.replace(/\/$/, "") || "/";
+                                  } catch {
+                                    return lead.instagram;
+                                  }
+                                })()}
+                              </a>
+                            </div>}
+                            {/* Facebook - show if exists */}
+                            {lead.contact_facebook && <div className="flex items-center gap-1.5">
                               <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              {lead.contact_facebook ? <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
+                              <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
                             return new URL(lead.contact_facebook).pathname.replace(/\/$/, "") || "/";
@@ -2565,8 +2702,48 @@ const LeadsTable = ({
                             return lead.contact_facebook;
                           }
                         })()}
-                                </a> : <span className="text-muted-foreground">—</span>}
-                            </div>
+                              </a>
+                            </div>}
+                            {/* Show dash if no socials exist or all are invalidated */}
+                            {!lead.contact_linkedin &&
+                              !(lead.instagram && lead.instagram_validated !== false) &&
+                              !lead.contact_facebook &&
+                              (() => {
+                                // Check if socials were searched
+                                const socialsSearched = lead.enrichment_logs && (
+                                  lead.enrichment_logs.some(log => log.action === "facebook_search_serper") ||
+                                  lead.enrichment_logs.some(log => log.action === "linkedin_search_serper") ||
+                                  lead.enrichment_logs.some(log => log.action === "instagram_search_serper")
+                                );
+                                
+                                // Check if social validations were run
+                                const validationsRun = (
+                                  lead.facebook_validated !== null ||
+                                  lead.linkedin_validated !== null ||
+                                  lead.instagram_validated !== null
+                                );
+                                
+                                // Check if any social URLs exist (even if invalidated)
+                                const hasSocialUrls = (
+                                  lead.contact_linkedin !== null ||
+                                  lead.instagram !== null ||
+                                  lead.contact_facebook !== null
+                                );
+                                
+                                // Show specific message if socials were searched/validated
+                                if (socialsSearched || validationsRun) {
+                                  if (hasSocialUrls) {
+                                    // Socials were found but all are invalid
+                                    return <span className="text-muted-foreground text-xs italic">socials found but invalid</span>;
+                                  } else {
+                                    // No socials were found at all
+                                    return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                                  }
+                                }
+                                
+                                // Otherwise show dash
+                                return <span className="text-muted-foreground">—</span>;
+                              })()}
                           </div>
                         </TableCell>}
                       {/* View All: Enriched columns (Socials, Size, etc.) */}
@@ -2830,7 +3007,7 @@ const LeadsTable = ({
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
                                         Company Domain
-                                        {(pipelineCompleted.domainValidated || (lead.domain && lead.email_domain_validated !== null)) && (
+                                        {(lead.enrichment_status != null && lead.enrichment_status !== "pending") && (
                                           <CheckCircle className="h-4 w-4 text-green-500" />
                                         )}
                                       </div>
@@ -3306,9 +3483,51 @@ const LeadsTable = ({
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
                                         Socials Search
-                                        {(pipelineCompleted.socialsSearched || lead.facebook || lead.linkedin || lead.instagram) && (
-                                          <CheckCircle className="h-4 w-4 text-green-500" />
-                                        )}
+                                        {(() => {
+                                          // Check if all 3 social searches were performed (Facebook, LinkedIn, Instagram)
+                                          const hasFacebookLog = lead.enrichment_logs?.some(log => 
+                                            log.source === "serpapi_facebook_search"
+                                          );
+                                          const hasLinkedInLog = lead.enrichment_logs?.some(log => 
+                                            log.source === "serpapi_linkedin_search"
+                                          );
+                                          const hasInstagramLog = lead.enrichment_logs?.some(log => 
+                                            log.source === "serpapi_instagram_search"
+                                          );
+                                          
+                                          const allThreeSearched = hasFacebookLog && hasLinkedInLog && hasInstagramLog;
+                                          
+                                          // Show checkmark if pipeline state indicates socials were searched
+                                          if (pipelineCompleted.socialsSearched) {
+                                            return <CheckCircle className="h-4 w-4 text-green-500" />;
+                                          }
+                                          
+                                          // If all 3 searches were performed
+                                          if (allThreeSearched) {
+                                            // Check if anything was found
+                                            const hasAnyFound = !!(lead.facebook || lead.linkedin || lead.instagram);
+                                            
+                                            // Show checkmark if: nothing found OR (found AND validated)
+                                            if (!hasAnyFound) {
+                                              // All 3 searched, nothing found - show checkmark
+                                              return <CheckCircle className="h-4 w-4 text-green-500" />;
+                                            } else {
+                                              // Something found - check if validated
+                                              const hasValidated = (
+                                                (lead.facebook && lead.facebook_validated != null) ||
+                                                (lead.linkedin && lead.linkedin_validated !== null) ||
+                                                (lead.instagram && lead.instagram_validated !== null)
+                                              );
+                                              
+                                              // Show checkmark if found AND validated
+                                              return hasValidated ? (
+                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                              ) : null;
+                                            }
+                                          }
+                                          
+                                          return null;
+                                        })()}
                                       </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -4673,7 +4892,7 @@ const LeadsTable = ({
                                           </Badge>
                                         )}
                                       </>;
-                                    } catch {}
+                                    } catch { }
                                     return null;
                                   })()}
                                       </div>
