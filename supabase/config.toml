@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.get-admin-users]
 verify_jwt = false
+
+[functions.clay-company-enrichment]
+verify_jwt = false
