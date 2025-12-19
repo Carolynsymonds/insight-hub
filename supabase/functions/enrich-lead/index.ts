@@ -1726,7 +1726,34 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in enrich-lead function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    
+    // Extract meaningful error message
+    let errorMessage = "Unknown error occurred";
+    if (error instanceof Error) {
+      // Check if the message is HTML (from 502/503 errors)
+      if (error.message.includes("<html>") || error.message.includes("<!DOCTYPE")) {
+        if (error.message.includes("502")) {
+          errorMessage = "External API temporarily unavailable (502 Bad Gateway). Please retry.";
+        } else if (error.message.includes("503")) {
+          errorMessage = "External API service unavailable (503). Please retry.";
+        } else {
+          errorMessage = "External API returned an error. Please retry.";
+        }
+      } else {
+        errorMessage = error.message;
+      }
+    } else if (typeof error === 'object' && error !== null) {
+      // Handle non-Error objects that might have a message property
+      const errObj = error as { message?: string };
+      if (errObj.message) {
+        if (errObj.message.includes("<html>") || errObj.message.includes("502")) {
+          errorMessage = "External API temporarily unavailable. Please retry.";
+        } else {
+          errorMessage = errObj.message;
+        }
+      }
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
