@@ -38,6 +38,51 @@ export type Database = {
         }
         Relationships: []
       }
+      clay_company_enrichment: {
+        Row: {
+          annual_revenue_clay: string | null
+          created_at: string | null
+          description_clay: string | null
+          domain: string | null
+          founded_clay: string | null
+          id: string
+          industry_clay: string | null
+          lead_id: string
+          locality_clay: string | null
+          logo_clay: string | null
+          raw_response: Json | null
+          size_clay: string | null
+        }
+        Insert: {
+          annual_revenue_clay?: string | null
+          created_at?: string | null
+          description_clay?: string | null
+          domain?: string | null
+          founded_clay?: string | null
+          id?: string
+          industry_clay?: string | null
+          lead_id: string
+          locality_clay?: string | null
+          logo_clay?: string | null
+          raw_response?: Json | null
+          size_clay?: string | null
+        }
+        Update: {
+          annual_revenue_clay?: string | null
+          created_at?: string | null
+          description_clay?: string | null
+          domain?: string | null
+          founded_clay?: string | null
+          id?: string
+          industry_clay?: string | null
+          lead_id?: string
+          locality_clay?: string | null
+          logo_clay?: string | null
+          raw_response?: Json | null
+          size_clay?: string | null
+        }
+        Relationships: []
+      }
       clay_enrichments: {
         Row: {
           company_clay: string | null
