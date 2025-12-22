@@ -36,7 +36,7 @@ const menuItems: {
     title: "Add Leads",
     icon: UserPlus,
     view: "add-leads",
-    allowedRoles: ["admin", "client"],
+    allowedRoles: ["admin", "user"],
   },
   {
     title: "Statistics",
