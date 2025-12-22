@@ -2462,6 +2462,10 @@ const LeadsTable = ({
                   {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px]">MICS Sector</TableHead>}
                   {viewMode === 'all' && <TableHead>Zipcode</TableHead>}
                   {viewMode === 'all' && <TableHead className="w-[80px] max-w-[80px] border-r border-border">DMA</TableHead>}
+                  {/* Company View: Description (before Company Domain) */}
+                  {viewMode === 'company' && <TableHead className="min-w-[250px]">
+                      Summary
+                    </TableHead>}
                   {/* View All & Company: Company Domain */}
                   {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
                       <div className="flex items-center gap-2">
@@ -2483,8 +2487,8 @@ const LeadsTable = ({
                       </div>
                     </TableHead>}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead className="min-w-[280px]">AI Summary</TableHead>}
-                  {/* View All & Company: Description */}
-                  {(viewMode === 'all' || viewMode === 'company') && <TableHead className={viewMode === 'all' && showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
+                  {/* View All: Description */}
+                  {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
                       Description
                     </TableHead>}
                   {/* View All: Contact Socials */}
@@ -2548,7 +2552,7 @@ const LeadsTable = ({
                             }
                           })()}
                                   </a>
-                                  {allClayEnrichments[lead.id]?.profile_match_score !== null && allClayEnrichments[lead.id]?.profile_match_score !== undefined && <Badge variant="outline" className={`text-[10px] px-1 py-0 ${allClayEnrichments[lead.id]?.profile_match_confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200' : allClayEnrichments[lead.id]?.profile_match_confidence === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                  {allClayEnrichments[lead.id]?.profile_match_score !== null && allClayEnrichments[lead.id]?.profile_match_score !== undefined && <Badge variant="outline" className={`text-[10px] px-1 py-0 ${allClayEnrichments[lead.id]?.profile_match_confidence === 'high' ? 'bg-white dark:bg-black text-black dark:text-white border-gray-200 dark:border-gray-800' : allClayEnrichments[lead.id]?.profile_match_confidence === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-white dark:bg-black text-black dark:text-white border-gray-200 dark:border-gray-800'}`}>
                                       {allClayEnrichments[lead.id]?.profile_match_score}%
                                     </Badge>}
                     </div>}
@@ -2611,6 +2615,13 @@ const LeadsTable = ({
                       {viewMode === 'all' && <TableCell>{lead.mics_sector || "—"}</TableCell>}
                       {viewMode === 'all' && <TableCell>{lead.zipcode || "—"}</TableCell>}
                       {viewMode === 'all' && <TableCell className="border-r border-border">{lead.dma || "—"}</TableCell>}
+                      {/* Company View: Description (before Company Domain) */}
+                      {viewMode === 'company' && <TableCell className="max-w-[250px] cursor-pointer hover:text-primary" onClick={e => {
+                    e.stopPropagation();
+                    setDescriptionModalLead(lead);
+                  }}>
+                          <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
+                        </TableCell>}
                       {/* All views: Company Domain */}
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableCell>
                           {lead.domain ? <div className="flex items-center gap-2">
@@ -2761,7 +2772,7 @@ const LeadsTable = ({
                     }
 
                     // Match score color
-                    const scoreColor = matchScore === null ? 'text-muted-foreground' : matchScore >= 70 ? 'text-green-600' : matchScore >= 50 ? 'text-yellow-600' : 'text-red-600';
+                    const scoreColor = matchScore === null ? 'text-muted-foreground' : matchScore >= 70 ? 'text-black dark:text-white' : matchScore >= 50 ? 'text-yellow-600' : 'text-black dark:text-white';
                     return <div className="flex flex-col gap-0.5">
                                 <span className="text-sm font-medium truncate">
                                   {name}{title && company ? ` — ${title} at ${company}` : title ? ` — ${title}` : company ? ` at ${company}` : ''}.
@@ -2775,13 +2786,11 @@ const LeadsTable = ({
                               </div>;
                   })()}
                         </TableCell>}
-                      {/* View All & Company: Description */}
-                      {(viewMode === 'all' || viewMode === 'company') && <TableCell className="max-w-[250px] cursor-pointer hover:text-primary" onClick={e => {
-                  if (lead.description || lead.vehicle_tracking_interest_explanation) {
+                      {/* View All: Description */}
+                      {viewMode === 'all' && <TableCell className="max-w-[250px] cursor-pointer hover:text-primary" onClick={e => {
                     e.stopPropagation();
                     setDescriptionModalLead(lead);
-                  }
-                }}>
+                  }}>
                           <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
                         </TableCell>}
                       {/* View All: Contact Socials */}
@@ -3131,7 +3140,7 @@ const LeadsTable = ({
                                       <div className="flex items-center gap-2">
                                         Company Domain
                                         {(lead.enrichment_status != null && lead.enrichment_status !== "pending") && (
-                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                          <CheckCircle className="h-4 w-4 text-black dark:text-white" />
                                         )}
                                       </div>
                                     </AccordionTrigger>
@@ -3189,7 +3198,7 @@ const LeadsTable = ({
                                                                       ✗ INVALID
                                                                     </Badge>
                                                                   ) : (
-                                                                    <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-600">
+                                                                    <Badge variant="default" className="text-xs bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black">
                                                                       ✓ VALID
                                                                     </Badge>
                                                                   )}
@@ -3445,7 +3454,7 @@ const LeadsTable = ({
                                                               </h4>
                                                               <Badge 
                                                                 variant={validationLog.is_parked ? "secondary" : (validationLog.is_valid ? "default" : "destructive")} 
-                                                                className={`text-xs ${validationLog.is_valid && !validationLog.is_parked ? "bg-green-600" : ""}`}
+                                                                className={`text-xs ${validationLog.is_valid && !validationLog.is_parked ? "bg-black dark:bg-white text-white dark:text-black" : ""}`}
                                                               >
                                                                 {validationLog.is_parked ? "⚠ PARKED" : (validationLog.is_valid ? "✓ VALID" : "✗ INVALID")}
                                                               </Badge>
@@ -3652,7 +3661,7 @@ const LeadsTable = ({
                                           
                                           // Show checkmark if pipeline state indicates socials were searched
                                           if (pipelineCompleted.socialsSearched) {
-                                            return <CheckCircle className="h-4 w-4 text-green-500" />;
+                                            return <CheckCircle className="h-4 w-4 text-black dark:text-white" />;
                                           }
                                           
                                           // If all 3 searches were performed
@@ -3663,7 +3672,7 @@ const LeadsTable = ({
                                             // Show checkmark if: nothing found OR (found AND validated)
                                             if (!hasAnyFound) {
                                               // All 3 searched, nothing found - show checkmark
-                                              return <CheckCircle className="h-4 w-4 text-green-500" />;
+                                              return <CheckCircle className="h-4 w-4 text-black dark:text-white" />;
                                             } else {
                                               // Something found - check if validated
                                               const hasValidated = (
@@ -3674,7 +3683,7 @@ const LeadsTable = ({
                                               
                                               // Show checkmark if found AND validated
                                               return hasValidated ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-4 w-4 text-black dark:text-white" />
                                               ) : null;
                                             }
                                           }
@@ -3703,7 +3712,7 @@ const LeadsTable = ({
                                                 {lead.facebook_validated !== null && <TooltipProvider>
                                                     <Tooltip>
                                                       <TooltipTrigger asChild>
-                                                        <Badge variant={lead.facebook_validated ? "default" : "destructive"} className={`text-xs ${lead.facebook_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
+                                                        <Badge variant={lead.facebook_validated ? "default" : "destructive"} className={`text-xs ${lead.facebook_validated ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black" : ""}`}>
                                                           {lead.facebook_validated ? "✓ Valid" : "✗ Invalid"}
                                                         </Badge>
                                                       </TooltipTrigger>
@@ -3789,7 +3798,7 @@ const LeadsTable = ({
                                                 {lead.linkedin_validated !== null && <TooltipProvider>
                                                     <Tooltip>
                                                       <TooltipTrigger asChild>
-                                                        <Badge variant={lead.linkedin_validated ? "default" : "destructive"} className={`text-xs ${lead.linkedin_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
+                                                        <Badge variant={lead.linkedin_validated ? "default" : "destructive"} className={`text-xs ${lead.linkedin_validated ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black" : ""}`}>
                                                           {lead.linkedin_validated ? "✓ Valid" : "✗ Invalid"}
                                                         </Badge>
                                                       </TooltipTrigger>
@@ -3875,7 +3884,7 @@ const LeadsTable = ({
                                                 {lead.instagram_validated !== null && <TooltipProvider>
                                                     <Tooltip>
                                                       <TooltipTrigger asChild>
-                                                        <Badge variant={lead.instagram_validated ? "default" : "destructive"} className={`text-xs ${lead.instagram_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
+                                                        <Badge variant={lead.instagram_validated ? "default" : "destructive"} className={`text-xs ${lead.instagram_validated ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black" : ""}`}>
                                                           {lead.instagram_validated ? "✓ Valid" : "✗ Invalid"}
                                                         </Badge>
                                                       </TooltipTrigger>
@@ -3969,7 +3978,7 @@ const LeadsTable = ({
                                       <div className="flex items-center gap-2">
                                         Match Score
                                         {lead.match_score !== null && (
-                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                          <CheckCircle className="h-4 w-4 text-black dark:text-white" />
                                         )}
                                       </div>
                                     </AccordionTrigger>
@@ -3985,7 +3994,7 @@ const LeadsTable = ({
                                               </p>
                                               {lead.match_score !== null ? <div className="flex items-center gap-3">
                                                   <p className="text-4xl font-bold">{lead.match_score}%</p>
-                                                  <Badge variant={lead.match_score >= 80 ? "default" : lead.match_score >= 50 ? "secondary" : "destructive"} className={lead.match_score >= 80 ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : lead.match_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : "bg-red-500 hover:bg-red-600 text-white border-red-500"}>
+                                                  <Badge variant={lead.match_score >= 80 ? "default" : lead.match_score >= 50 ? "secondary" : "destructive"} className={lead.match_score >= 80 ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white" : lead.match_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white"}>
                                                     {lead.match_score >= 80 ? "🟢 High" : lead.match_score >= 50 ? "🟡 Medium" : "🔴 Low"}
                                                   </Badge>
                                                 </div> : <p className="text-sm text-muted-foreground italic">
@@ -4026,7 +4035,7 @@ const LeadsTable = ({
                                                       {lead.distance_miles} miles
                                                     </span>}
                                                 </div>
-                                                {lead.distance_confidence && <Badge variant={lead.distance_confidence === "high" ? "default" : lead.distance_confidence === "medium" ? "secondary" : lead.distance_confidence === "undefined" ? "outline" : "destructive"} className={lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : lead.distance_confidence === "undefined" ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300" : "bg-red-500 hover:bg-red-600 text-white border-red-500"} onClick={e => e.stopPropagation()}>
+                                                {lead.distance_confidence && <Badge variant={lead.distance_confidence === "high" ? "default" : lead.distance_confidence === "medium" ? "secondary" : lead.distance_confidence === "undefined" ? "outline" : "destructive"} className={lead.distance_confidence === "high" ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white" : lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : lead.distance_confidence === "undefined" ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300" : "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white"} onClick={e => e.stopPropagation()}>
                                                     {lead.distance_confidence === "high" ? "🟢 High" : lead.distance_confidence === "medium" ? "🟡 Medium" : lead.distance_confidence === "undefined" ? "⚪ Undefined" : "🔴 Low"}
                                                   </Badge>}
                                               </div>
@@ -4050,7 +4059,7 @@ const LeadsTable = ({
                                                         <p className="text-sm font-medium text-muted-foreground mb-2">
                                                           Confidence Level
                                                         </p>
-                                                        <Badge variant={lead.distance_confidence === "high" ? "default" : lead.distance_confidence === "medium" ? "secondary" : lead.distance_confidence === "undefined" ? "outline" : "destructive"} className={lead.distance_confidence === "high" ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : lead.distance_confidence === "undefined" ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300" : "bg-red-500 hover:bg-red-600 text-white border-red-500"}>
+                                                        <Badge variant={lead.distance_confidence === "high" ? "default" : lead.distance_confidence === "medium" ? "secondary" : lead.distance_confidence === "undefined" ? "outline" : "destructive"} className={lead.distance_confidence === "high" ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white" : lead.distance_confidence === "medium" ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : lead.distance_confidence === "undefined" ? "bg-gray-200 hover:bg-gray-300 text-gray-600 border-gray-300" : "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white"}>
                                                           {lead.distance_confidence === "high" ? "🟢 High Confidence" : lead.distance_confidence === "medium" ? "🟡 Medium Confidence" : lead.distance_confidence === "undefined" ? "⚪ Undefined" : "🔴 Low Confidence"}
                                                         </Badge>
                                                         <p className="text-xs text-muted-foreground mt-2">
@@ -4101,7 +4110,7 @@ const LeadsTable = ({
                                                       {lead.domain_relevance_score}/100
                                                     </span>}
                                                 </div>
-                                                {lead.domain_relevance_score !== null && <Badge variant={lead.domain_relevance_score >= 80 ? "default" : lead.domain_relevance_score >= 50 ? "secondary" : "destructive"} className={lead.domain_relevance_score >= 80 ? "bg-green-500 hover:bg-green-600 text-white border-green-500" : lead.domain_relevance_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : "bg-red-500 hover:bg-red-600 text-white border-red-500"} onClick={e => e.stopPropagation()}>
+                                                {lead.domain_relevance_score !== null && <Badge variant={lead.domain_relevance_score >= 80 ? "default" : lead.domain_relevance_score >= 50 ? "secondary" : "destructive"} className={lead.domain_relevance_score >= 80 ? "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white" : lead.domain_relevance_score >= 50 ? "bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-500" : "bg-black dark:bg-white hover:bg-black dark:hover:bg-white text-white dark:text-black border-black dark:border-white"} onClick={e => e.stopPropagation()}>
                                                     {lead.domain_relevance_score >= 80 ? "🟢 High" : lead.domain_relevance_score >= 50 ? "🟡 Medium" : "🔴 Low"}
                                                   </Badge>}
                                               </div>
@@ -4174,8 +4183,8 @@ const LeadsTable = ({
                                     </AccordionContent>
                                   </AccordionItem>
 
-                                  {/* Company Details Accordion Item - Only visible when domain exists */}
-                                  {lead.domain && <AccordionItem value="company-details" className="border-border">
+                                  {/* Company Details Accordion Item - Always visible when company exists */}
+                                  {lead.company && <AccordionItem value="company-details" className="border-border">
                                       <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                         <div className="flex items-center gap-2">
                                           <span>Company Details</span>
@@ -4221,21 +4230,21 @@ const LeadsTable = ({
                                                     </div>
                                                     <div className="w-3 h-px bg-border" />
                                                     <div className="flex items-center gap-1 text-xs">
-                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-green-500 text-white"}`}>
+                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-black dark:bg-white text-white dark:text-black"}`}>
                                                         1
                                                       </div>
                                                       <span className="text-muted-foreground">Scrape</span>
                                                     </div>
                                                     <div className="w-3 h-px bg-border" />
                                                     <div className="flex items-center gap-1 text-xs">
-                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 2 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 2 ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 2 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 2 ? "bg-black dark:bg-white text-white dark:text-black" : "bg-muted text-muted-foreground"}`}>
                                                         2
                                                       </div>
                                                       <span className="text-muted-foreground">Parse</span>
                                                     </div>
                                                     <div className="w-3 h-px bg-border" />
                                                     <div className="flex items-center gap-1 text-xs">
-                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 3 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 3 ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 3 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 3 ? "bg-black dark:bg-white text-white dark:text-black" : "bg-muted text-muted-foreground"}`}>
                                                         3
                                                       </div>
                                                       <span className="text-muted-foreground">AI</span>
@@ -4243,7 +4252,7 @@ const LeadsTable = ({
                                                   </> : lead.enrichment_source === "apollo_api" ?
                                       // Single step for direct Apollo
                                       <div className="flex items-center gap-2 text-xs">
-                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-green-500 text-white"}`}>
+                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-black dark:bg-white text-white dark:text-black"}`}>
                                                       1
                                                     </div>
                                                     <span className="text-muted-foreground">Direct retrieval</span>
@@ -4251,14 +4260,14 @@ const LeadsTable = ({
                                       // Two steps for non-Apollo sources (may fallback to scraper)
                                       <>
                                                     <div className="flex items-center gap-2 text-xs">
-                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-green-500 text-white"}`}>
+                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 1 ? "bg-primary text-primary-foreground animate-pulse" : "bg-black dark:bg-white text-white dark:text-black"}`}>
                                                         1
                                                       </div>
                                                       <span className="text-muted-foreground">Search Apollo</span>
                                                     </div>
                                                     <div className="w-4 h-px bg-border" />
                                                     <div className="flex items-center gap-2 text-xs">
-                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 2 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 2 ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${companyDetailsStep.step === 2 ? "bg-primary text-primary-foreground animate-pulse" : companyDetailsStep.step > 2 ? "bg-black dark:bg-white text-white dark:text-black" : "bg-muted text-muted-foreground"}`}>
                                                         2
                                                       </div>
                                                       <span className="text-muted-foreground">Get details</span>
@@ -4378,7 +4387,7 @@ const LeadsTable = ({
                                                                               <span className="text-muted-foreground">
                                                                                 {step.action.replace(/_/g, " ")}
                                                                               </span>
-                                                                              <span className={`ml-2 ${step.status === "success" ? "text-green-600" : step.status === "failed" ? "text-red-600" : "text-muted-foreground"}`}>
+                                                                              <span className={`ml-2 ${step.status === "success" ? "text-black dark:text-white" : step.status === "failed" ? "text-black dark:text-white" : "text-muted-foreground"}`}>
                                                                                 {step.status === "success" ? "✓" : step.status === "failed" ? "✗" : "..."}
                                                                               </span>
                                                                               {step.details && (
@@ -4672,11 +4681,11 @@ const LeadsTable = ({
                                                                 <span className="text-muted-foreground">
                                                                   Email Validation:
                                                                 </span>
-                                                                {lead.email_domain_validated ? <span className="flex items-center gap-1 text-green-600">
+                                                                {lead.email_domain_validated ? <span className="flex items-center gap-1 text-black dark:text-white">
                                                                     <span className="text-[10px]">
                                                                       ✓ Matches lead email
                                                                     </span>
-                                                                    <Badge className="text-[9px] px-1 py-0 bg-green-100 text-green-700 border-green-300">
+                                                                    <Badge className="text-[9px] px-1 py-0 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-700">
                                                                       100% Valid
                                                                     </Badge>
                                                                   </span> : lead.scraped_data_log?.deep_scrape?.contact_email && lead.email ? <span className="text-amber-600 text-[10px]">
@@ -4730,7 +4739,7 @@ const LeadsTable = ({
                                                                           <span className="text-muted-foreground">
                                                                             {step.action.replace(/_/g, " ")}
                                                                           </span>
-                                                                          <span className={`ml-2 ${step.status === "success" ? "text-green-600" : step.status === "failed" ? "text-red-600" : "text-muted-foreground"}`}>
+                                                                          <span className={`ml-2 ${step.status === "success" ? "text-black dark:text-white" : step.status === "failed" ? "text-black dark:text-white" : "text-muted-foreground"}`}>
                                                                             {step.status === "success" ? "✓" : step.status === "failed" ? "✗" : "..."}
                                                                           </span>
                                                                           {step.details && (
@@ -4761,7 +4770,7 @@ const LeadsTable = ({
                                         {/* Only show tick if search was actually run (lead has domain, score >= 50, AND company_contacts is an array) */}
                                         {lead.domain && (lead.match_score ?? 0) >= 50 && lead.company_contacts && Array.isArray(lead.company_contacts) && (
                                           <>
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                            <CheckCircle className="h-4 w-4 text-black dark:text-white" />
                                             {lead.company_contacts.filter(c => c.name).length > 0 ? (
                                               <Badge variant="secondary" className="ml-1">
                                                 {lead.company_contacts.filter(c => c.name).length} found
@@ -4807,7 +4816,7 @@ const LeadsTable = ({
                                                               {contact.title}
                                                             </p>}
                                                         </div>
-                                                        {contact.email_status === "verified" && <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px]">
+                                                        {contact.email_status === "verified" && <Badge className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-700 text-[10px]">
                                                             Verified
                                                           </Badge>}
                                                       </div>
@@ -4840,7 +4849,7 @@ const LeadsTable = ({
                                         {(() => {
                                     // Check if lead exists in company_contacts by email or name
                                     const matchedContact = lead.company_contacts?.find(c => lead.email && c.email && c.email.toLowerCase() === lead.email.toLowerCase() || lead.full_name && c.name && c.name.toLowerCase() === lead.full_name.toLowerCase());
-                                    return matchedContact ? <Badge className="ml-2 bg-green-100 text-green-800 border-green-300">
+                                    return matchedContact ? <Badge className="ml-2 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-700">
                                               <CheckCircle className="h-3 w-3 mr-1" />
                                               Found
                                             </Badge> : null;
@@ -4948,7 +4957,7 @@ const LeadsTable = ({
                                                         {matchedContact.social_search_logs.map((log: any, idx: number) => <div key={idx} className="bg-muted/50 rounded p-2 text-xs space-y-1">
                                                             <div className="flex items-center gap-2">
                                                               <span className="font-medium capitalize">{log.platform}</span>
-                                                              {log.found ? <CheckCircle className="h-3 w-3 text-green-600" /> : <XCircle className="h-3 w-3 text-red-500" />}
+                                                              {log.found ? <CheckCircle className="h-3 w-3 text-black dark:text-white" /> : <XCircle className="h-3 w-3 text-black dark:text-white" />}
                                                               <span className="text-muted-foreground">
                                                                 via {log.source === "apollo" ? "Apollo" : "Google"}
                                                               </span>
@@ -5038,7 +5047,7 @@ const LeadsTable = ({
                                     try {
                                       const newsData = JSON.parse(lead.news);
                                       return <>
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <CheckCircle className="h-4 w-4 text-black dark:text-white" />
                                         {newsData.news_count > 0 && (
                                           <Badge variant="secondary" className="ml-1">
                                             {newsData.news_count} articles
@@ -5723,7 +5732,7 @@ const LeadsTable = ({
                       </div>
                     </TableCell>
                     <TableCell>
-                      {contact.email_status === "verified" && !contact.found_without_role_filter && <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>}
+                      {contact.email_status === "verified" && !contact.found_without_role_filter && <Badge className="bg-white dark:bg-black text-black dark:text-white border-gray-200 dark:border-gray-800">Verified</Badge>}
                     </TableCell>
                     <TableCell>
                       {contact.linkedin_url ? <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -5768,7 +5777,7 @@ const LeadsTable = ({
                     </TableCell>
                     <TableCell>
                       {contactsModalLead.contact_email_personal && <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Personal</Badge>}
-                      {contactsModalLead.email_domain_validated && <Badge className="bg-green-100 text-green-800 border-green-200">Validated</Badge>}
+                      {contactsModalLead.email_domain_validated && <Badge className="bg-white dark:bg-black text-black dark:text-white border-gray-200 dark:border-gray-800">Validated</Badge>}
                     </TableCell>
                     <TableCell>—</TableCell>
                   </TableRow>}

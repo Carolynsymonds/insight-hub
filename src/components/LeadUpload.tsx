@@ -413,7 +413,6 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Add Leads</CardTitle>
           <CardDescription>Upload a CSV file or manually enter a lead</CardDescription>
         </CardHeader>
         <CardContent>

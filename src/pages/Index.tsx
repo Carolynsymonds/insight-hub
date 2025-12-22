@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause, ChevronRight, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause, ChevronRight, ChevronDown, Info } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -85,6 +86,8 @@ const Index = () => {
   });
   const pipelineStopRef = useRef(false);
   const [statsCategoryFilter, setStatsCategoryFilter] = useState<string | null>(null);
+  const [diagnosisDialogOpen, setDiagnosisDialogOpen] = useState(false);
+  const [selectedDiagnosisCategory, setSelectedDiagnosisCategory] = useState<string | null>(null);
   const [expandedValidSocials, setExpandedValidSocials] = useState(false);
   const [expandedValidLeads, setExpandedValidLeads] = useState(false);
   const [stats, setStats] = useState({
@@ -171,8 +174,13 @@ const Index = () => {
           (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
         ).length;
 
-        // Total valid = validByScore + hasValidatedSocials - overlapBoth (inclusion-exclusion)
-        const validLeads = validByScore + hasValidatedSocials - overlapBoth;
+        // Total valid: match_score >= 50 OR has validated socials (matches filter logic)
+        const validLeads = filteredData.filter(lead => {
+          const hasValidatedSocials = lead.facebook_validated === true || 
+                                      lead.linkedin_validated === true || 
+                                      lead.instagram_validated === true;
+          return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials;
+        }).length;
         
         // Invalid: match_score < 50 AND no validated socials
         const invalid = filteredData.filter(lead => 
@@ -180,12 +188,11 @@ const Index = () => {
           !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
         ).length;
         
-        // Invalid: leads with no domain AND no socials found
+        // Invalid: match_score < 50 AND no validated socials AND enriched (matches filter logic)
         const invalidNoDomainNoSocials = filteredData.filter(lead => 
-          !lead.domain &&
-          !lead.facebook &&
-          !lead.instagram &&
-          !lead.linkedin
+          (lead.match_score === null || lead.match_score < 50) &&
+          !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true) &&
+          lead.enriched_at !== null
         ).length;
         
         // Not Enriched: leads that haven't been enriched yet
@@ -336,8 +343,13 @@ const Index = () => {
         (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
       ).length;
 
-      // Total valid = validByScore + hasValidatedSocials - overlapBoth (inclusion-exclusion)
-      const validLeads = validByScore + hasValidatedSocials - overlapBoth;
+      // Total valid: match_score >= 50 OR has validated socials (matches filter logic)
+      const validLeads = filteredData.filter(lead => {
+        const hasValidatedSocials = lead.facebook_validated === true || 
+                                    lead.linkedin_validated === true || 
+                                    lead.instagram_validated === true;
+        return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials;
+      }).length;
       
       // Invalid: match_score < 50 AND no validated socials
       const invalid = filteredData.filter(lead => 
@@ -345,12 +357,11 @@ const Index = () => {
         !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
       ).length;
       
-      // Invalid: leads with no domain AND no socials found
+      // Invalid: match_score < 50 AND no validated socials AND enriched (matches filter logic)
       const invalidNoDomainNoSocials = filteredData.filter(lead => 
-        !lead.domain &&
-        !lead.facebook &&
-        !lead.instagram &&
-        !lead.linkedin
+        (lead.match_score === null || lead.match_score < 50) &&
+        !(lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true) &&
+        lead.enriched_at !== null
       ).length;
       
       // Not Enriched: leads that haven't been enriched yet
@@ -1176,7 +1187,7 @@ const Index = () => {
     if (domainFilter === 'invalid') {
       // Invalid if lead has been enriched AND no valid match score AND no validated socials
       // (Exclude not-enriched leads from invalid)
-      return lead.enriched_at !== null && (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials;
+      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials && lead.enriched_at !== null;
     }
     if (domainFilter === 'not_enriched') return lead.enriched_at === null;
     if (domainFilter === 'today_enriched') {
@@ -1264,15 +1275,12 @@ const Index = () => {
         </div>
       </div>;
   }
-  return <DashboardLayout activeView={activeView} onViewChange={handleViewChange}>
+  return <DashboardLayout activeView={activeView} onViewChange={handleViewChange} selectedCategory={selectedCategory}>
       {activeView === "admin" ? (
         <AdminDashboard />
       ) : activeView === "statistics" ? (
         <div className="space-y-8">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Lead Statistics</h2>
-            <p className="text-muted-foreground mb-4">Overview of your lead enrichment status</p>
-            
+          <div>            
             {/* Category Filter */}
             <div className="flex items-center gap-3 mb-6">
               <span className="text-sm font-medium text-muted-foreground">Filter by Category:</span>
@@ -1304,7 +1312,6 @@ const Index = () => {
           
           {/* Lead Overview */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Lead Overview</h3>
             <div className="p-4 border rounded-lg bg-card">
               <p className="text-sm text-muted-foreground mb-1">Total Leads</p>
               <p className="text-3xl font-bold">{stats.total}</p>
@@ -1315,81 +1322,117 @@ const Index = () => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">Company Statistics</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 {/* Valid Leads Component */}
+                 <div className="p-4 border rounded-lg bg-white dark:bg-black border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-black dark:text-white">Valid Leads</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setExpandedValidLeads(!expandedValidLeads)}
+                  >
+                    {expandedValidLeads ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-3xl font-bold text-black dark:text-white">
+                  {stats.validLeads}
+                  {stats.total > 0 && (
+                    <span className="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
+                      ({((stats.validLeads / stats.total) * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-black/70 dark:text-white/70 mt-1">
+                  Leads with ≥50% match score or validated socials
+                </p>
+                
+                {expandedValidLeads && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-black/80 dark:text-white/80">Valid by score (≥50)</span>
+                      <span className="font-semibold text-black dark:text-white">{stats.validByScore}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-black/80 dark:text-white/80">Has validated socials</span>
+                      <span className="font-semibold text-black dark:text-white">{stats.hasValidatedSocials}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-black/80 dark:text-white/80">Overlap (both)</span>
+                      <span className="font-semibold text-black dark:text-white">-{stats.overlapBoth}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-200/50 dark:border-gray-800/50">
+                      <span className="text-sm font-medium text-black dark:text-white">Total Valid</span>
+                      <span className="font-bold text-black dark:text-white">{stats.validLeads}</span>
+                    </div>
+                    <div className="text-xs text-black/60 dark:text-white/60 text-center">
+                      {stats.validByScore} + {stats.hasValidatedSocials} - {stats.overlapBoth} = {stats.validLeads}
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* Invalid Leads */}
-              <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">Invalid Leads</p>
-                <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.invalidNoDomainNoSocials}</p>
-                <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">
+              <div className="p-4 border rounded-lg bg-white dark:bg-black border-gray-200 dark:border-gray-800">
+                <p className="text-sm text-black dark:text-white">Invalid Leads</p>
+                <p className="text-3xl font-bold text-black dark:text-white">
+                  {stats.invalidNoDomainNoSocials}
+                  {stats.total > 0 && (
+                    <span className="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
+                      ({((stats.invalidNoDomainNoSocials / stats.total) * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-black/70 dark:text-white/70 mt-1">
                   No domain and no socials found
                 </p>
               </div>
 
+           
+
               {/* Not Enriched */}
               <div className="p-4 border rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">Not Enriched</p>
-                <p className="text-3xl font-bold">{stats.notEnriched}</p>
+                <p className="text-3xl font-bold">
+                  {stats.notEnriched}
+                  {stats.total > 0 && (
+                    <span className="text-lg font-normal text-muted-foreground/60 ml-2">
+                      ({((stats.notEnriched / stats.total) * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Leads not yet processed</p>
               </div>
-            </div>
-
-            {/* Valid Leads Component */}
-            <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Valid Leads</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setExpandedValidLeads(!expandedValidLeads)}
-                >
-                  {expandedValidLeads ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.validLeads}</p>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
-                Leads with ≥50% match score or validated socials
-              </p>
-              
-              {expandedValidLeads && (
-                <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Valid by score (≥50)</span>
-                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validByScore}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Has validated socials</span>
-                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.hasValidatedSocials}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Overlap (both)</span>
-                    <span className="font-semibold text-green-700 dark:text-green-300">-{stats.overlapBoth}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-green-200/50 dark:border-green-800/50">
-                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Total Valid</span>
-                    <span className="font-bold text-green-700 dark:text-green-300">{stats.validLeads}</span>
-                  </div>
-                  <div className="text-xs text-green-600/60 dark:text-green-400/60 text-center">
-                    {stats.validByScore} + {stats.hasValidatedSocials} - {stats.overlapBoth} = {stats.validLeads}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Leads Without Domain — Diagnosis Breakdown */}
             {Object.keys(stats.diagnosisCounts).length > 0 && (
               <div className="p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Leads Without Domain — Diagnosis Breakdown</h4>
+                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Not Found Domains & Diagnosis</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {Object.entries(stats.diagnosisCounts)
+                    .filter(([category]) => 
+                      category === 'Fake/test data' || 
+                      category === 'Company doesn\'t exist / New company' || 
+                      category === 'Data quality issues'
+                    )
                     .sort(([,a], [,b]) => b - a)
                     .map(([category, count]) => (
                       <div key={category} className="flex justify-between items-center p-3 bg-background rounded-lg border">
-                        <span className="text-sm">{category}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{category}</span>
+                          <Info 
+                            className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer" 
+                            onClick={() => {
+                              setSelectedDiagnosisCategory(category);
+                              setDiagnosisDialogOpen(true);
+                            }}
+                          />
+                        </div>
                         <span className="font-semibold text-lg">{count}</span>
                       </div>
                     ))}
@@ -1398,59 +1441,6 @@ const Index = () => {
             )}
           </div>
 
-          {/* Contact Enrichment Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Contact Enrichment</h3>
-            
-            {/* Contact Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground">Total Leads</p>
-                <p className="text-3xl font-bold">{stats.contactsTotal}</p>
-              </div>
-              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-600 dark:text-green-400">Valid Contacts</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.contactsValid}</p>
-                <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                  {stats.contactsTotal > 0 ? ((stats.contactsValid / stats.contactsTotal) * 100).toFixed(1) : 0}% • High confidence (&gt;50)
-                </p>
-              </div>
-              <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">Invalid/Not Found</p>
-                <p className="text-3xl font-bold text-red-700 dark:text-red-300">{stats.contactsInvalid}</p>
-                <p className="text-xs text-red-600/70 dark:text-red-400/70">
-                  {stats.contactsTotal > 0 ? ((stats.contactsInvalid / stats.contactsTotal) * 100).toFixed(1) : 0}% of all leads
-                </p>
-                <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800 space-y-1">
-                  <p className="text-xs text-red-600/80 dark:text-red-400/80">
-                    • Low confidence: {stats.contactsLowConfidence} ({stats.contactsTotal > 0 ? ((stats.contactsLowConfidence / stats.contactsTotal) * 100).toFixed(1) : 0}%)
-                  </p>
-                  <p className="text-xs text-red-600/80 dark:text-red-400/80">
-                    • Not found: {stats.contactsNotFound} ({stats.contactsTotal > 0 ? ((stats.contactsNotFound / stats.contactsTotal) * 100).toFixed(1) : 0}%)
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Breakdown */}
-          <div className="p-6 border rounded-lg">
-            <h3 className="font-medium mb-4">Leads by Category</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {CATEGORIES.map(category => {
-                const Icon = category.icon;
-                return (
-                  <div key={category.name} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{category.name}</span>
-                    </div>
-                    <span className="font-semibold">{categoryCounts[category.name] || 0}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       ) : activeView === "home" ? selectedCategory ? <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -1626,10 +1616,7 @@ const Index = () => {
             </div>
             <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Select a Category</h2>
-              <p className="text-muted-foreground">Choose a category to view and manage leads</p>
-            </div>
+           
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {CATEGORIES.map(category => {
           const Icon = category.icon;
@@ -1658,6 +1645,65 @@ const Index = () => {
         onOpenChange={setRolesDialogOpen}
         category={rolesDialogCategory}
       />
+
+      {/* Diagnosis Category Leads Dialog */}
+      <Dialog open={diagnosisDialogOpen} onOpenChange={setDiagnosisDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedDiagnosisCategory}</DialogTitle>
+            <DialogDescription>
+              Leads without domains that match this diagnosis category
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-2">
+              {leads
+                .filter(lead => 
+                  !lead.domain && 
+                  (lead.diagnosis_category || 'Not Diagnosed') === selectedDiagnosisCategory &&
+                  (!statsCategoryFilter || lead.category === statsCategoryFilter)
+                )
+                .map((lead) => (
+                  <div key={lead.id} className="p-3 border rounded-lg hover:bg-muted/50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium">{lead.full_name}</p>
+                        {lead.company && (
+                          <p className="text-sm text-muted-foreground">Company: {lead.company}</p>
+                        )}
+                        {(lead.city || lead.state) && (
+                          <p className="text-sm text-muted-foreground">
+                            {[lead.city, lead.state].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                        {lead.email && (
+                          <p className="text-sm text-muted-foreground">Email: {lead.email}</p>
+                        )}
+                        {lead.diagnosis_explanation && (
+                          <p className="text-xs text-muted-foreground mt-2 italic">
+                            {lead.diagnosis_explanation}
+                          </p>
+                        )}
+                      </div>
+                      {lead.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {lead.category}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              {leads.filter(lead => 
+                !lead.domain && 
+                (lead.diagnosis_category || 'Not Diagnosed') === selectedDiagnosisCategory &&
+                (!statsCategoryFilter || lead.category === statsCategoryFilter)
+              ).length === 0 && (
+                <p className="text-center text-muted-foreground py-8">No leads found for this category</p>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>;
 };
 export default Index;
