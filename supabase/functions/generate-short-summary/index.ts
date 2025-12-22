@@ -54,20 +54,29 @@ Deno.serve(async (req) => {
     console.log(`Generating short summary for lead ${leadId}`);
     console.log(`Company: ${company}, Industry: ${company_industry}`);
 
-    // Build enrichment status info
-    const domainStatus = domain 
-      ? (email_domain_validated ? '✓ Valid domain found' : '○ Domain found (unvalidated)')
+    // Build enrichment status info with clickable links
+    const domainLink = domain 
+      ? `<a href="https://${domain.replace(/^https?:\/\//, '')}" target="_blank" rel="noopener noreferrer">${email_domain_validated ? '✓' : '○'} ${domain}</a>`
       : '✗ No domain';
     
     const confidenceStatus = match_score !== null && match_score !== undefined
       ? `${match_score}% confidence`
       : 'No confidence score';
 
-    // Build social media status
+    // Build social media status with clickable links
     const socials: string[] = [];
-    if (facebook) socials.push(facebook_validated ? '✓ Facebook' : '○ Facebook');
-    if (linkedin) socials.push(linkedin_validated ? '✓ LinkedIn' : '○ LinkedIn');
-    if (instagram) socials.push(instagram_validated ? '✓ Instagram' : '○ Instagram');
+    if (facebook) {
+      const fbUrl = facebook.startsWith('http') ? facebook : `https://${facebook}`;
+      socials.push(`<a href="${fbUrl}" target="_blank" rel="noopener noreferrer">${facebook_validated ? '✓' : '○'} Facebook</a>`);
+    }
+    if (linkedin) {
+      const liUrl = linkedin.startsWith('http') ? linkedin : `https://${linkedin}`;
+      socials.push(`<a href="${liUrl}" target="_blank" rel="noopener noreferrer">${linkedin_validated ? '✓' : '○'} LinkedIn</a>`);
+    }
+    if (instagram) {
+      const igUrl = instagram.startsWith('http') ? instagram : `https://${instagram}`;
+      socials.push(`<a href="${igUrl}" target="_blank" rel="noopener noreferrer">${instagram_validated ? '✓' : '○'} Instagram</a>`);
+    }
     const socialStatus = socials.length > 0 ? socials.join(', ') : 'No socials found';
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -117,8 +126,8 @@ Requirements:
       throw new Error('Empty response from AI');
     }
 
-    // Combine AI summary with enrichment status
-    const shortSummary = `${aiSummary}\n\n📊 ${domainStatus} | ${confidenceStatus}\n🔗 ${socialStatus}`;
+    // Combine AI summary with enrichment status (no emoji icons)
+    const shortSummary = `${aiSummary}\n\n${domainLink} | ${confidenceStatus}\n${socialStatus}`;
 
     console.log(`Generated short summary: ${shortSummary.substring(0, 100)}...`);
 
