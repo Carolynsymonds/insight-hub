@@ -159,12 +159,12 @@ const Index = () => {
           linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
         };
         
-        // Valid Leads: leads with domain OR socials (validated or not)
+        // Valid Leads: leads with ≥50% match score OR validated socials
         const validLeads = filteredData.filter(lead => 
-          lead.domain || 
-          lead.facebook || 
-          lead.instagram || 
-          lead.linkedin
+          (lead.match_score !== null && lead.match_score >= 50) ||
+          lead.facebook_validated === true ||
+          lead.linkedin_validated === true ||
+          lead.instagram_validated === true
         ).length;
         
         // Valid Leads breakdown
@@ -345,12 +345,12 @@ const Index = () => {
         linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
       };
       
-      // Valid Leads: leads with domain OR socials (validated or not)
+      // Valid Leads: leads with ≥50% match score OR validated socials
       const validLeads = filteredData.filter(lead => 
-        lead.domain || 
-        lead.facebook || 
-        lead.instagram || 
-        lead.linkedin
+        (lead.match_score !== null && lead.match_score >= 50) ||
+        lead.facebook_validated === true ||
+        lead.linkedin_validated === true ||
+        lead.instagram_validated === true
       ).length;
       
       // Valid Leads breakdown
@@ -1382,7 +1382,7 @@ const Index = () => {
               </div>
               <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.validLeads}</p>
               <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
-                Leads with company domain and/or socials
+                Leads with ≥50% match score or validated socials
               </p>
               
               {expandedValidLeads && (
