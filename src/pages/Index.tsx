@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AdminDashboard } from "@/components/AdminDashboard";
+import { AccountSettings } from "@/components/AccountSettings";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -1276,7 +1277,9 @@ const Index = () => {
       </div>;
   }
   return <DashboardLayout activeView={activeView} onViewChange={handleViewChange} selectedCategory={selectedCategory} categoryLeadCount={selectedCategory ? categoryCounts[selectedCategory] : undefined}>
-      {activeView === "admin" ? (
+      {activeView === "settings" ? (
+        <AccountSettings />
+      ) : activeView === "admin" ? (
         <AdminDashboard />
       ) : activeView === "statistics" ? (
         <div className="space-y-8">

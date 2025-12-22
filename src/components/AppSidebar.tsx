@@ -1,4 +1,4 @@
-import { Home, UserPlus, LogOut, BarChart3, Shield } from "lucide-react";
+import { Home, UserPlus, LogOut, BarChart3, Shield, Settings } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -89,7 +89,15 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-4 space-y-1">
+        <Button 
+          variant="ghost" 
+          onClick={() => onViewChange("settings")} 
+          className={`w-full justify-start ${activeView === "settings" ? "bg-muted" : ""}`}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          {open && <span>Settings</span>}
+        </Button>
         <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
           <LogOut className="mr-2 h-4 w-4" />
           {open && <span>Logout</span>}
