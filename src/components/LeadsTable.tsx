@@ -5423,7 +5423,7 @@ const LeadsTable = ({
                 <p className="text-xs text-muted-foreground mb-3">
                   Generate a concise 2-3 line summary of what the business does and where it operates.
                 </p>
-                <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)} disabled={generatingShortSummary || !descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry} className="w-full">
+                <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)} disabled={generatingShortSummary} className="w-full">
                   {generatingShortSummary ? <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Generating...
@@ -5432,9 +5432,6 @@ const LeadsTable = ({
                       Generate Short Summary
                     </>}
                 </Button>
-                {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive mt-2">
-                    Company details required. Run "Enrich with Apollo + Scrape Website" first.
-                  </p>}
               </div>}
 
             {/* 2. Must Knows Section - Opened by default */}
