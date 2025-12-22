@@ -5407,24 +5407,25 @@ const LeadsTable = ({
           </DialogHeader>
           <div className="space-y-4">
             {/* 1. Short Summary Section - First */}
-            {descriptionModalLead?.short_summary ? <div className="bg-muted/50 py-4 px-0 rounded-lg">
+            <div className="bg-muted/50 py-4 px-0 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
-                <p className="text-sm">{descriptionModalLead.short_summary}</p>
-              </div> : <div className="bg-muted/50 py-4 px-0 rounded-lg">
-                <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Generate a concise 2-3 line summary of what the business does and where it operates.
-                </p>
+                {descriptionModalLead?.short_summary ? (
+                  <p className="text-sm mb-3">{descriptionModalLead.short_summary}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Generate a concise 2-3 line summary of what the business does and where it operates.
+                  </p>
+                )}
                 <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateShortSummary(descriptionModalLead)} disabled={generatingShortSummary} className="w-full">
                   {generatingShortSummary ? <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Generating...
                     </> : <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Short Summary
+                      {descriptionModalLead?.short_summary ? 'Regenerate Short Summary' : 'Generate Short Summary'}
                     </>}
                 </Button>
-              </div>}
+              </div>
 
             {/* 2. Must Knows Section - Opened by default */}
             <Accordion type="single" collapsible defaultValue="must-knows" className="w-full">
