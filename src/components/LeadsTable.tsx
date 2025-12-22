@@ -1031,6 +1031,26 @@ const LeadsTable = ({
       let matchScore = null;
 
       if (domainFound) {
+        // Step 1.5: Enrich with Clay (non-blocking)
+        setPipelineStep('Enriching with Clay...');
+        
+        try {
+          const { error: clayError } = await supabase.functions.invoke('enrich-company-clay', {
+            body: {
+              domain: updatedLead.domain
+            }
+          });
+          
+          if (clayError) {
+            console.error('Clay enrichment error (continuing pipeline):', clayError);
+          } else {
+            console.log('Clay company enrichment triggered for domain:', updatedLead.domain);
+          }
+        } catch (clayError) {
+          console.error('Clay enrichment error (continuing pipeline):', clayError);
+        }
+        // Pipeline continues regardless of Clay success/failure
+
         // Step 2: Validate Domain
         setPipelineStep('Validating Domain...');
         
