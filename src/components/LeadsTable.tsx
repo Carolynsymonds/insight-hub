@@ -2609,6 +2609,7 @@ const LeadsTable = ({
                             </div> : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (() => {
                     const checkedSources = new Set<string>();
                     lead.enrichment_logs.forEach(log => {
+                      if (!log.source) return; // Skip logs without source (e.g., validate_domain step)
                       if (log.source.startsWith("email_")) {
                         checkedSources.add("Email");
                       } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
@@ -3451,7 +3452,7 @@ const LeadsTable = ({
 
                                         {/* Generic Diagnose Button - appears when no domain currently found */}
                                         {lead.enrichment_logs && lead.enrichment_logs.length > 0 && (() => {
-                                    const hasApolloOrGoogle = lead.enrichment_logs.some(log => log.source === "apollo_api" || log.source.startsWith("google_"));
+                                    const hasApolloOrGoogle = lead.enrichment_logs.some(log => log.source === "apollo_api" || log.source?.startsWith("google_"));
                                     return hasApolloOrGoogle && !lead.domain ? <div className="mt-4 pt-4 border-t space-y-3">
                                                 <Button size="sm" variant="outline" onClick={() => handleDiagnose(lead)} disabled={diagnosing?.leadId === lead.id} className="w-full select-none">
                                                   {diagnosing?.leadId === lead.id ? <>
