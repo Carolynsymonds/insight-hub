@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LeadUpload from "@/components/LeadUpload";
 import LeadsTable from "@/components/LeadsTable";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/hooks/useAdmin";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,6 +58,7 @@ const Index = () => {
   const {
     toast
   } = useToast();
+  const { role: userRole } = useAdmin();
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("home");
@@ -1615,7 +1617,7 @@ const Index = () => {
                 </DialogContent>
               </Dialog>
             </div>
-            <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
+            <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} userRole={userRole} />
           </div> : <div className="space-y-6">
            
             <div className="grid grid-cols-4 gap-8 max-w-[1100px]">

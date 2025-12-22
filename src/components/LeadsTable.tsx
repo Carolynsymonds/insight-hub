@@ -269,6 +269,7 @@ interface LeadsTableProps {
   domainFilter?: "all" | "valid" | "invalid" | "not_enriched" | "today_enriched";
   onDomainFilterChange?: (value: "all" | "valid" | "invalid" | "not_enriched" | "today_enriched") => void;
   viewMode?: ViewMode;
+  userRole?: 'admin' | 'user' | 'client' | null;
 }
 const LeadsTable = ({
   leads,
@@ -276,8 +277,11 @@ const LeadsTable = ({
   hideFilterBar = false,
   domainFilter: externalDomainFilter,
   onDomainFilterChange,
-  viewMode = 'all'
+  viewMode = 'all',
+  userRole = null
 }: LeadsTableProps) => {
+  // Check if user is a client to hide provider-specific UI
+  const isClientRole = userRole === 'client';
   const {
     toast
   } = useToast();
@@ -3133,15 +3137,17 @@ const LeadsTable = ({
                                       </>
                                     )}
                                   </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Find Domain → Validate → Coords → Distance → Relevance → Match Score
-                <br />
-                <span className="text-muted-foreground/70">+ Enrich Contact (parallel)</span>
-                <br />
-                <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
-                <br />
-                <span className="text-muted-foreground/70">If no domain: Search Socials → Score → Diagnose</span>
-              </p>
+              {!isClientRole && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Find Domain → Validate → Coords → Distance → Relevance → Match Score
+                  <br />
+                  <span className="text-muted-foreground/70">+ Enrich Contact (parallel)</span>
+                  <br />
+                  <span className="text-muted-foreground/70">If score &gt; 50: Enrich Company → Find Contacts → Get News</span>
+                  <br />
+                  <span className="text-muted-foreground/70">If no domain: Search Socials → Score → Diagnose</span>
+                </p>
+              )}
               {pipelineDuration[lead.id] !== undefined && runningPipeline !== lead.id && (
                 <div className="text-xs text-center mt-3 py-2 px-3 bg-muted/50 rounded-md">
                   <span className="font-medium">⏱️ Last run: {pipelineDuration[lead.id].toFixed(1)}s</span>
@@ -3188,7 +3194,9 @@ const LeadsTable = ({
                                         }, {} as Record<string, EnrichmentLog[]>);
                                       return Object.entries(logsBySource).map(([source, logs]) => {
                                         const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
-                                        const sourceLabel = source === "apollo" ? "Apollo" : source === "google" ? "Google" : source === "email" ? "Email" : source;
+                                        const sourceLabel = isClientRole 
+                                          ? "Data Source" 
+                                          : source === "apollo" ? "Apollo" : source === "google" ? "Google" : source === "email" ? "Email" : source;
                                         return <div key={source} className="border rounded-lg p-3 space-y-3" style={{
                                           userSelect: "text"
                                         }}>
@@ -3545,7 +3553,7 @@ const LeadsTable = ({
                                   })()}
 
                                         {/* Enrich with Apollo + Scrape Website Button - only show when domain is found and match_score >= 50% */}
-                                        {lead.domain && (lead.match_score ?? 0) >= 50 && <div className="pt-4 border-t space-y-2">
+                                        {!isClientRole && lead.domain && (lead.match_score ?? 0) >= 50 && <div className="pt-4 border-t space-y-2">
                                             {lead.enrichment_source === "apollo_api" && <p className="text-xs text-primary">
                                                 ✓ Domain found via Apollo - direct retrieval
                                               </p>}
@@ -3574,13 +3582,14 @@ const LeadsTable = ({
                                                 Sends domain to Clay for company enrichment
                                               </p>}
                                           </div>}
-                                        {lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && <div className="pt-4 border-t">
+                                        {!isClientRole && lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && <div className="pt-4 border-t">
                                             <p className="text-xs text-destructive/70 text-center">
                                               {lead.match_score === null ? "Blocked: Match Score not calculated (run Calculate Match Score first)" : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
                                             </p>
                                           </div>}
 
-                                        {/* Find Domain - Combined Action */}
+                                        {/* Find Domain - Combined Action - Hide for client role */}
+                                        {!isClientRole && (
                                         <div className="mb-4">
                                           <Button size="sm" onClick={() => handleFindDomain(lead)} disabled={findingDomain === lead.id || !lead.company} className="w-full" variant="default">
                                             {findingDomain === lead.id ? <>
@@ -3620,8 +3629,10 @@ const LeadsTable = ({
                                               Find a domain first to check validity
                                             </p>}
                                         </div>
+                                        )}
 
-                                        {/* Enrich Buttons */}
+                                        {/* Enrich Buttons - Hide for client role */}
+                                        {!isClientRole && (
                                         <div className="space-y-2 mt-4">
                                           <Button size="sm" onClick={() => handleEnrich(lead, "apollo")} disabled={enrichingSource?.leadId === lead.id || findingDomain === lead.id || !lead.company} className="w-full" variant="outline">
                                             {enrichingSource?.leadId === lead.id && enrichingSource?.source === "apollo" ? <>
@@ -3651,6 +3662,7 @@ const LeadsTable = ({
                                               </>}
                                           </Button>
                                         </div>
+                                        )}
                                       </div>
                                     </AccordionContent>
                                   </AccordionItem>
@@ -4983,7 +4995,8 @@ const LeadsTable = ({
                                                           </div>)}
                                                       </div>}
 
-                                                    {/* Re-search button */}
+                                                    {/* Re-search button - Hide for client role */}
+                                                    {!isClientRole && (
                                                     <div className="pt-2 space-y-2">
                                                       <Button size="sm" variant="outline" className="w-full" disabled={enrichingContact === lead.id || !lead.email || !lead.full_name} onClick={() => handleEnrichContact(lead)}>
                                                         {enrichingContact === lead.id ? <>
@@ -5009,6 +5022,7 @@ const LeadsTable = ({
                                                           </Button>;
                                               })()}
                                                     </div>
+                                                    )}
                                                   </CollapsibleContent>
                                                 </Collapsible>
                                               </div>;
@@ -5031,7 +5045,9 @@ const LeadsTable = ({
                                                 </div>
                                               </div>
 
-                                              {/* Search Button */}
+                                              {/* Search Button - Hide for client role */}
+                                              {!isClientRole && (
+                                              <>
                                               <Button size="sm" variant="outline" className="w-full" disabled={enrichingContact === lead.id || !lead.email || !lead.full_name} onClick={() => handleEnrichContact(lead)}>
                                                 {enrichingContact === lead.id ? <>
                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -5044,6 +5060,8 @@ const LeadsTable = ({
                                               {(!lead.email || !lead.full_name) && <p className="text-xs text-muted-foreground">
                                                   Name and email required to search Apollo.
                                                 </p>}
+                                              </>
+                                              )}
 
                                               {/* Visual Stepper - Show when enriching or when we have steps */}
                                               {(enrichingContact === lead.id || enrichContactSteps) && <EnrichContactStepper steps={enrichContactSteps} isLoading={enrichingContact === lead.id} enrichedContact={enrichedContactResult} />}
@@ -5157,7 +5175,8 @@ const LeadsTable = ({
                                     </AccordionContent>
                                   </AccordionItem>
 
-                                  {/* Enrichment Logs from Clay */}
+                                  {/* Enrichment Logs from Clay - Hide for client role */}
+                                  {!isClientRole && (
                                   <AccordionItem value="clay-enrichments" className="border-border">
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
@@ -5396,6 +5415,7 @@ const LeadsTable = ({
                                       </div>
                                     </AccordionContent>
                                   </AccordionItem>
+                                  )}
                                 </Accordion>
 
                               </div>
