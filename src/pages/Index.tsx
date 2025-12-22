@@ -1174,8 +1174,9 @@ const Index = () => {
       return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials;
     }
     if (domainFilter === 'invalid') {
-      // Invalid if no valid match score AND no validated socials
-      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials;
+      // Invalid if lead has been enriched AND no valid match score AND no validated socials
+      // (Exclude not-enriched leads from invalid)
+      return lead.enriched_at !== null && (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials;
     }
     if (domainFilter === 'not_enriched') return lead.enriched_at === null;
     if (domainFilter === 'today_enriched') {
