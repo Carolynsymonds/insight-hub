@@ -8,7 +8,7 @@ import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, Drawer
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap, Globe } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -3137,9 +3137,13 @@ const LeadsTable = ({
                                                                 </TooltipTrigger>
                                                                 <TooltipContent className="max-w-xs">
                                                                   <p className="text-xs">
-                                                                    {lead.match_score_source === "parked_domain" 
-                                                                      ? "Domain is parked or for sale. The domain exists but may be available for purchase."
-                                                                      : (lead.domain_relevance_explanation || "Domain validation result")}
+                                                                    {(() => {
+                                                                      const validationLog = lead.enrichment_logs?.find(log => (log as any).step === 'validate_domain');
+                                                                      if (lead.match_score_source === "parked_domain") {
+                                                                        return (validationLog as any)?.reason || "Domain is parked or for sale. The domain exists but may be available for purchase.";
+                                                                      }
+                                                                      return (validationLog as any)?.reason || lead.domain_relevance_explanation || "Domain validation result";
+                                                                    })()}
                                                                   </p>
                                                                 </TooltipContent>
                                                               </Tooltip>
@@ -3379,6 +3383,34 @@ const LeadsTable = ({
                                                                 </div>}
                                                             </div>;
                                             })()}
+
+                                                        {/* Domain Validation Result */}
+                                                        {lead.enrichment_logs?.filter(log => (log as any).step === 'validate_domain').map((validationLog: any, idx) => (
+                                                          <div key={`validation-${idx}`} className="border rounded-lg p-3 mt-3 bg-muted/30">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                                <Globe className="h-3 w-3" />
+                                                                Domain Validation
+                                                              </h4>
+                                                              <Badge 
+                                                                variant={validationLog.is_parked ? "secondary" : (validationLog.is_valid ? "default" : "destructive")} 
+                                                                className={`text-xs ${validationLog.is_valid && !validationLog.is_parked ? "bg-green-600" : ""}`}
+                                                              >
+                                                                {validationLog.is_parked ? "⚠ PARKED" : (validationLog.is_valid ? "✓ VALID" : "✗ INVALID")}
+                                                              </Badge>
+                                                            </div>
+                                                            <div className="space-y-1 text-xs text-muted-foreground">
+                                                              <p><span className="font-medium text-foreground">Domain:</span> {validationLog.domain}</p>
+                                                              <p><span className="font-medium text-foreground">Reason:</span> {validationLog.reason}</p>
+                                                              {validationLog.http_status && (
+                                                                <p><span className="font-medium text-foreground">HTTP Status:</span> {validationLog.http_status}</p>
+                                                              )}
+                                                              <p className="text-xs opacity-60 mt-2">
+                                                                {new Date(validationLog.timestamp).toLocaleString()}
+                                                              </p>
+                                                            </div>
+                                                          </div>
+                                                        ))}
                                                       </div>}
                                                   </div>;
                                       });
