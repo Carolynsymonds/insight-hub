@@ -405,6 +405,20 @@ const LeadsTable = ({
     profile_match_reasons: string[] | null;
     profile_match_evaluated_at: string | null;
   }>>([]);
+  const [clayCompanyEnrichments, setClayCompanyEnrichments] = useState<Array<{
+    id: string;
+    lead_id: string;
+    domain: string | null;
+    size_clay: string | null;
+    industry_clay: string | null;
+    locality_clay: string | null;
+    logo_clay: string | null;
+    annual_revenue_clay: string | null;
+    founded_clay: string | null;
+    description_clay: string | null;
+    created_at: string | null;
+    raw_response: any;
+  }>>([]);
   const [evaluatingMatchId, setEvaluatingMatchId] = useState<string | null>(null);
   const [bulkEvaluatingMatches, setBulkEvaluatingMatches] = useState(false);
   const [bulkEvaluateProgress, setBulkEvaluateProgress] = useState({
@@ -512,6 +526,28 @@ const LeadsTable = ({
       setClayEnrichments(enrichmentsWithMatch);
     };
     fetchClayEnrichments();
+  }, [selectedLead]);
+
+  // Fetch clay company enrichments when selectedLead changes
+  useEffect(() => {
+    const fetchClayCompanyEnrichments = async () => {
+      if (!selectedLead) {
+        setClayCompanyEnrichments([]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('clay_company_enrichment')
+        .select('*')
+        .eq('lead_id', selectedLead.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error) {
+        console.error('Error fetching clay company enrichments:', error);
+        return;
+      }
+      setClayCompanyEnrichments(data || []);
+    };
+    fetchClayCompanyEnrichments();
   }, [selectedLead]);
 
   // Fetch clay enrichments for all leads to display in table columns
@@ -4985,13 +5021,110 @@ const LeadsTable = ({
                                     <AccordionTrigger className="text-sm hover:no-underline select-none cursor-pointer">
                                       <div className="flex items-center gap-2">
                                         <span>Enrichment Logs from Clay</span>
-                                        {clayEnrichments.length > 0 && <Badge variant="secondary" className="ml-2">
-                                            {clayEnrichments.length} {clayEnrichments.length === 1 ? 'log' : 'logs'}
+                                        {(clayEnrichments.length > 0 || clayCompanyEnrichments.length > 0) && <Badge variant="secondary" className="ml-2">
+                                            {clayEnrichments.length + clayCompanyEnrichments.length} {(clayEnrichments.length + clayCompanyEnrichments.length) === 1 ? 'log' : 'logs'}
                                           </Badge>}
                                       </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <div className="space-y-4">
+                                        {/* Company Enrichments Section */}
+                                        {clayCompanyEnrichments.length > 0 && (
+                                          <div className="space-y-3">
+                                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Company Enrichment</p>
+                                            {clayCompanyEnrichments.map(companyEnrichment => (
+                                              <div key={companyEnrichment.id} className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                                                {/* Header with timestamp */}
+                                                <div className="flex items-center justify-between">
+                                                  <p className="text-xs text-muted-foreground">
+                                                    {companyEnrichment.created_at ? new Date(companyEnrichment.created_at).toLocaleString() : 'N/A'}
+                                                  </p>
+                                                  <Badge variant="outline" className="text-[10px]">Company Data</Badge>
+                                                </div>
+
+                                                {/* Company Logo */}
+                                                {companyEnrichment.logo_clay && (
+                                                  <div className="flex justify-center">
+                                                    <img 
+                                                      src={companyEnrichment.logo_clay} 
+                                                      alt="Company logo" 
+                                                      className="h-12 w-auto object-contain rounded"
+                                                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                    />
+                                                  </div>
+                                                )}
+
+                                                {/* Company Info */}
+                                                <div className="grid gap-2 text-sm">
+                                                  {companyEnrichment.domain && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Domain:</span>
+                                                      <a href={`https://${companyEnrichment.domain}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                        {companyEnrichment.domain}
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                  {companyEnrichment.industry_clay && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Industry:</span>
+                                                      <span>{companyEnrichment.industry_clay}</span>
+                                                    </div>
+                                                  )}
+                                                  {companyEnrichment.size_clay && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Company Size:</span>
+                                                      <span>{companyEnrichment.size_clay}</span>
+                                                    </div>
+                                                  )}
+                                                  {companyEnrichment.annual_revenue_clay && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Annual Revenue:</span>
+                                                      <span>{companyEnrichment.annual_revenue_clay}</span>
+                                                    </div>
+                                                  )}
+                                                  {companyEnrichment.founded_clay && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Founded:</span>
+                                                      <span>{companyEnrichment.founded_clay}</span>
+                                                    </div>
+                                                  )}
+                                                  {companyEnrichment.locality_clay && (
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Location:</span>
+                                                      <span>{companyEnrichment.locality_clay}</span>
+                                                    </div>
+                                                  )}
+                                                </div>
+
+                                                {/* Description */}
+                                                {companyEnrichment.description_clay && (
+                                                  <div className="pt-2 border-t">
+                                                    <p className="text-xs text-muted-foreground font-medium mb-1">Description:</p>
+                                                    <p className="text-xs text-foreground/80 leading-relaxed">{companyEnrichment.description_clay}</p>
+                                                  </div>
+                                                )}
+
+                                                {/* Raw Response Collapsible */}
+                                                <Collapsible>
+                                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                                    <ChevronRight className="h-3 w-3 transition-transform ui-expanded:rotate-90" />
+                                                    View Raw Response
+                                                  </CollapsibleTrigger>
+                                                  <CollapsibleContent>
+                                                    <pre className="mt-2 p-2 bg-background rounded border text-[10px] font-mono whitespace-pre-wrap break-all overflow-x-auto max-h-48 overflow-y-auto">
+                                                      {JSON.stringify(companyEnrichment.raw_response, null, 2)}
+                                                    </pre>
+                                                  </CollapsibleContent>
+                                                </Collapsible>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        {/* Contact Enrichments Section */}
+                                        {clayEnrichments.length > 0 && (
+                                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Enrichment</p>
+                                        )}
                                         {/* Bulk Evaluate Button */}
                                         {clayEnrichments.length > 0 && clayEnrichments.some(e => e.profile_match_score === null || e.profile_match_score === undefined) && <Button variant="outline" size="sm" onClick={handleBulkEvaluateMatches} disabled={bulkEvaluatingMatches} className="w-full h-8 text-xs gap-2">
                                             {bulkEvaluatingMatches ? <>
@@ -5116,9 +5249,9 @@ const LeadsTable = ({
                                                   </pre>
                                                 </CollapsibleContent>
                                               </Collapsible>
-                                            </div>) : <p className="text-sm text-muted-foreground">
+                                            </div>) : (clayCompanyEnrichments.length === 0 && <p className="text-sm text-muted-foreground">
                                             No Clay enrichment logs yet. Send data from Clay to see logs here.
-                                          </p>}
+                                          </p>)}
                                       </div>
                                     </AccordionContent>
                                   </AccordionItem>
