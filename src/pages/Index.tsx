@@ -214,9 +214,9 @@ const Index = () => {
           !lead.linkedin
         ).length;
         
-        // Not Enriched: leads that haven't been processed (no match_score and no domain)
+        // Not Enriched: leads that haven't been enriched yet
         const notEnriched = filteredData.filter(lead => 
-          lead.match_score === null && !lead.domain
+          lead.enriched_at === null
         ).length;
 
         // Count diagnosis categories only for leads without domains (failed enrichment)
@@ -400,9 +400,9 @@ const Index = () => {
         !lead.linkedin
       ).length;
       
-      // Not Enriched: leads that haven't been processed (no match_score and no domain)
+      // Not Enriched: leads that haven't been enriched yet
       const notEnriched = filteredData.filter(lead => 
-        lead.match_score === null && !lead.domain
+        lead.enriched_at === null
       ).length;
 
       // Count diagnosis categories only for leads without domains (failed enrichment)
