@@ -5501,7 +5501,9 @@ const LeadsTable = ({
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   {descriptionModalLead?.products_services_summary ? (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed mb-3">{descriptionModalLead.products_services_summary}</p>
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed mb-3" dangerouslySetInnerHTML={{ 
+                      __html: descriptionModalLead.products_services_summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                    }} />
                   ) : (
                     <p className="text-xs text-muted-foreground mb-3">
                       Turn products & services into a clean categorized list. No paragraphs.
