@@ -30,13 +30,19 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Create user client to get current user
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Create admin client (service role) and validate the JWT from the caller
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    // Extract the JWT token from the Authorization header
+    const jwtToken = authHeader.replace(/^Bearer\s+/i, "");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.getUser(jwtToken);
+
     if (userError || !user) {
+      console.error("User auth error:", userError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -51,9 +57,6 @@ const handler = async (req: Request): Promise<Response> => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-
-    // Create admin client for insert
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { error: insertError } = await supabaseAdmin
       .from("user_activity")
