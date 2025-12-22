@@ -968,7 +968,24 @@ const Index = () => {
               body: { domain: updatedLead.domain }
             });
 
-            if (validationData?.is_valid_domain) {
+            // Log domain validation result
+            if (validationData) {
+              const validationLog = {
+                step: 'validate_domain',
+                domain: updatedLead.domain,
+                is_valid: validationData.is_valid_domain,
+                is_parked: validationData.is_parked,
+                reason: validationData.reason,
+                http_status: validationData.http_status,
+                timestamp: new Date().toISOString()
+              };
+              
+              const currentLogs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs : [];
+              await supabase.from("leads").update({
+                email_domain_validated: validationData.is_valid_domain,
+                enrichment_logs: [...currentLogs, validationLog]
+              }).eq("id", lead.id);
+            } else if (validationData?.is_valid_domain) {
               await supabase.from("leads").update({
                 email_domain_validated: validationData.is_valid_domain
               }).eq("id", lead.id);

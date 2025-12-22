@@ -1058,9 +1058,22 @@ const LeadsTable = ({
           body: { domain: updatedLead.domain }
         });
 
+        // Log domain validation result
         if (!validationError && validationData) {
+          const validationLog = {
+            step: 'validate_domain',
+            domain: updatedLead.domain,
+            is_valid: validationData.is_valid_domain,
+            is_parked: validationData.is_parked,
+            reason: validationData.reason,
+            http_status: validationData.http_status,
+            timestamp: new Date().toISOString()
+          };
+          
+          const currentLogs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs : [];
           await supabase.from("leads").update({
-            email_domain_validated: validationData.is_valid_domain
+            email_domain_validated: validationData.is_valid_domain,
+            enrichment_logs: [...currentLogs, validationLog]
           }).eq("id", lead.id);
           setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
         }
