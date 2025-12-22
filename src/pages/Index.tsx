@@ -1283,7 +1283,7 @@ const Index = () => {
           <div>            
             {/* Category Filter */}
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-sm font-medium text-muted-foreground">Filter by Category:</span>
+              <span className="text-sm font-medium text-[#0F0F4B]">Filter by Category:</span>
               <Select 
                 value={statsCategoryFilter || "all"} 
                 onValueChange={(value) => setStatsCategoryFilter(value === "all" ? null : value)}
@@ -1313,7 +1313,7 @@ const Index = () => {
           {/* Lead Overview */}
           <div className="space-y-4">
             <div className="p-4 border rounded-lg bg-card">
-              <p className="text-sm text-muted-foreground mb-1">Total Leads</p>
+              <p className="text-sm text-[#0F0F4B] mb-1">Total Leads</p>
               <p className="text-3xl font-bold">{stats.total}</p>
             </div>
           </div>
@@ -1326,7 +1326,7 @@ const Index = () => {
                  {/* Valid Leads Component */}
                  <div className="p-4 border rounded-lg bg-white dark:bg-black border-gray-200 dark:border-gray-800">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-black dark:text-white">Valid Leads</p>
+                  <p className="text-sm font-medium text-[#0F0F4B] dark:text-white">Valid Leads</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1340,37 +1340,37 @@ const Index = () => {
                     )}
                   </Button>
                 </div>
-                <p className="text-3xl font-bold text-black dark:text-white">
+                <p className="text-3xl font-bold text-[#0F0F4B] dark:text-white">
                   {stats.validLeads}
                   {stats.total > 0 && (
-                    <span className="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
+                    <span className="text-lg font-normal text-[#0F0F4B]/60 dark:text-white/60 ml-2">
                       ({((stats.validLeads / stats.total) * 100).toFixed(1)}%)
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-black/70 dark:text-white/70 mt-1">
+                <p className="text-xs text-[#0F0F4B]/70 dark:text-white/70 mt-1">
                   Leads with ≥50% match score or validated socials
                 </p>
                 
                 {expandedValidLeads && (
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-black/80 dark:text-white/80">Valid by score (≥50)</span>
-                      <span className="font-semibold text-black dark:text-white">{stats.validByScore}</span>
+                      <span className="text-sm text-[#0F0F4B]/80 dark:text-white/80">Valid by score (≥50)</span>
+                      <span className="font-semibold text-[#0F0F4B] dark:text-white">{stats.validByScore}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-black/80 dark:text-white/80">Has validated socials</span>
-                      <span className="font-semibold text-black dark:text-white">{stats.hasValidatedSocials}</span>
+                      <span className="text-sm text-[#0F0F4B]/80 dark:text-white/80">Has validated socials</span>
+                      <span className="font-semibold text-[#0F0F4B] dark:text-white">{stats.hasValidatedSocials}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-black/80 dark:text-white/80">Overlap (both)</span>
-                      <span className="font-semibold text-black dark:text-white">-{stats.overlapBoth}</span>
+                      <span className="text-sm text-[#0F0F4B]/80 dark:text-white/80">Overlap (both)</span>
+                      <span className="font-semibold text-[#0F0F4B] dark:text-white">-{stats.overlapBoth}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-gray-200/50 dark:border-gray-800/50">
-                      <span className="text-sm font-medium text-black dark:text-white">Total Valid</span>
-                      <span className="font-bold text-black dark:text-white">{stats.validLeads}</span>
+                      <span className="text-sm font-medium text-[#0F0F4B] dark:text-white">Total Valid</span>
+                      <span className="font-bold text-[#0F0F4B] dark:text-white">{stats.validLeads}</span>
                     </div>
-                    <div className="text-xs text-black/60 dark:text-white/60 text-center">
+                    <div className="text-xs text-[#0F0F4B]/60 dark:text-white/60 text-center">
                       {stats.validByScore} + {stats.hasValidatedSocials} - {stats.overlapBoth} = {stats.validLeads}
                     </div>
                   </div>
@@ -1378,16 +1378,16 @@ const Index = () => {
               </div>
               {/* Invalid Leads */}
               <div className="p-4 border rounded-lg bg-white dark:bg-black border-gray-200 dark:border-gray-800">
-                <p className="text-sm text-black dark:text-white">Invalid Leads</p>
-                <p className="text-3xl font-bold text-black dark:text-white">
+                <p className="text-sm text-[#0F0F4B] dark:text-white">Invalid Leads</p>
+                <p className="text-3xl font-bold text-[#0F0F4B] dark:text-white">
                   {stats.invalidNoDomainNoSocials}
                   {stats.total > 0 && (
-                    <span className="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
+                    <span className="text-lg font-normal text-[#0F0F4B]/60 dark:text-white/60 ml-2">
                       ({((stats.invalidNoDomainNoSocials / stats.total) * 100).toFixed(1)}%)
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-black/70 dark:text-white/70 mt-1">
+                <p className="text-xs text-[#0F0F4B]/70 dark:text-white/70 mt-1">
                   No domain and no socials found
                 </p>
               </div>
@@ -1412,7 +1412,7 @@ const Index = () => {
             {/* Leads Without Domain — Diagnosis Breakdown */}
             {Object.keys(stats.diagnosisCounts).length > 0 && (
               <div className="p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Not Found Domains & Diagnosis</h4>
+                <h4 className="font-medium mb-3 text-sm text-[#0F0F4B]">Not Found Domains & Diagnosis</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {Object.entries(stats.diagnosisCounts)
                     .filter(([category]) => 
@@ -1450,50 +1450,38 @@ const Index = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Filter by:</span>
-                  <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid' | 'not_enriched' | 'today_enriched') => setDomainFilter(value)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Domain Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Domains</SelectItem>
-                      <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
-                      <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
-                      <SelectItem value="not_enriched">Not Enriched</SelectItem>
-                      <SelectItem value="today_enriched">Enriched Today</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select 
-                    value={batchFilter === 'all' ? 'all' : String(batchFilter)} 
-                    onValueChange={(value) => setBatchFilter(value === 'all' ? 'all' : Number(value))}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        Export CSV
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBulkEnrichmentModalOpen(true)}
+                    disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || bulkFindingSocials || bulkRunningPipeline || filteredLeads.length === 0}
+                    className="gap-2"
                   >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Batch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Batches</SelectItem>
-                      {uniqueBatches.map((batch) => (
-                        <SelectItem key={batch} value={String(batch)}>
-                          Batch {batch}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Bulk Enrichment
+                  </Button>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
-                </span>
               </div>
             </div>
             {/* View Mode Toggle */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">View:</span>
-                <div className="flex border rounded-md overflow-hidden">
+                <span className="text-sm text-[#0F0F4B]">View:</span>
+                <div className="flex border rounded-none overflow-hidden">
                   <Button
                     variant={viewMode === 'company' ? 'default' : 'ghost'}
                     size="sm"
-                    className="rounded-none border-0"
+                    className={`rounded-none border-0 ${viewMode === 'company' ? 'bg-[#0F0F4B] text-white hover:bg-[#0F0F4B]/90' : ''}`}
                     onClick={() => setViewMode('company')}
                   >
                     Company
@@ -1501,7 +1489,7 @@ const Index = () => {
                   <Button
                     variant={viewMode === 'contact' ? 'default' : 'ghost'}
                     size="sm"
-                    className="rounded-none border-0 border-x"
+                    className={`rounded-none border-0 border-x ${viewMode === 'contact' ? 'bg-[#0F0F4B] text-white hover:bg-[#0F0F4B]/90' : ''}`}
                     onClick={() => setViewMode('contact')}
                   >
                     Contact
@@ -1509,7 +1497,7 @@ const Index = () => {
                   <Button
                     variant={viewMode === 'all' ? 'default' : 'ghost'}
                     size="sm"
-                    className="rounded-none border-0"
+                    className={`rounded-none border-0 ${viewMode === 'all' ? 'bg-[#0F0F4B] text-white hover:bg-[#0F0F4B]/90' : ''}`}
                     onClick={() => setViewMode('all')}
                   >
                     View All
@@ -1517,28 +1505,38 @@ const Index = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Export CSV
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBulkEnrichmentModalOpen(true)}
-                  disabled={bulkEnriching || bulkScoring || bulkFindingContacts || bulkEvaluatingMatches || bulkFindingSocials || bulkRunningPipeline || filteredLeads.length === 0}
-                  className="gap-2"
+                <span className="text-sm font-semibold text-[#0F0F4B]">Filter by:</span>
+                <Select value={domainFilter} onValueChange={(value: 'all' | 'valid' | 'invalid' | 'not_enriched' | 'today_enriched') => setDomainFilter(value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Domain Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Domains</SelectItem>
+                    <SelectItem value="valid" className="font-semibold">Valid (≥50% Match)</SelectItem>
+                    <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
+                    <SelectItem value="not_enriched">Not Enriched</SelectItem>
+                    <SelectItem value="today_enriched">Enriched Today</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={batchFilter === 'all' ? 'all' : String(batchFilter)} 
+                  onValueChange={(value) => setBatchFilter(value === 'all' ? 'all' : Number(value))}
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Bulk Enrichment
-                </Button>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Batch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-semibold">All Batches</SelectItem>
+                    {uniqueBatches.map((batch) => (
+                      <SelectItem key={batch} value={String(batch)}>
+                        Batch {batch}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-[#0F0F4B]">
+                  Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
+                </span>
               </div>
 
               {/* Bulk Enrichment Modal */}
@@ -1617,26 +1615,28 @@ const Index = () => {
             <LeadsTable leads={filteredLeads} onEnrichComplete={fetchLeads} hideFilterBar domainFilter={domainFilter} onDomainFilterChange={setDomainFilter} viewMode={viewMode} />
           </div> : <div className="space-y-6">
            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-8 max-w-[1100px]">
               {CATEGORIES.map(category => {
           const Icon = category.icon;
           const count = categoryCounts[category.name] || 0;
-          return <div key={category.name} className="relative group">
-                    <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-3 hover:bg-accent hover:border-primary transition-all" onClick={() => handleCategorySelect(category.name)}>
-                      <Icon className="h-8 w-8 text-primary" />
-                      <span className="font-medium">{category.name}</span>
-                      <span className="text-sm text-muted-foreground">{count} leads</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => handleOpenRolesDialog(e, category.name)}
-                    >
-                      <Settings2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>;
-        })}
+          return { category, count };
+        })
+        .sort((a, b) => {
+          // Categories with leads first, then by count descending
+          if (a.count > 0 && b.count === 0) return -1;
+          if (a.count === 0 && b.count > 0) return 1;
+          return b.count - a.count;
+        })
+        .map(({ category, count }) => (
+          <div
+            key={category.name}
+            className="flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#14124E] text-[#14124E] bg-white transition hover:bg-[#14124E] hover:text-white cursor-pointer"
+            onClick={() => handleCategorySelect(category.name)}
+          >
+            <span className="font-medium text-lg">{category.name}</span>
+            <span className="text-sm">{count} leads</span>
+          </div>
+        ))}
             </div>
           </div> : <LeadUpload onUploadComplete={handleUploadComplete} />}
 

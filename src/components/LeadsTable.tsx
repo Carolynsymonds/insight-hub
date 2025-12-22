@@ -8,7 +8,7 @@ import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, Drawer
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap, Globe } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap, Globe, ArrowRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -2407,14 +2407,14 @@ const LeadsTable = ({
       {/* Top Bar (filters + export) */}
       <div className="flex flex-wrap items-center gap-4 mb-4">
         {!hideFilterBar && <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filter by:</span>
+            <span className="text-sm font-semibold text-[#0F0F4B]">Filter by:</span>
             <Select value={domainFilter} onValueChange={(value: "all" | "valid" | "invalid") => setDomainFilter(value)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Domain Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Domains</SelectItem>
-                <SelectItem value="valid">Valid (≥50% Match)</SelectItem>
+                <SelectItem value="valid" className="font-semibold">Valid (≥50% Match)</SelectItem>
                 <SelectItem value="invalid">Invalid (&lt;50% Match)</SelectItem>
               </SelectContent>
             </Select>
@@ -2467,9 +2467,8 @@ const LeadsTable = ({
                       Summary
                     </TableHead>}
                   {/* View All & Company: Company Domain */}
-                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                  {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableHead className={viewMode === 'all' && showEnrichedColumns ? "border-t-2 border-[#0F0F4B]" : ""}>
                       <div className="flex items-center gap-2">
-                        <Link2 className="h-4 w-4" />
                         Company Domain
                       </div>
                     </TableHead>}
@@ -2488,15 +2487,15 @@ const LeadsTable = ({
                     </TableHead>}
                   {(viewMode === 'all' || viewMode === 'contact') && <TableHead className="min-w-[280px]">AI Summary</TableHead>}
                   {/* View All: Description */}
-                  {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-lavender" : "min-w-[250px]"}>
+                  {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "min-w-[250px] border-t-2 border-[#0F0F4B]" : "min-w-[250px]"}>
                       Description
                     </TableHead>}
                   {/* View All: Contact Socials */}
-                  {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "border-t-2 border-lavender" : ""}>
+                  {viewMode === 'all' && <TableHead className={showEnrichedColumns ? "border-t-2 border-[#0F0F4B]" : ""}>
                       Contact Socials
                     </TableHead>}
                   {/* View All: Socials */}
-                  {viewMode === 'all' && showEnrichedColumns && <TableHead className="border-t-2 border-lavender">Socials</TableHead>}
+                  {viewMode === 'all' && showEnrichedColumns && <TableHead className="border-t-2 border-[#0F0F4B]">Socials</TableHead>}
                   {/* Company View: Additional columns */}
                   {viewMode === 'company' && <>
                       <TableHead>Industry</TableHead>
@@ -2507,14 +2506,14 @@ const LeadsTable = ({
                       <TableHead>News</TableHead>
                     </>}
                   {viewMode === 'all' && showEnrichedColumns && <>
-                      <TableHead className="border-t-2 border-lavender">Size</TableHead>
-                      <TableHead className="border-t-2 border-lavender">Annual Revenue</TableHead>
-                      <TableHead className="border-t-2 border-lavender">Industry</TableHead>
-                      <TableHead className="border-t-2 border-lavender">Founded</TableHead>
-                      <TableHead className="border-t-2 border-lavender">Contacts</TableHead>
-                      <TableHead className="border-t-2 border-lavender">Logo</TableHead>
-                      <TableHead className="min-w-[200px] border-t-2 border-lavender">Products/Services</TableHead>
-                      <TableHead className="border-t-2 border-lavender">News</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Size</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Annual Revenue</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Industry</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Founded</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Contacts</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">Logo</TableHead>
+                      <TableHead className="min-w-[200px] border-t-2 border-[#0F0F4B]">Products/Services</TableHead>
+                      <TableHead className="border-t-2 border-[#0F0F4B]">News</TableHead>
                     </>}
                   <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px] border-t-2 border-background">
                     Actions
@@ -2542,7 +2541,7 @@ const LeadsTable = ({
                           <div className="flex flex-col gap-1 text-xs">
                     {/* LinkedIn - show if exists */}
                     {lead.contact_linkedin && <div className="flex items-center gap-1.5">
-                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <Linkedin className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                       <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                     {(() => {
                             try {
@@ -2558,7 +2557,7 @@ const LeadsTable = ({
                     </div>}
                     {/* Instagram - show if exists (from company socials, as contact may not have separate instagram) */}
                     {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
-                      <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <Instagram className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                       <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                         {(() => {
                           try {
@@ -2571,7 +2570,7 @@ const LeadsTable = ({
                     </div>}
                     {/* Facebook - show if exists */}
                     {lead.contact_facebook && <div className="flex items-center gap-1.5">
-                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <Facebook className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                       <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2603,11 +2602,11 @@ const LeadsTable = ({
                         
                         // Show "socials not found" if socials were searched/validated but none are valid
                         if (socialsSearched || validationsRun) {
-                          return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                          return <span className="text-[#0F0F4B] text-xs italic">socials not found</span>;
                         }
                         
                         // Otherwise show dash
-                        return <span className="text-muted-foreground">—</span>;
+                        return <span className="text-[#0F0F4B]">—</span>;
                       })()}
                           </div>
                         </TableCell>}
@@ -2616,11 +2615,19 @@ const LeadsTable = ({
                       {viewMode === 'all' && <TableCell>{lead.zipcode || "—"}</TableCell>}
                       {viewMode === 'all' && <TableCell className="border-r border-border">{lead.dma || "—"}</TableCell>}
                       {/* Company View: Description (before Company Domain) */}
-                      {viewMode === 'company' && <TableCell className="max-w-[250px] cursor-pointer hover:text-primary" onClick={e => {
-                    e.stopPropagation();
-                    setDescriptionModalLead(lead);
-                  }}>
-                          <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
+                      {viewMode === 'company' && <TableCell>
+                          <button
+                            className="inline-flex items-center gap-2 text-sm font-medium text-[#F26B4F] border-b border-[#F26B4F]/40 pb-1 transition hover:border-[#F26B4F] group"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDescriptionModalLead(lead);
+                            }}
+                          >
+                            View
+                            <span className="text-base transition-transform group-hover:translate-x-1">
+                              →
+                            </span>
+                          </button>
                         </TableCell>}
                       {/* All views: Company Domain */}
                       {(viewMode === 'all' || viewMode === 'company' || viewMode === 'contact') && <TableCell>
@@ -2658,7 +2665,7 @@ const LeadsTable = ({
                           <div className="flex flex-col gap-1 text-xs">
                             {/* LinkedIn - show if exists and not explicitly invalidated (from Apollo/Clay/scraping or validated) */}
                             {lead.linkedin && lead.linkedin_validated !== false && <div className="flex items-center gap-1.5">
-                                <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <Linkedin className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                 <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2671,7 +2678,7 @@ const LeadsTable = ({
                               </div>}
                             {/* Instagram - show if exists and not explicitly invalidated */}
                             {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
-                                <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <Instagram className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                 <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2684,7 +2691,7 @@ const LeadsTable = ({
                               </div>}
                             {/* Facebook - show if exists and not explicitly invalidated */}
                             {lead.facebook && lead.facebook_validated !== false && <div className="flex items-center gap-1.5">
-                                <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <Facebook className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                 <a href={lead.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2725,15 +2732,15 @@ const LeadsTable = ({
                         if (socialsSearched || validationsRun) {
                           if (hasSocialUrls) {
                             // Socials were found but all are invalid
-                            return <span className="text-muted-foreground text-xs italic">socials found but invalid</span>;
+                            return <span className="text-[#0F0F4B] text-xs italic">socials found but invalid</span>;
                           } else {
                             // No socials were found at all
-                            return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                            return <span className="text-[#0F0F4B] text-xs italic">socials not found</span>;
                           }
                         }
                         
                         // Otherwise show dash
-                        return <span className="text-muted-foreground">—</span>;
+                        return <span className="text-[#0F0F4B]">—</span>;
                       })()}                
                           </div>
                         </TableCell>}
@@ -2787,18 +2794,26 @@ const LeadsTable = ({
                   })()}
                         </TableCell>}
                       {/* View All: Description */}
-                      {viewMode === 'all' && <TableCell className="max-w-[250px] cursor-pointer hover:text-primary" onClick={e => {
-                    e.stopPropagation();
-                    setDescriptionModalLead(lead);
-                  }}>
-                          <div className="truncate">{lead.short_summary || lead.description || "—"}</div>
+                      {viewMode === 'all' && <TableCell>
+                          <button
+                            className="inline-flex items-center gap-2 text-sm font-medium text-[#F26B4F] border-b border-[#F26B4F]/40 pb-1 transition hover:border-[#F26B4F] group"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDescriptionModalLead(lead);
+                            }}
+                          >
+                            View summary
+                            <span className="text-base transition-transform group-hover:translate-x-1">
+                              →
+                            </span>
+                          </button>
                         </TableCell>}
                       {/* View All: Contact Socials */}
                       {viewMode === 'all' && <TableCell>
                           <div className="flex flex-col gap-1 text-xs">
                             {/* LinkedIn - show if exists */}
                             {lead.contact_linkedin && <div className="flex items-center gap-1.5">
-                              <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <Linkedin className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                               <a href={lead.contact_linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2811,7 +2826,7 @@ const LeadsTable = ({
                             </div>}
                             {/* Instagram - show if exists (from company socials) */}
                             {lead.instagram && lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
-                              <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <Instagram className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                               <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                 {(() => {
                                   try {
@@ -2824,7 +2839,7 @@ const LeadsTable = ({
                             </div>}
                             {/* Facebook - show if exists */}
                             {lead.contact_facebook && <div className="flex items-center gap-1.5">
-                              <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <Facebook className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                               <a href={lead.contact_facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                   {(() => {
                           try {
@@ -2865,15 +2880,15 @@ const LeadsTable = ({
                                 if (socialsSearched || validationsRun) {
                                   if (hasSocialUrls) {
                                     // Socials were found but all are invalid
-                                    return <span className="text-muted-foreground text-xs italic">socials found but invalid</span>;
+                                    return <span className="text-[#0F0F4B] text-xs italic">socials found but invalid</span>;
                                   } else {
                                     // No socials were found at all
-                                    return <span className="text-muted-foreground text-xs italic">socials not found</span>;
+                                    return <span className="text-[#0F0F4B] text-xs italic">socials not found</span>;
                                   }
                                 }
                                 
                                 // Otherwise show dash
-                                return <span className="text-muted-foreground">—</span>;
+                                return <span className="text-[#0F0F4B]">—</span>;
                               })()}
                           </div>
                         </TableCell>}
@@ -2883,7 +2898,7 @@ const LeadsTable = ({
                             <div className="flex flex-col gap-1 text-xs">
                               {/* LinkedIn - hide if validated as false */}
                               {lead.linkedin_validated !== false && <div className="flex items-center gap-1.5">
-                                  <Linkedin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <Linkedin className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                   {lead.linkedin ? <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                       {(() => {
                             try {
@@ -2892,12 +2907,12 @@ const LeadsTable = ({
                               return lead.linkedin;
                             }
                           })()}
-                                    </a> : <span className="text-muted-foreground">—</span>}
+                                    </a> : <span className="text-[#0F0F4B]">—</span>}
                                 </div>}
 
                               {/* Instagram - hide if validated as false */}
                               {lead.instagram_validated !== false && <div className="flex items-center gap-1.5">
-                                  <Instagram className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <Instagram className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                   {lead.instagram ? <a href={lead.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                       {(() => {
                             try {
@@ -2906,12 +2921,12 @@ const LeadsTable = ({
                               return lead.instagram;
                             }
                           })()}
-                                    </a> : <span className="text-muted-foreground">—</span>}
+                                    </a> : <span className="text-[#0F0F4B]">—</span>}
                                 </div>}
 
                               {/* Facebook - hide if validated as false */}
                               {lead.facebook_validated !== false && <div className="flex items-center gap-1.5">
-                                  <Facebook className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <Facebook className="h-3.5 w-3.5 text-[#0F0F4B] flex-shrink-0" />
                                   {lead.facebook ? <a href={lead.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[120px]" onClick={e => e.stopPropagation()}>
                                       {(() => {
                             try {
@@ -2920,7 +2935,7 @@ const LeadsTable = ({
                               return lead.facebook;
                             }
                           })()}
-                                    </a> : <span className="text-muted-foreground">—</span>}
+                                    </a> : <span className="text-[#0F0F4B]">—</span>}
                                 </div>}
                             </div>
                           </TableCell>
@@ -3696,7 +3711,7 @@ const LeadsTable = ({
                                       <div className="space-y-4 pt-2">
                                         {/* Facebook Section */}
                                         <div className="space-y-3">
-                                          <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                                          <p className="text-xs font-medium text-[#0F0F4B]">Facebook</p>
 
                                           {/* Existing Facebook result display */}
                                           {lead.facebook && <div className="p-3 border rounded-lg bg-muted/30">
@@ -3782,7 +3797,7 @@ const LeadsTable = ({
 
                                         {/* LinkedIn Section */}
                                         <div className="space-y-3 pt-3 border-t">
-                                          <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                                          <p className="text-xs font-medium text-[#0F0F4B]">LinkedIn</p>
 
                                           {/* LinkedIn result display */}
                                           {lead.linkedin && <div className="p-3 border rounded-lg bg-muted/30">
@@ -3868,7 +3883,7 @@ const LeadsTable = ({
 
                                         {/* Instagram Section */}
                                         <div className="space-y-3 pt-3 border-t">
-                                          <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                                          <p className="text-xs font-medium text-[#0F0F4B]">Instagram</p>
 
                                           {/* Instagram result display */}
                                           {lead.instagram && <div className="p-3 border rounded-lg bg-muted/30">
@@ -4557,13 +4572,13 @@ const LeadsTable = ({
                                                             </a>
                                                           </div>}
                                                         {lead.scraped_data_log.linkedin && <div className="flex justify-between items-center">
-                                                            <span className="text-muted-foreground">LinkedIn:</span>
+                                                            <span className="text-[#0F0F4B]">LinkedIn:</span>
                                                             <a href={lead.scraped_data_log.linkedin.startsWith("http") ? lead.scraped_data_log.linkedin : `https://${lead.scraped_data_log.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
                                                               View <ExternalLink className="h-2.5 w-2.5" />
                                                             </a>
                                                           </div>}
                                                         {lead.scraped_data_log.facebook && <div className="flex justify-between items-center">
-                                                            <span className="text-muted-foreground">Facebook:</span>
+                                                            <span className="text-[#0F0F4B]">Facebook:</span>
                                                             <a href={lead.scraped_data_log.facebook.startsWith("http") ? lead.scraped_data_log.facebook : `https://${lead.scraped_data_log.facebook}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
                                                               View <ExternalLink className="h-2.5 w-2.5" />
                                                             </a>
@@ -5431,7 +5446,6 @@ const LeadsTable = ({
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Generating...
                     </> : <>
-                      <Sparkles className="h-4 w-4 mr-2" />
                       {descriptionModalLead?.short_summary ? 'Regenerate Short Summary' : 'Generate Short Summary'}
                     </>}
                 </Button>
@@ -5456,7 +5470,6 @@ const LeadsTable = ({
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating...
                       </> : <>
-                        <Sparkles className="h-4 w-4 mr-2" />
                         {descriptionModalLead?.must_knows ? 'Regenerate Key Insights' : 'Generate Key Insights'}
                       </>}
                   </Button>
@@ -5485,7 +5498,6 @@ const LeadsTable = ({
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating...
                       </> : <>
-                        <Sparkles className="h-4 w-4 mr-2" />
                         {descriptionModalLead?.products_services_summary ? 'Regenerate Products List' : 'Generate Products List'}
                       </>}
                   </Button>
@@ -5721,7 +5733,7 @@ const LeadsTable = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        <Badge variant="outline" className="bg-[#0F0F4B]/10 text-[#0F0F4B] border-[#0F0F4B]/30">
                           Apollo
                         </Badge>
                         {contact.found_without_role_filter && <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px]">

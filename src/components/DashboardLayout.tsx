@@ -14,7 +14,7 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
     if (activeView === "statistics") return "Statistics";
     if (activeView === "admin") return "Admin dashboard";
     if (activeView === "home") {
-      return selectedCategory ? selectedCategory : "Select a Category";
+      return selectedCategory ? "" : "Select a Category";
     }
     return "Add Leads";
   };
@@ -26,9 +26,11 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
         <SidebarInset className="flex-1 overflow-hidden">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">
-              {getHeaderText()}
-            </h1>
+            {getHeaderText() && (
+              <h1 className="text-xl font-semibold">
+                {getHeaderText()}
+              </h1>
+            )}
           </header>
           <main className="flex-1 overflow-auto p-6">
             {children}
