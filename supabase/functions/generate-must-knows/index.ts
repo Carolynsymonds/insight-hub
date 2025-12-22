@@ -75,13 +75,7 @@ serve(async (req) => {
 
     const newsSection = news ? `Recent News: ${news}` : "";
 
-    const prompt = `You are a B2B sales researcher creating a "Must Knows" briefing for an SDR.
-
-Based on the company information below, generate exactly 4-6 bullet points that answer:
-- Who are they? What do they do?
-- How big are they?
-- Where are they?
-- Anything notable or differentiating?
+    const prompt = `Generate Key Insights for this company as SHORT bullet points.
 
 COMPANY INFORMATION:
 ${coreIdentity}
@@ -94,21 +88,19 @@ ${digitalPresence}
 
 ${newsSection}
 
-INSTRUCTIONS:
-1. Each bullet should be one concise sentence
-2. Start each bullet with "• " (bullet character followed by space)
-3. Focus on facts that help qualify the lead
-4. Include notable achievements or differentiators if available
-5. Keep it scannable - no long paragraphs
+STRICT RULES:
+1. NO prose sentences. NO "what they do" summary.
+2. Each bullet is a SHORT fact fragment (not a full sentence)
+3. Start each line with "• "
+4. Include ONLY these types of facts (if data available):
+   - Employee count + revenue (e.g., "21 employees, ~$23.0M revenue")
+   - Founded year (e.g., "Founded in 1958")
+   - Location with zip (e.g., "Based in Phoenix, AZ (85027)")
+   - Core specialty (e.g., "Specializes in post-tensioned concrete and hydrogrid fast-drying courts")
+   - Recent acquisition or notable news (e.g., "Acquired by AstroTurf Corporation (Feb 11, 2025)")
+5. Maximum 5 bullets. Skip any category with no data.
 
-Example format:
-• [Company] is a [industry] company specializing in [core offering].
-• They serve [customer segment] with [key differentiators].
-• Based in [location], serving [geographic scope].
-• [Size] operation with [revenue] revenue; founded in [year].
-• Notable: [any achievements, social presence, or recent news].
-
-Generate the Must Knows bullet points now:`;
+Generate the bullet points now:`;
 
     console.log("Generating Must Knows for lead:", leadId);
 
@@ -123,7 +115,7 @@ Generate the Must Knows bullet points now:`;
         messages: [
           {
             role: "system",
-            content: "You are a professional B2B sales researcher. Generate concise, factual bullet points for quick lead qualification.",
+            content: "You output ONLY bullet points with short fact fragments. No prose. No full sentences. No 'what they do' summaries.",
           },
           { role: "user", content: prompt },
         ],
