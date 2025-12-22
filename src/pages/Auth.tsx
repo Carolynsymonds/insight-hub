@@ -27,23 +27,30 @@ const Auth = () => {
   const inviteToken = searchParams.get("invite");
 
   useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // Listen FIRST so we don't miss auth events during initialization
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        // Defer side-effects; never block the auth callback
+        setTimeout(() => {
+          supabase.functions
+            .invoke("log-activity", {
+              body: { action: "login" },
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            })
+            .catch((error) => console.error("Failed to log activity:", error));
+        }, 0);
+
         navigate("/");
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Log login activity - use token directly from event session
-        try {
-          await supabase.functions.invoke("log-activity", {
-            body: { action: "login" },
-          });
-        } catch (error) {
-          console.error("Failed to log activity:", error);
-        }
+    // THEN check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         navigate("/");
       }
     });
