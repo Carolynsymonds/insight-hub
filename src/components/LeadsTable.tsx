@@ -1079,6 +1079,8 @@ const LeadsTable = ({
           variant: (!validationResult.success || (!validationData?.is_valid_domain && !validationData?.is_parked)) ? "destructive" : "default"
         });
 
+        // Refresh so the VALID/INVALID/PARKED badge appears immediately while pipeline continues
+        onEnrichComplete();
         // Only continue with scoring if domain is valid and not parked
         if (validationData?.is_valid_domain && !validationData?.is_parked) {
           // Step 3: Find Coordinates
