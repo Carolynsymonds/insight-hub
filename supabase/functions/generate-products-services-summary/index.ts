@@ -59,31 +59,25 @@ serve(async (req) => {
       contextParts.push(`Recent News (look for product/service mentions): ${news}`);
     }
 
-const prompt = `Based on the following company information, generate a Products & Services summary as bullet points.
+const prompt = `Based on the following company information, create a clean categorized list of products and services.
 
 ${contextParts.join("\n\n")}
 
-STRUCTURE YOUR RESPONSE AS BULLET POINTS COVERING:
-• Core Offerings - What the company sells or delivers (primary focus)
-• Specialties/Expertise - What differentiates them from competitors
-• Customer Segment - Who they serve (if apparent from data)
-• Notable Capabilities - Any special capabilities, methods, or technologies (if mentioned)
-
-RULES:
-- Use bullet points with the • character
-- Each bullet should be concise (under 15 words per bullet)
-- Format: "• [Category]: [specific details]"
-- Include 3-5 bullets total
+FORMAT RULES:
+- Each line is a category followed by comma-separated items
+- Format: "Category: Item1, Item2, Item3"
+- NO paragraphs. NO sentences. NO bullet points.
+- NO repetition across categories
 - Only include categories where you have actual data
-- Do NOT write paragraphs or full sentences
-- Do NOT invent or assume services not mentioned in the source data
-- Do NOT include any introductory text, just the bullets
+- Maximum 4-5 categories
 
-Example output:
-• Core Offerings: Commercial and residential roofing installation, repairs, maintenance
-• Specialties: Emergency repairs, storm damage restoration, metal roofing systems
-• Customer Segment: Homeowners, commercial property managers, contractors
-• Notable Capabilities: 24/7 emergency response, certified installers`;
+EXAMPLE OUTPUT:
+Facilities: Tennis, Pickleball, Basketball, Tracks, Lacrosse, Soccer
+Construction Methods: Post-tensioned concrete, Hydrogrid systems
+Surfacing: Latex, Polyurethane, Synthetic Turf, AstroTurf
+Services: Fencing, Lighting, Striping, Maintenance
+
+Generate the categorized list now:`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -96,7 +90,7 @@ Example output:
         messages: [
           {
             role: "system",
-            content: "You are a professional business analyst who writes clear, accurate product and service descriptions based on provided company data. You never invent information not present in the source data.",
+            content: "You output ONLY clean categorized lists. No paragraphs. No sentences. No bullet points. Format: Category: Item1, Item2, Item3",
           },
           { role: "user", content: prompt },
         ],

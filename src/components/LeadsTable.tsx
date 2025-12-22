@@ -5500,24 +5500,22 @@ const LeadsTable = ({
                   <span className="font-semibold text-sm">Products & Services</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.products_services_summary ? <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.products_services_summary}</p> : <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Generate a professional summary of the company's products and services,
-                        including core offerings, specialties, and customer segments.
-                      </p>
-                      <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateProductsSummary(descriptionModalLead)} disabled={generatingProductsSummary || !descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry} className="w-full">
-                        {generatingProductsSummary ? <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </> : <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Products Summary
-                          </>}
-                      </Button>
-                      {!descriptionModalLead?.products_services && !descriptionModalLead?.description && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive">
-                          Products/services, description, or industry data required. Run "Enrich with Apollo + Scrape Website" first.
-                        </p>}
-                    </div>}
+                  {descriptionModalLead?.products_services_summary ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed mb-3">{descriptionModalLead.products_services_summary}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Turn products & services into a clean categorized list. No paragraphs.
+                    </p>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateProductsSummary(descriptionModalLead)} disabled={generatingProductsSummary} className="w-full">
+                    {generatingProductsSummary ? <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </> : <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {descriptionModalLead?.products_services_summary ? 'Regenerate Products List' : 'Generate Products List'}
+                      </>}
+                  </Button>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
