@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface InvitationRequest {
   email: string;
+  role?: "user" | "client";
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -61,10 +62,18 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    const { email }: InvitationRequest = await req.json();
+    const { email, role = "user" }: InvitationRequest = await req.json();
 
     if (!email) {
       return new Response(JSON.stringify({ error: "Email is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Validate role - only allow "user" or "client" via invitation (not admin)
+    if (role !== "user" && role !== "client") {
+      return new Response(JSON.stringify({ error: "Invalid role. Must be 'user' or 'client'" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -107,6 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
         invited_by: user.id,
         invitation_token: token,
         status: "pending",
+        role: role,
       })
       .select()
       .single();

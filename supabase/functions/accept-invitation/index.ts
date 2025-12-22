@@ -77,12 +77,13 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Assign user role
+    // Assign user role from invitation (default to "user" if not specified)
+    const assignedRole = invitation.role || "user";
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
         user_id: user_id,
-        role: "user",
+        role: assignedRole,
       });
 
     if (roleError) {

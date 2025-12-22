@@ -4,6 +4,13 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,6 +62,7 @@ interface PendingInvitation {
   expires_at: string;
   status: string;
   invitation_token: string;
+  role: string;
 }
 
 export function AdminDashboard() {
@@ -65,6 +73,7 @@ export function AdminDashboard() {
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"user" | "client">("user");
   const [inviting, setInviting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -121,7 +130,7 @@ export function AdminDashboard() {
       if (!session) throw new Error("Not authenticated");
 
       const response = await supabase.functions.invoke("send-invitation", {
-        body: { email: inviteEmail.trim().toLowerCase() },
+        body: { email: inviteEmail.trim().toLowerCase(), role: inviteRole },
       });
 
       if (response.error) {
@@ -134,10 +143,11 @@ export function AdminDashboard() {
 
       toast({
         title: "Invitation Sent",
-        description: `An invitation has been sent to ${inviteEmail}`,
+        description: `An invitation has been sent to ${inviteEmail} as ${inviteRole}`,
       });
 
       setInviteEmail("");
+      setInviteRole("user");
       fetchUsers();
     } catch (error: any) {
       toast({
@@ -170,6 +180,9 @@ export function AdminDashboard() {
   const getRoleBadge = (role: string) => {
     if (role === "admin") {
       return <Badge className="bg-[#0F0F4B]/20 text-[#0F0F4B] border-[#0F0F4B]/30"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
+    }
+    if (role === "client") {
+      return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30">Client</Badge>;
     }
     return <Badge variant="secondary">User</Badge>;
   };
@@ -282,6 +295,18 @@ export function AdminDashboard() {
                 disabled={inviting}
               />
             </div>
+            <div className="w-32">
+              <Label htmlFor="invite-role" className="sr-only">Role</Label>
+              <Select value={inviteRole} onValueChange={(value: "user" | "client") => setInviteRole(value)} disabled={inviting}>
+                <SelectTrigger id="invite-role">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="submit" disabled={inviting || !inviteEmail.trim()}>
               {inviting ? (
                 <>
@@ -316,6 +341,7 @@ export function AdminDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Invite Link</TableHead>
                   <TableHead>Invited</TableHead>
                   <TableHead>Expires</TableHead>
@@ -329,6 +355,7 @@ export function AdminDashboard() {
                   return (
                     <TableRow key={invitation.id}>
                       <TableCell className="font-medium">{invitation.email}</TableCell>
+                      <TableCell>{getRoleBadge(invitation.role || "user")}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
