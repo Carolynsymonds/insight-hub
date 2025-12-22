@@ -1346,19 +1346,6 @@ const Index = () => {
             <h3 className="text-lg font-semibold border-b pb-2">Company Statistics</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Valid Domains */}
-              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-600 dark:text-green-400">Valid Domains</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.valid}</p>
-                <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
-                  {stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(1) : 0}% of total
-                  {stats.validSocials > 0 && (
-                    <span className="ml-2">• {stats.validSocials} with valid socials</span>
-                  )}
-                </p>
-              </div>
-
-
               {/* Invalid Leads */}
               <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
                 <p className="text-sm text-red-600 dark:text-red-400">Invalid Leads</p>
