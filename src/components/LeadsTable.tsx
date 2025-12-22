@@ -1690,7 +1690,15 @@ const LeadsTable = ({
           company_industry: lead.company_industry,
           zipcode: lead.zipcode,
           dma: lead.dma,
-          domain: lead.domain
+          domain: lead.domain,
+          email_domain_validated: lead.email_domain_validated,
+          match_score: lead.match_score,
+          facebook: lead.facebook,
+          facebook_validated: lead.facebook_validated,
+          linkedin: lead.linkedin,
+          linkedin_validated: lead.linkedin_validated,
+          instagram: lead.instagram,
+          instagram_validated: lead.instagram_validated
         }
       });
       if (error) throw error;
