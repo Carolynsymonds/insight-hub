@@ -1636,7 +1636,7 @@ const Index = () => {
             className="flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#14124E] text-[#14124E] bg-white transition hover:bg-[#14124E] hover:text-white cursor-pointer"
             onClick={() => handleCategorySelect(category.name)}
           >
-            <span className="font-medium text-lg">{category.name}</span>
+                    <span className="font-medium text-sm">{category.name}</span>
             <span className="text-sm">{count} leads</span>
           </div>
         ))}
