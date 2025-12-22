@@ -610,7 +610,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                                 checked={selectedTruckTypes.includes(type)}
                                 onChange={(e) => handleTruckTypeChange(type, e.target.checked)}
                                 disabled={loading}
-                                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                className="h-4 w-4 rounded-none border-primary text-primary focus:ring-primary"
                               />
                               <Label htmlFor={`truck-${type}`} className="text-sm font-normal cursor-pointer">
                                 {type}
@@ -630,7 +630,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                                 checked={selectedFeatures.includes(feature)}
                                 onChange={(e) => handleFeatureChange(feature, e.target.checked)}
                                 disabled={loading}
-                                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                className="h-4 w-4 rounded-none border-primary text-primary focus:ring-primary"
                               />
                               <Label htmlFor={`feature-${feature}`} className="text-sm font-normal cursor-pointer">
                                 {feature}

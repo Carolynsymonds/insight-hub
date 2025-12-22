@@ -7,16 +7,25 @@ interface DashboardLayoutProps {
   activeView: string;
   onViewChange: (view: string) => void;
   selectedCategory?: string | null;
+  categoryLeadCount?: number;
 }
 
-export function DashboardLayout({ children, activeView, onViewChange, selectedCategory }: DashboardLayoutProps) {
+export function DashboardLayout({ children, activeView, onViewChange, selectedCategory, categoryLeadCount }: DashboardLayoutProps) {
   const getHeaderText = () => {
     if (activeView === "statistics") return "Statistics";
     if (activeView === "admin") return "Admin dashboard";
     if (activeView === "home") {
-      return selectedCategory ? selectedCategory : "Select a Category";
+      return null; // We'll show category info next to the sidebar trigger
     }
     return "Add Leads";
+  };
+
+  const getCategoryDisplay = () => {
+    if (activeView === "home" && selectedCategory) {
+      const countText = categoryLeadCount !== undefined ? ` (${categoryLeadCount} leads)` : '';
+      return `${selectedCategory}${countText}`;
+    }
+    return null;
   };
 
   return (
@@ -26,9 +35,16 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
         <SidebarInset className="flex-1 overflow-hidden">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">
-              {getHeaderText()}
-            </h1>
+            {getCategoryDisplay() && (
+              <span className="text-lg font-semibold">
+                {getCategoryDisplay()}
+              </span>
+            )}
+            {getHeaderText() && (
+              <h1 className="text-xl font-semibold">
+                {getHeaderText()}
+              </h1>
+            )}
           </header>
           <main className="flex-1 overflow-auto p-6">
             {children}

@@ -169,7 +169,7 @@ export function AdminDashboard() {
 
   const getRoleBadge = (role: string) => {
     if (role === "admin") {
-      return <Badge className="bg-purple-500/20 text-purple-600 border-purple-500/30"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
+      return <Badge className="bg-[#0F0F4B]/20 text-[#0F0F4B] border-[#0F0F4B]/30"><Shield className="h-3 w-3 mr-1" />Admin</Badge>;
     }
     return <Badge variant="secondary">User</Badge>;
   };
@@ -249,7 +249,7 @@ export function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-purple-500" />
+            <Shield className="h-4 w-4 text-[#0F0F4B]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{users.filter(u => u.role === "admin").length}</div>
