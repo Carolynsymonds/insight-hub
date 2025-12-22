@@ -1054,27 +1054,17 @@ const LeadsTable = ({
         // Step 2: Validate Domain
         setPipelineStep('Validating Domain...');
         
-        const { data: validationData, error: validationError } = await supabase.functions.invoke("validate-domain", {
-          body: { domain: updatedLead.domain }
-        });
+        const currentLogs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs : [];
+        const validationResult = await validateAndSaveDomain(
+          lead.id,
+          updatedLead.domain,
+          updatedLead.source_url,
+          undefined,
+          currentLogs
+        );
 
-        // Log domain validation result
-        if (!validationError && validationData) {
-          const validationLog = {
-            step: 'validate_domain',
-            domain: updatedLead.domain,
-            is_valid: validationData.is_valid_domain,
-            is_parked: validationData.is_parked,
-            reason: validationData.reason,
-            http_status: validationData.http_status,
-            timestamp: new Date().toISOString()
-          };
-          
-          const currentLogs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs : [];
-          await supabase.from("leads").update({
-            email_domain_validated: validationData.is_valid_domain,
-            enrichment_logs: [...currentLogs, validationLog]
-          }).eq("id", lead.id);
+        let validationData = validationResult.data;
+        if (validationResult.success) {
           setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
         }
 
@@ -1308,6 +1298,61 @@ const LeadsTable = ({
     }
   };
 
+  // Unified domain validation function - used by button AND pipeline
+  const validateAndSaveDomain = async (
+    leadId: string,
+    domain: string,
+    sourceUrl?: string,
+    confidence?: number,
+    currentLogs?: any[]
+  ): Promise<{ success: boolean; data?: any; error?: any }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-domain", {
+        body: { domain }
+      });
+
+      if (error) throw error;
+
+      // Create validation log entry
+      const validationLog = {
+        step: 'validate_domain',
+        domain,
+        is_valid: data.is_valid_domain,
+        is_parked: data.is_parked,
+        reason: data.reason,
+        http_status: data.http_status,
+        timestamp: new Date().toISOString()
+      };
+
+      // Build update object
+      const updateData: any = {
+        domain,
+        source_url: sourceUrl || domain,
+        email_domain_validated: data.is_valid_domain,
+        enrichment_status: "enriched",
+        match_score: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? 25 : 0),
+        match_score_source: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? "parked_domain" : "invalid_domain"),
+        enrichment_logs: [...(currentLogs || []), validationLog]
+      };
+
+      if (confidence !== undefined) {
+        updateData.enrichment_confidence = data.is_valid_domain ? confidence : 0;
+      }
+
+      const { error: updateError } = await supabase
+        .from("leads")
+        .update(updateData)
+        .eq("id", leadId);
+
+      if (updateError) throw updateError;
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("Domain validation error:", error);
+      return { success: false, error };
+    }
+  };
+
   const handleCheckDomain = async (lead: Lead) => {
     if (!lead.domain) {
       toast({
@@ -1319,31 +1364,23 @@ const LeadsTable = ({
     }
     setCheckingDomain(lead.id);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke("validate-domain", {
-        body: {
-          domain: lead.domain
-        }
-      });
-      if (error) throw error;
+      const currentLogs = Array.isArray(lead.enrichment_logs) ? lead.enrichment_logs : [];
+      const result = await validateAndSaveDomain(
+        lead.id,
+        lead.domain,
+        lead.source_url || lead.domain,
+        lead.enrichment_confidence || undefined,
+        currentLogs
+      );
 
-      // Update the lead with validation result
-      const {
-        error: updateError
-      } = await supabase.from("leads").update({
-        email_domain_validated: data.is_valid_domain,
-        match_score: data.is_valid_domain && !data.is_parked ? lead.match_score : (data.is_parked ? 25 : 0),
-        match_score_source: data.is_valid_domain && !data.is_parked ? lead.match_score_source : (data.is_parked ? "parked_domain" : "invalid_domain")
-      }).eq("id", lead.id);
-      if (updateError) throw updateError;
+      if (!result.success) throw result.error;
+
       toast({
-        title: data.is_parked 
+        title: result.data.is_parked 
           ? "Domain Parked/For Sale" 
-          : (data.is_valid_domain ? "Domain Valid ✓" : "Domain Invalid ✗"),
-        description: data.reason,
-        variant: data.is_parked ? "default" : (data.is_valid_domain ? "default" : "destructive")
+          : (result.data.is_valid_domain ? "Domain Valid ✓" : "Domain Invalid ✗"),
+        description: result.data.reason,
+        variant: result.data.is_parked ? "default" : (result.data.is_valid_domain ? "default" : "destructive")
       });
       onEnrichComplete();
     } catch (error: any) {
@@ -3209,31 +3246,23 @@ const LeadsTable = ({
                                                           e.stopPropagation();
                                                           setCheckingDomain(lead.id);
                                                           try {
-                                                            const { data, error } = await supabase.functions.invoke("validate-domain", {
-                                                              body: { domain: mostRecentLog.domain }
-                                                            });
-                                                            if (error) throw error;
+                                                            const currentLogs = Array.isArray(lead.enrichment_logs) ? lead.enrichment_logs : [];
+                                                            const result = await validateAndSaveDomain(
+                                                              lead.id,
+                                                              mostRecentLog.domain,
+                                                              mostRecentLog.sourceUrl || mostRecentLog.domain,
+                                                              mostRecentLog.confidence,
+                                                              currentLogs
+                                                            );
                                                             
-                                                            // Update the lead with the validation result
-                                                            // Parked domains are valid but flagged
-                                                            const { error: updateError } = await supabase.from("leads").update({
-                                                              domain: mostRecentLog.domain,
-                                                              source_url: mostRecentLog.sourceUrl || mostRecentLog.domain,
-                                                              email_domain_validated: data.is_valid_domain,
-                                                              enrichment_confidence: data.is_valid_domain ? mostRecentLog.confidence : 0,
-                                                              enrichment_status: "enriched",
-                                                              match_score: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? 25 : 0),
-                                                              match_score_source: data.is_valid_domain && !data.is_parked ? null : (data.is_parked ? "parked_domain" : "invalid_domain")
-                                                            }).eq("id", lead.id);
-                                                            
-                                                            if (updateError) throw updateError;
+                                                            if (!result.success) throw result.error;
                                                             
                                                             toast({
-                                                              title: data.is_parked 
+                                                              title: result.data.is_parked 
                                                                 ? "Domain Parked/For Sale" 
-                                                                : (data.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
-                                                              description: data.reason || (data.is_valid_domain ? "Domain validated successfully" : "Domain validation failed"),
-                                                              variant: data.is_parked ? "default" : (data.is_valid_domain ? "default" : "destructive")
+                                                                : (result.data.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
+                                                              description: result.data.reason || (result.data.is_valid_domain ? "Domain validated successfully" : "Domain validation failed"),
+                                                              variant: result.data.is_parked ? "default" : (result.data.is_valid_domain ? "default" : "destructive")
                                                             });
                                                             onEnrichComplete();
                                                           } catch (err) {
@@ -3246,7 +3275,7 @@ const LeadsTable = ({
                                                           } finally {
                                                             setCheckingDomain(null);
                                                           }
-                                                        }} 
+                                                        }}
                                                         disabled={checkingDomain === lead.id}
                                                         className="w-full select-none mt-2"
                                                       >
