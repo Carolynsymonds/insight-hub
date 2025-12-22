@@ -60,6 +60,30 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Assign user role from invitation FIRST (most critical step)
+    const assignedRole = invitation.role || "user";
+    console.log(`Assigning role '${assignedRole}' to user ${user_id} from invitation ${invitation.id}`);
+    
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .insert({
+        user_id: user_id,
+        role: assignedRole,
+      });
+
+    if (roleError) {
+      console.error("Error assigning role:", roleError);
+      // If role already exists, it's okay - continue
+      if (roleError.code !== "23505") {
+        return new Response(JSON.stringify({ error: "Failed to assign role" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    } else {
+      console.log(`Successfully assigned role '${assignedRole}' to user ${user_id}`);
+    }
+
     // Update invitation status
     const { error: updateError } = await supabaseAdmin
       .from("user_invitations")
@@ -71,24 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating invitation:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to accept invitation" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    // Assign user role from invitation (default to "user" if not specified)
-    const assignedRole = invitation.role || "user";
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({
-        user_id: user_id,
-        role: assignedRole,
-      });
-
-    if (roleError) {
-      console.error("Error assigning role:", roleError);
-      // Don't fail - the user is created, role can be fixed manually
+      // Don't fail - the role is already assigned
     }
 
     // Log activity
@@ -97,7 +104,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         user_id: user_id,
         action: "signup",
-        metadata: { invitation_id: invitation.id },
+        metadata: { invitation_id: invitation.id, role: assignedRole },
       });
 
     if (activityError) {
