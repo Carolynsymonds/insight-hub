@@ -87,7 +87,6 @@ const Index = () => {
   const [statsCategoryFilter, setStatsCategoryFilter] = useState<string | null>(null);
   const [expandedValidSocials, setExpandedValidSocials] = useState(false);
   const [expandedValidLeads, setExpandedValidLeads] = useState(false);
-  const [expandedValidLeadsSocials, setExpandedValidLeadsSocials] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     valid: 0,
@@ -100,14 +99,9 @@ const Index = () => {
       linkedin: 0
     },
     validLeads: 0,
-    validLeadsWithDomain: 0,
-    validLeadsWithBoth: 0,
-    validLeadsWithSocialsOnly: 0,
-    validLeadsSocialsBreakdown: {
-      facebook: 0,
-      instagram: 0,
-      linkedin: 0
-    },
+    validByScore: 0,
+    hasValidatedSocials: 0,
+    overlapBoth: 0,
     invalidNoDomainNoSocials: 0,
     diagnosisCounts: {} as Record<string, number>,
     contactsTotal: 0,
@@ -159,46 +153,26 @@ const Index = () => {
           linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
         };
         
-        // Valid Leads: leads with ≥50% match score OR validated socials (URL must exist)
-        const validLeads = filteredData.filter(lead => 
-          (lead.match_score !== null && lead.match_score >= 50) ||
-          (lead.facebook && lead.facebook_validated === true) ||
-          (lead.linkedin && lead.linkedin_validated === true) ||
-          (lead.instagram && lead.instagram_validated === true)
+        // Valid by score (≥50)
+        const validByScore = filteredData.filter(lead => 
+          lead.match_score !== null && lead.match_score >= 50
         ).length;
-        
-        // Valid Leads breakdown
-        const validLeadsWithDomain = filteredData.filter(lead => 
-          lead.domain && 
-          (lead.match_score !== null && lead.match_score >= 50)
+
+        // Has validated socials (at least one _validated = true)
+        const hasValidatedSocials = filteredData.filter(lead => 
+          lead.facebook_validated === true || 
+          lead.linkedin_validated === true || 
+          lead.instagram_validated === true
         ).length;
-        
-        const validLeadsWithBoth = filteredData.filter(lead => 
-          lead.domain && 
+
+        // Overlap - leads that have BOTH conditions
+        const overlapBoth = filteredData.filter(lead => 
           (lead.match_score !== null && lead.match_score >= 50) &&
-          (lead.facebook || lead.instagram || lead.linkedin)
+          (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
         ).length;
-        
-        const validLeadsWithSocialsOnly = filteredData.filter(lead => 
-          !lead.domain &&
-          (lead.facebook || lead.instagram || lead.linkedin)
-        ).length;
-        
-        // Socials breakdown for valid leads
-        const validLeadsSocialsBreakdown = {
-          facebook: filteredData.filter(lead => 
-            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-            lead.facebook
-          ).length,
-          instagram: filteredData.filter(lead => 
-            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-            lead.instagram
-          ).length,
-          linkedin: filteredData.filter(lead => 
-            (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-            lead.linkedin
-          ).length
-        };
+
+        // Total valid = validByScore + hasValidatedSocials - overlapBoth (inclusion-exclusion)
+        const validLeads = validByScore + hasValidatedSocials - overlapBoth;
         
         // Invalid: match_score < 50 AND no validated socials
         const invalid = filteredData.filter(lead => 
@@ -261,10 +235,9 @@ const Index = () => {
           validSocials,
           validSocialsBreakdown,
           validLeads,
-          validLeadsWithDomain,
-          validLeadsWithBoth,
-          validLeadsWithSocialsOnly,
-          validLeadsSocialsBreakdown,
+          validByScore,
+          hasValidatedSocials,
+          overlapBoth,
           invalidNoDomainNoSocials,
           diagnosisCounts,
           contactsTotal,
@@ -345,46 +318,26 @@ const Index = () => {
         linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
       };
       
-      // Valid Leads: leads with ≥50% match score OR validated socials (URL must exist)
-      const validLeads = filteredData.filter(lead => 
-        (lead.match_score !== null && lead.match_score >= 50) ||
-        (lead.facebook && lead.facebook_validated === true) ||
-        (lead.linkedin && lead.linkedin_validated === true) ||
-        (lead.instagram && lead.instagram_validated === true)
+      // Valid by score (≥50)
+      const validByScore = filteredData.filter(lead => 
+        lead.match_score !== null && lead.match_score >= 50
       ).length;
-      
-      // Valid Leads breakdown
-      const validLeadsWithDomain = filteredData.filter(lead => 
-        lead.domain && 
-        (lead.match_score !== null && lead.match_score >= 50)
+
+      // Has validated socials (at least one _validated = true)
+      const hasValidatedSocials = filteredData.filter(lead => 
+        lead.facebook_validated === true || 
+        lead.linkedin_validated === true || 
+        lead.instagram_validated === true
       ).length;
-      
-      const validLeadsWithBoth = filteredData.filter(lead => 
-        lead.domain && 
+
+      // Overlap - leads that have BOTH conditions
+      const overlapBoth = filteredData.filter(lead => 
         (lead.match_score !== null && lead.match_score >= 50) &&
-        (lead.facebook || lead.instagram || lead.linkedin)
+        (lead.facebook_validated === true || lead.linkedin_validated === true || lead.instagram_validated === true)
       ).length;
-      
-      const validLeadsWithSocialsOnly = filteredData.filter(lead => 
-        !lead.domain &&
-        (lead.facebook || lead.instagram || lead.linkedin)
-      ).length;
-      
-      // Socials breakdown for valid leads
-      const validLeadsSocialsBreakdown = {
-        facebook: filteredData.filter(lead => 
-          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-          lead.facebook
-        ).length,
-        instagram: filteredData.filter(lead => 
-          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-          lead.instagram
-        ).length,
-        linkedin: filteredData.filter(lead => 
-          (!lead.domain || (lead.match_score !== null && lead.match_score >= 50)) &&
-          lead.linkedin
-        ).length
-      };
+
+      // Total valid = validByScore + hasValidatedSocials - overlapBoth (inclusion-exclusion)
+      const validLeads = validByScore + hasValidatedSocials - overlapBoth;
       
       // Invalid: match_score < 50 AND no validated socials
       const invalid = filteredData.filter(lead => 
@@ -447,10 +400,9 @@ const Index = () => {
         validSocials,
         validSocialsBreakdown,
         validLeads,
-        validLeadsWithDomain,
-        validLeadsWithBoth,
-        validLeadsWithSocialsOnly,
-        validLeadsSocialsBreakdown,
+        validByScore,
+        hasValidatedSocials,
+        overlapBoth,
         invalidNoDomainNoSocials,
         diagnosisCounts,
         contactsTotal,
@@ -1388,48 +1340,24 @@ const Index = () => {
               {expandedValidLeads && (
                 <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Valid Domains</span>
-                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithDomain}</span>
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Valid by score (≥50)</span>
+                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validByScore}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Both (Domain + Socials)</span>
-                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithBoth}</span>
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Has validated socials</span>
+                    <span className="font-semibold text-green-700 dark:text-green-300">{stats.hasValidatedSocials}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Socials Only</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsWithSocialsOnly}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 w-5 p-0"
-                        onClick={() => setExpandedValidLeadsSocials(!expandedValidLeadsSocials)}
-                      >
-                        {expandedValidLeadsSocials ? (
-                          <ChevronDown className="h-3 w-3" />
-                        ) : (
-                          <ChevronRight className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-600/80 dark:text-green-400/80">Overlap (both)</span>
+                    <span className="font-semibold text-green-700 dark:text-green-300">-{stats.overlapBoth}</span>
                   </div>
-                  
-                  {expandedValidLeadsSocials && (
-                    <div className="ml-4 mt-2 pt-2 border-t border-green-200/50 dark:border-green-800/50 space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-green-600/70 dark:text-green-400/70">Facebook</span>
-                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.facebook}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-green-600/70 dark:text-green-400/70">Instagram</span>
-                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.instagram}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-green-600/70 dark:text-green-400/70">LinkedIn</span>
-                        <span className="font-semibold text-green-700 dark:text-green-300">{stats.validLeadsSocialsBreakdown.linkedin}</span>
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-center pt-2 border-t border-green-200/50 dark:border-green-800/50">
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Total Valid</span>
+                    <span className="font-bold text-green-700 dark:text-green-300">{stats.validLeads}</span>
+                  </div>
+                  <div className="text-xs text-green-600/60 dark:text-green-400/60 text-center">
+                    {stats.validByScore} + {stats.hasValidatedSocials} - {stats.overlapBoth} = {stats.validLeads}
+                  </div>
                 </div>
               )}
             </div>
