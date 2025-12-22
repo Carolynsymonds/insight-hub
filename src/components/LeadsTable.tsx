@@ -5444,24 +5444,22 @@ const LeadsTable = ({
                   <span className="font-semibold text-sm">Key Insights</span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.must_knows ? <div className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.must_knows}</div> : <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Generate 4-6 quick bullet points summarizing key company facts for SDR briefings:
-                        who they are, what they do, how big they are, where they operate, and anything notable.
-                      </p>
-                      <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateMustKnows(descriptionModalLead)} disabled={generatingMustKnows || !descriptionModalLead?.company} className="w-full">
-                        {generatingMustKnows ? <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </> : <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Must Knows
-                          </>}
-                      </Button>
-                      {!descriptionModalLead?.company && <p className="text-xs text-destructive">
-                          Company name is required for Must Knows generation.
-                        </p>}
-                    </div>}
+                  {descriptionModalLead?.must_knows ? (
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed mb-3">{descriptionModalLead.must_knows}</div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Generate quick bullet points with key company facts: size, revenue, founded, location, specialty.
+                    </p>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateMustKnows(descriptionModalLead)} disabled={generatingMustKnows} className="w-full">
+                    {generatingMustKnows ? <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </> : <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {descriptionModalLead?.must_knows ? 'Regenerate Key Insights' : 'Generate Key Insights'}
+                      </>}
+                  </Button>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
