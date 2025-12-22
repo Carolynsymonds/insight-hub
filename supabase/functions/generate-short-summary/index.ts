@@ -11,7 +11,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, company, description, products_services, company_industry, zipcode, dma, domain } = await req.json();
+    const { 
+      leadId, 
+      company, 
+      description, 
+      products_services, 
+      company_industry, 
+      zipcode, 
+      dma, 
+      domain,
+      email_domain_validated,
+      match_score,
+      facebook,
+      facebook_validated,
+      linkedin,
+      linkedin_validated,
+      instagram,
+      instagram_validated
+    } = await req.json();
 
     if (!leadId) {
       return new Response(
@@ -36,6 +53,22 @@ Deno.serve(async (req) => {
 
     console.log(`Generating short summary for lead ${leadId}`);
     console.log(`Company: ${company}, Industry: ${company_industry}`);
+
+    // Build enrichment status info
+    const domainStatus = domain 
+      ? (email_domain_validated ? '✓ Valid domain found' : '○ Domain found (unvalidated)')
+      : '✗ No domain';
+    
+    const confidenceStatus = match_score !== null && match_score !== undefined
+      ? `${match_score}% confidence`
+      : 'No confidence score';
+
+    // Build social media status
+    const socials: string[] = [];
+    if (facebook) socials.push(facebook_validated ? '✓ Facebook' : '○ Facebook');
+    if (linkedin) socials.push(linkedin_validated ? '✓ LinkedIn' : '○ LinkedIn');
+    if (instagram) socials.push(instagram_validated ? '✓ Instagram' : '○ Instagram');
+    const socialStatus = socials.length > 0 ? socials.join(', ') : 'No socials found';
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -77,11 +110,14 @@ Requirements:
     }
 
     const data = await response.json();
-    const shortSummary = data.choices?.[0]?.message?.content?.trim();
+    const aiSummary = data.choices?.[0]?.message?.content?.trim();
 
-    if (!shortSummary) {
+    if (!aiSummary) {
       throw new Error('Empty response from AI');
     }
+
+    // Combine AI summary with enrichment status
+    const shortSummary = `${aiSummary}\n\n📊 ${domainStatus} | ${confidenceStatus}\n🔗 ${socialStatus}`;
 
     console.log(`Generated short summary: ${shortSummary.substring(0, 100)}...`);
 
