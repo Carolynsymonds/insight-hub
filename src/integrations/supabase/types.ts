@@ -445,6 +445,7 @@ export type Database = {
           invitation_token: string
           invited_at: string | null
           invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
           status: string | null
         }
         Insert: {
@@ -455,6 +456,7 @@ export type Database = {
           invitation_token: string
           invited_at?: string | null
           invited_by: string
+          role?: Database["public"]["Enums"]["app_role"]
           status?: string | null
         }
         Update: {
@@ -465,6 +467,7 @@ export type Database = {
           invitation_token?: string
           invited_at?: string | null
           invited_by?: string
+          role?: Database["public"]["Enums"]["app_role"]
           status?: string | null
         }
         Relationships: []
@@ -509,7 +512,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -637,7 +640,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "client"],
     },
   },
 } as const
