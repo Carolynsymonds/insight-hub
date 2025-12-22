@@ -5464,36 +5464,7 @@ const LeadsTable = ({
               </AccordionItem>
             </Accordion>
 
-            {/* 3. Detailed Company Profile - Closed */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="long-summary" className="border rounded-lg bg-background">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="font-semibold text-sm">Company Overview</span>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {descriptionModalLead?.long_summary ? <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.long_summary}</p> : <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Generate a rich 5-8 line company profile including founding history, 
-                        operations, scale, location, and notable achievements.
-                      </p>
-                      <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateLongSummary(descriptionModalLead)} disabled={generatingLongSummary || !descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry} className="w-full">
-                        {generatingLongSummary ? <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </> : <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generate Detailed Profile
-                          </>}
-                      </Button>
-                      {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive">
-                          Company details required. Run "Enrich with Apollo + Scrape Website" first.
-                        </p>}
-                    </div>}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* 4. Products & Services Summary - Closed */}
+            {/* 3. Products & Services Summary - Closed */}
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="products-summary" className="border rounded-lg bg-background">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -5518,6 +5489,35 @@ const LeadsTable = ({
                         {descriptionModalLead?.products_services_summary ? 'Regenerate Products List' : 'Generate Products List'}
                       </>}
                   </Button>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* 4. Detailed Company Profile - Closed */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="long-summary" className="border rounded-lg bg-background">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="font-semibold text-sm">Company Overview</span>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  {descriptionModalLead?.long_summary ? <p className="text-sm whitespace-pre-wrap leading-relaxed">{descriptionModalLead.long_summary}</p> : <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Generate a rich 5-8 line company profile including founding history, 
+                        operations, scale, location, and notable achievements.
+                      </p>
+                      <Button size="sm" variant="outline" onClick={() => descriptionModalLead && handleGenerateLongSummary(descriptionModalLead)} disabled={generatingLongSummary || !descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry} className="w-full">
+                        {generatingLongSummary ? <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </> : <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Detailed Profile
+                          </>}
+                      </Button>
+                      {!descriptionModalLead?.description && !descriptionModalLead?.products_services && !descriptionModalLead?.company_industry && <p className="text-xs text-destructive">
+                          Company details required. Run "Enrich with Apollo + Scrape Website" first.
+                        </p>}
+                    </div>}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
