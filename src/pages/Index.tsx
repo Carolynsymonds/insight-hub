@@ -1193,10 +1193,10 @@ const Index = () => {
     // Batch filter
     if (batchFilter !== 'all' && lead.upload_batch !== batchFilter) return false;
     
-    // Check if lead has validated socials
-    const hasValidatedSocials = (lead.facebook && lead.facebook_validated) || 
-                                 (lead.linkedin && lead.linkedin_validated) || 
-                                 (lead.instagram && lead.instagram_validated);
+    // Check if lead has validated socials (only check validated flag, not URL presence)
+    const hasValidatedSocials = lead.facebook_validated === true || 
+                                 lead.linkedin_validated === true || 
+                                 lead.instagram_validated === true;
     
     // Domain filter
     if (domainFilter === 'all') return true;
