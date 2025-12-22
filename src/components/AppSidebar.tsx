@@ -1,9 +1,10 @@
-import { Home, UserPlus, LogOut, BarChart3, Shield, Settings } from "lucide-react";
+import { Home, UserPlus, LogOut, BarChart3, Shield, Settings, Loader2 } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAdmin } from "@/hooks/useAdmin";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sidebar,
   SidebarContent,
@@ -81,18 +82,26 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    onClick={() => onViewChange(item.view)}
-                    isActive={activeView === item.view}
-                    className="cursor-pointer"
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {adminLoading ? (
+                <>
+                  <SidebarMenuItem><Skeleton className="h-8 w-full" /></SidebarMenuItem>
+                  <SidebarMenuItem><Skeleton className="h-8 w-full" /></SidebarMenuItem>
+                  <SidebarMenuItem><Skeleton className="h-8 w-full" /></SidebarMenuItem>
+                </>
+              ) : (
+                visibleMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      onClick={() => onViewChange(item.view)}
+                      isActive={activeView === item.view}
+                      className="cursor-pointer"
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
