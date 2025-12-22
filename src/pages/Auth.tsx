@@ -34,10 +34,16 @@ const Auth = () => {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        // Log login activity
-        logActivity("login");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Log login activity - use token directly from event session
+        try {
+          await supabase.functions.invoke("log-activity", {
+            body: { action: "login" },
+          });
+        } catch (error) {
+          console.error("Failed to log activity:", error);
+        }
         navigate("/");
       }
     });
