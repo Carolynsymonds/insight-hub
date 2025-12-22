@@ -48,25 +48,23 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a professional business writer. Generate a concise 2-3 line summary of what the business does and where it operates. Output ONLY the summary paragraph with no additional text, headers, or labels.'
+            content: 'You are a professional business writer. Generate ONE concise sentence that captures what the business does and why they are notable. Output ONLY the sentence with no additional text, headers, or labels.'
           },
           {
             role: 'user',
-            content: `Generate a 2-3 line summary for this company:
+            content: `Generate a single summary sentence for this company:
 
 Company Name: ${company || 'Unknown'}
 Industry: ${company_industry || 'Unknown'}
 Description: ${description || 'N/A'}
 Products/Services: ${products_services || 'N/A'}
-Zipcode: ${zipcode || 'N/A'}
-DMA (Region): ${dma || 'N/A'}
-Domain: ${domain || 'N/A'}
 
 Requirements:
-1. First sentence: What the business does (use industry/description/products info)
-2. Second sentence: Where they operate (use zipcode/DMA)
-3. Be factual and professional, no marketing language
-4. Keep it to 2-3 sentences maximum`
+1. ONE sentence only: "What they do + why they're notable/unique"
+2. DO NOT include: location, numbers, dates, founding year, acquisitions, revenue, employee count
+3. Focus on their specialty, expertise, or what makes them stand out
+4. Be factual and professional, no marketing fluff
+5. Example format: "[Company] designs and renovates high-performance athletic facilities, known for advanced court construction and fast-drying surfacing systems."`
           }
         ],
       }),
