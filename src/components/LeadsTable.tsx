@@ -1676,14 +1676,6 @@ const LeadsTable = ({
     }
   };
   const handleGenerateShortSummary = async (lead: Lead) => {
-    if (!lead.description && !lead.products_services && !lead.company_industry) {
-      toast({
-        title: "Cannot Generate",
-        description: "Company details are required. Run 'Enrich with Apollo + Scrape Website' first.",
-        variant: "destructive"
-      });
-      return;
-    }
     setGeneratingShortSummary(true);
     try {
       const {
