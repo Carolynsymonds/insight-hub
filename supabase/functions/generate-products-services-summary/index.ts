@@ -64,18 +64,20 @@ const prompt = `Based on the following company information, create a clean categ
 ${contextParts.join("\n\n")}
 
 FORMAT RULES:
-- Each line is a category followed by comma-separated items
-- Format: "Category: Item1, Item2, Item3"
+- Each line is a **bold category** followed by comma-separated items
+- Format: "**Category:** Item1, Item2, Item3"
+- Use markdown **bold** on category names
 - NO paragraphs. NO sentences. NO bullet points.
 - NO repetition across categories
 - Only include categories where you have actual data
 - Maximum 4-5 categories
 
 EXAMPLE OUTPUT:
-Facilities: Tennis, Pickleball, Basketball, Tracks, Lacrosse, Soccer
-Construction Methods: Post-tensioned concrete, Hydrogrid systems
-Surfacing: Latex, Polyurethane, Synthetic Turf, AstroTurf
-Services: Fencing, Lighting, Striping, Maintenance
+**Facilities:** Tennis, Pickleball, Basketball, Tracks, Lacrosse, Soccer
+**Construction Methods:** Post-tensioned concrete, Hydrogrid systems
+**Surfacing:** Latex, Polyurethane, Synthetic Turf, AstroTurf
+**Ancillary Services:** Fencing, Lighting, Striping, Maintenance
+**Project Types:** New construction, Renovation, Resurfacing
 
 Generate the categorized list now:`;
 
