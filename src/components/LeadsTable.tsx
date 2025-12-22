@@ -620,10 +620,12 @@ const LeadsTable = ({
       return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocial;
     }
     
-    // Invalid: match score is null or < 50 AND no socials validated
-    if (domainFilter === "invalid") {
-      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocial;
-    }
+      // Invalid: enriched but match score is null or < 50 AND no socials validated
+      // Exclude not-enriched leads (those should use the "not_enriched" filter)
+      if (domainFilter === "invalid") {
+        const isEnriched = lead.enriched_at !== null;
+        return isEnriched && (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocial;
+      }
     
     return true;
   }).sort((a, b) => {
