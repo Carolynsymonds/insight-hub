@@ -65,11 +65,6 @@ const DEFAULT_ROLES: Record<string, string[]> = {
     "IT Director",
     "Webmaster",
   ],
-  "Taking Payments": [
-    "Payment Operations Manager",
-    "Treasury Manager",
-    "Finance Director",
-  ],
   Utilities: [
     "Facilities Manager",
     "Utility Manager",

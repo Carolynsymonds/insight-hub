@@ -23,7 +23,6 @@ const CATEGORIES = [
   "Ecommerce",
   "Website",
   "Sales",
-  "Taking Payments",
   "Operations",
   "Finance",
   "Utilities",
