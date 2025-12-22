@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -2392,9 +2393,9 @@ const LeadsTable = ({
       setFetchingNews(null);
     }
   };
+  const navigate = useNavigate();
   const showLeadDetails = (lead: Lead) => {
-    setSelectedLead(lead);
-    setShowDetails(true);
+    navigate(`/company/${lead.id}`);
   };
   return <>
       {/* Bulk Delete Button - always visible when leads selected */}
