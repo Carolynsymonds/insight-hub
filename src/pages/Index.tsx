@@ -159,12 +159,12 @@ const Index = () => {
           linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
         };
         
-        // Valid Leads: leads with ≥50% match score OR validated socials
+        // Valid Leads: leads with ≥50% match score OR validated socials (URL must exist)
         const validLeads = filteredData.filter(lead => 
           (lead.match_score !== null && lead.match_score >= 50) ||
-          lead.facebook_validated === true ||
-          lead.linkedin_validated === true ||
-          lead.instagram_validated === true
+          (lead.facebook && lead.facebook_validated === true) ||
+          (lead.linkedin && lead.linkedin_validated === true) ||
+          (lead.instagram && lead.instagram_validated === true)
         ).length;
         
         // Valid Leads breakdown
@@ -345,12 +345,12 @@ const Index = () => {
         linkedin: filteredData.filter(lead => lead.linkedin_validated === true).length
       };
       
-      // Valid Leads: leads with ≥50% match score OR validated socials
+      // Valid Leads: leads with ≥50% match score OR validated socials (URL must exist)
       const validLeads = filteredData.filter(lead => 
         (lead.match_score !== null && lead.match_score >= 50) ||
-        lead.facebook_validated === true ||
-        lead.linkedin_validated === true ||
-        lead.instagram_validated === true
+        (lead.facebook && lead.facebook_validated === true) ||
+        (lead.linkedin && lead.linkedin_validated === true) ||
+        (lead.instagram && lead.instagram_validated === true)
       ).length;
       
       // Valid Leads breakdown
