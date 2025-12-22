@@ -75,7 +75,11 @@ const getStatusBadge = (status: StepResult['status']) => {
     case 'running':
       return <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Running</Badge>;
     case 'completed':
-      return <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px]">Found</Badge>;
+      return (
+        <div className="flex items-center justify-center h-5 w-5 rounded-full bg-green-100">
+          <Check className="h-3 w-3 text-green-600" />
+        </div>
+      );
     case 'not_found':
       return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">Not Found</Badge>;
     case 'skipped':
