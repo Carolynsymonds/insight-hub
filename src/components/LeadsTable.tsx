@@ -5418,7 +5418,9 @@ const LeadsTable = ({
             <div className="bg-muted/50 py-4 px-0 rounded-lg">
                 <h4 className="font-semibold text-sm mb-2">Short Summary</h4>
                 {descriptionModalLead?.short_summary ? (
-                  <p className="text-sm mb-3">{descriptionModalLead.short_summary}</p>
+                  <div className="text-sm mb-3 whitespace-pre-wrap" dangerouslySetInnerHTML={{ 
+                    __html: descriptionModalLead.short_summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                  }} />
                 ) : (
                   <p className="text-xs text-muted-foreground mb-3">
                     Generate a concise 2-3 line summary of what the business does and where it operates.

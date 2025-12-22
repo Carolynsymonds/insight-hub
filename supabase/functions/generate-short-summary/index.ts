@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a professional business writer. Generate ONE concise sentence that captures what the business does and why they are notable. Output ONLY the sentence with no additional text, headers, or labels.'
+            content: 'You are a professional business writer. Generate ONE concise sentence that captures what the business does and why they are notable. Use **bold** markdown formatting on key phrases (e.g., core services, specialties, differentiators). Output ONLY the sentence with no additional text, headers, or labels.'
           },
           {
             role: 'user',
@@ -94,10 +94,11 @@ Products/Services: ${products_services || 'N/A'}
 
 Requirements:
 1. ONE sentence only: "What they do + why they're notable/unique"
-2. DO NOT include: location, numbers, dates, founding year, acquisitions, revenue, employee count
-3. Focus on their specialty, expertise, or what makes them stand out
-4. Be factual and professional, no marketing fluff
-5. Example format: "[Company] designs and renovates high-performance athletic facilities, known for advanced court construction and fast-drying surfacing systems."`
+2. Use **bold** on 1-2 key phrases (core services, specialty, differentiator)
+3. DO NOT include: location, numbers, dates, founding year, acquisitions, revenue, employee count
+4. Focus on their specialty, expertise, or what makes them stand out
+5. Be factual and professional, no marketing fluff
+6. Example: "[Company] specializes in the **design, construction, and renovation** of high-performance athletic facilities, distinguished by their expertise in **advanced court systems**."`
           }
         ],
       }),
