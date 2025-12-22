@@ -3126,24 +3126,26 @@ const LeadsTable = ({
                                         {lead.enrichment_logs && lead.enrichment_logs.length > 0 ? <>
                                             {/* Group logs by source */}
                                             {(() => {
-                                      // Filter out social search sources - they belong in Socials Search section
+                                      // Filter out social search sources and validation step logs (they have 'step' instead of 'source')
                                       const socialSources = ["serpapi_facebook_search", "serpapi_linkedin_search", "serpapi_instagram_search"];
-                                      const logsBySource = lead.enrichment_logs.filter(log => !socialSources.includes(log.source)).reduce((acc, log) => {
-                                        // Normalize all email sources to a single "email" key
-                                        let groupKey = log.source;
-                                        if (log.source.startsWith("email_")) {
-                                          groupKey = "email";
-                                        } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
-                                          groupKey = "google";
-                                        } else if (log.source === "apollo_api") {
-                                          groupKey = "apollo";
-                                        }
-                                        if (!acc[groupKey]) {
-                                          acc[groupKey] = [];
-                                        }
-                                        acc[groupKey].push(log);
-                                        return acc;
-                                      }, {} as Record<string, EnrichmentLog[]>);
+                                      const logsBySource = lead.enrichment_logs
+                                        .filter(log => log.source && !socialSources.includes(log.source))
+                                        .reduce((acc, log) => {
+                                          // Normalize all email sources to a single "email" key
+                                          let groupKey = log.source;
+                                          if (log.source?.startsWith("email_")) {
+                                            groupKey = "email";
+                                          } else if (log.source === "google_knowledge_graph" || log.source === "google_local_results") {
+                                            groupKey = "google";
+                                          } else if (log.source === "apollo_api") {
+                                            groupKey = "apollo";
+                                          }
+                                          if (!acc[groupKey]) {
+                                            acc[groupKey] = [];
+                                          }
+                                          acc[groupKey].push(log);
+                                          return acc;
+                                        }, {} as Record<string, EnrichmentLog[]>);
                                       return Object.entries(logsBySource).map(([source, logs]) => {
                                         const mostRecentLog = logs[logs.length - 1]; // Get the most recent log (last in array)
                                         const sourceLabel = source === "apollo" ? "Apollo" : source === "google" ? "Google" : source === "email" ? "Email" : source;
