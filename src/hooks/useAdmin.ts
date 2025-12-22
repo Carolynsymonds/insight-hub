@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 export function useAdmin() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -12,27 +16,28 @@ export function useAdmin() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setIsAdmin(false);
+          setRole(null);
           setLoading(false);
           return;
         }
 
         setUserId(user.id);
 
-        // Check admin role using the security definer function
-        const { data, error } = await supabase.rpc("has_role", {
+        // Get user role
+        const { data: userRole, error: roleError } = await supabase.rpc("get_user_role", {
           _user_id: user.id,
-          _role: "admin",
         });
 
-        if (error) {
-          console.error("Error checking admin status:", error);
-          setIsAdmin(false);
+        if (roleError) {
+          console.error("Error getting user role:", roleError);
         } else {
-          setIsAdmin(data === true);
+          setRole(userRole as AppRole);
+          setIsAdmin(userRole === "admin");
         }
       } catch (error) {
         console.error("Error in admin check:", error);
         setIsAdmin(false);
+        setRole(null);
       } finally {
         setLoading(false);
       }
@@ -48,5 +53,5 @@ export function useAdmin() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { isAdmin, loading, userId };
+  return { isAdmin, loading, userId, role };
 }

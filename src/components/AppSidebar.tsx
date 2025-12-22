@@ -17,30 +17,37 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
+type AppRole = "admin" | "client" | "user";
+
+const menuItems: {
+  title: string;
+  icon: typeof Home;
+  view: string;
+  allowedRoles: AppRole[];
+}[] = [
   {
     title: "Home",
     icon: Home,
     view: "home",
-    adminOnly: false,
+    allowedRoles: ["admin", "client", "user"],
   },
   {
     title: "Add Leads",
     icon: UserPlus,
     view: "add-leads",
-    adminOnly: false,
+    allowedRoles: ["admin", "client"],
   },
   {
     title: "Statistics",
     icon: BarChart3,
     view: "statistics",
-    adminOnly: false,
+    allowedRoles: ["admin", "client", "user"],
   },
   {
     title: "Admin",
     icon: Shield,
     view: "admin",
-    adminOnly: true,
+    allowedRoles: ["admin"],
   },
 ];
 
@@ -52,15 +59,17 @@ interface AppSidebarProps {
 export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   const { open } = useSidebar();
   const navigate = useNavigate();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { role, loading: adminLoading } = useAdmin();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
-  // Filter menu items based on admin status
-  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || isAdmin);
+  // Filter menu items based on user role
+  const visibleMenuItems = menuItems.filter(item => 
+    role && item.allowedRoles.includes(role)
+  );
 
   return (
     <Sidebar collapsible="icon">
