@@ -1275,7 +1275,7 @@ const Index = () => {
         </div>
       </div>;
   }
-  return <DashboardLayout activeView={activeView} onViewChange={handleViewChange} selectedCategory={selectedCategory}>
+  return <DashboardLayout activeView={activeView} onViewChange={handleViewChange} selectedCategory={selectedCategory} categoryLeadCount={selectedCategory ? categoryCounts[selectedCategory] : undefined}>
       {activeView === "admin" ? (
         <AdminDashboard />
       ) : activeView === "statistics" ? (
