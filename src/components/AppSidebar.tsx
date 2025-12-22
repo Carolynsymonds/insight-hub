@@ -89,19 +89,28 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4 space-y-1">
-        <Button 
-          variant="ghost" 
-          onClick={() => onViewChange("settings")} 
-          className={`w-full justify-start ${activeView === "settings" ? "bg-muted" : ""}`}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          {open && <span>Settings</span>}
-        </Button>
-        <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
-          <LogOut className="mr-2 h-4 w-4" />
-          {open && <span>Logout</span>}
-        </Button>
+      <SidebarFooter className="border-t border-border p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => onViewChange("settings")}
+              isActive={activeView === "settings"}
+              className="cursor-pointer"
+            >
+              <Settings />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={handleLogout}
+              className="cursor-pointer"
+            >
+              <LogOut />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
