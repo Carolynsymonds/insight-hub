@@ -2969,6 +2969,7 @@ const LeadsTable = ({
                         setSelectedLead(lead);
                         setEnrichContactSteps(null);
                         setEnrichedContactResult(null);
+                        setPipelineCompleted({ domainValidated: false, socialsSearched: false });
                       }
                     }} dismissible={false}>
                             <DrawerTrigger asChild>
