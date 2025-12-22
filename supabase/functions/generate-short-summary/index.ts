@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a professional business writer. Generate ONE concise sentence that captures what the business does and why they are notable. Use **bold** markdown formatting on key phrases (e.g., core services, specialties, differentiators). Output ONLY the sentence with no additional text, headers, or labels.'
+            content: 'You are a professional business writer. Generate ONE sentence with **bold** markdown on 2-3 key phrases. ALWAYS use **double asterisks** to bold important terms like product types, services, or differentiators.'
           },
           {
             role: 'user',
@@ -101,13 +101,16 @@ Industry: ${company_industry || 'Unknown'}
 Description: ${description || 'N/A'}
 Products/Services: ${products_services || 'N/A'}
 
-Requirements:
-1. ONE sentence only: "What they do + why they're notable/unique"
-2. Use **bold** on 1-2 key phrases (core services, specialty, differentiator)
-3. DO NOT include: location, numbers, dates, founding year, acquisitions, revenue, employee count
-4. Focus on their specialty, expertise, or what makes them stand out
-5. Be factual and professional, no marketing fluff
-6. Example: "[Company] specializes in the **design, construction, and renovation** of high-performance athletic facilities, distinguished by their expertise in **advanced court systems**."`
+CRITICAL REQUIREMENTS:
+1. ONE sentence only: "What they do + why they're notable"
+2. MUST use **bold** on 2-3 key phrases (products, services, specialty)
+3. DO NOT include: location, numbers, dates, founding year, revenue, employee count
+4. Be factual and professional
+
+EXAMPLE OUTPUT (note the **bold** formatting):
+"Papa D's Bones provides a diverse selection of **natural chew treats for dogs**, including **smoked bones, raw bones, and antlers**, serving pet owners seeking premium natural products."
+
+Generate the sentence with bold formatting now:`
           }
         ],
       }),
