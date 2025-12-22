@@ -1358,41 +1358,6 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Valid Socials */}
-              <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Valid Socials</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => setExpandedValidSocials(!expandedValidSocials)}
-                  >
-                    {expandedValidSocials ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.validSocials}</p>
-                {expandedValidSocials && (
-                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">Facebook</span>
-                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.facebook}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">Instagram</span>
-                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.instagram}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">LinkedIn</span>
-                      <span className="font-semibold text-blue-700 dark:text-blue-300">{stats.validSocialsBreakdown.linkedin}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Invalid Leads */}
               <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
