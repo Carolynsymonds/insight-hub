@@ -3173,16 +3173,20 @@ const LeadsTable = ({
                                                           <Badge variant="outline" className="text-xs">
                                                             {lead.email_domain_validated === false && lead.domain === mostRecentLog.domain ? "0%" : `${mostRecentLog.confidence}%`} confidence
                                                           </Badge>
-                                                          {lead.email_domain_validated !== null && lead.domain === mostRecentLog.domain && <TooltipProvider>
+                                                          {(lead.email_domain_validated !== null || lead.match_score_source === "invalid_domain" || lead.match_score_source === "parked_domain") && lead.domain === mostRecentLog.domain && <TooltipProvider>
                                                               <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                   {lead.match_score_source === "parked_domain" ? (
                                                                     <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
                                                                       ⚠ PARKED
                                                                     </Badge>
+                                                                  ) : lead.match_score_source === "invalid_domain" || lead.email_domain_validated === false ? (
+                                                                    <Badge variant="destructive" className="text-xs">
+                                                                      ✗ INVALID
+                                                                    </Badge>
                                                                   ) : (
-                                                                    <Badge variant={lead.email_domain_validated ? "default" : "destructive"} className={`text-xs ${lead.email_domain_validated ? "bg-green-600 hover:bg-green-600" : ""}`}>
-                                                                      {lead.email_domain_validated ? "✓ VALID" : "✗ INVALID"}
+                                                                    <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-600">
+                                                                      ✓ VALID
                                                                     </Badge>
                                                                   )}
                                                                 </TooltipTrigger>
