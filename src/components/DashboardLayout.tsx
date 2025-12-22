@@ -20,14 +20,6 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
     return "Add Leads";
   };
 
-  const getCategoryDisplay = () => {
-    if (activeView === "home" && selectedCategory) {
-      const countText = categoryLeadCount !== undefined ? ` (${categoryLeadCount} leads)` : '';
-      return `${selectedCategory}${countText}`;
-    }
-    return null;
-  };
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -35,11 +27,6 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
         <SidebarInset className="flex-1 overflow-hidden">
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
             <SidebarTrigger />
-            {getCategoryDisplay() && (
-              <span className="text-lg font-semibold">
-                {getCategoryDisplay()}
-              </span>
-            )}
             {getHeaderText() && (
               <h1 className="text-xl font-semibold">
                 {getHeaderText()}
