@@ -1066,16 +1066,18 @@ const LeadsTable = ({
         let validationData = validationResult.data;
         if (validationResult.success) {
           setPipelineCompleted(prev => ({ ...prev, domainValidated: true }));
-          
-          // Show toast with domain validation result
-          toast({
-            title: validationData.is_parked 
-              ? "Domain Parked/For Sale" 
-              : (validationData.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
-            description: validationData.reason || (validationData.is_valid_domain ? "Domain validated successfully" : "Domain validation failed"),
-            variant: validationData.is_parked ? "default" : (validationData.is_valid_domain ? "default" : "destructive")
-          });
         }
+        
+        // Show toast with domain validation result (always show, success or failure)
+        toast({
+          title: !validationResult.success 
+            ? "Domain Invalid"
+            : validationData?.is_parked 
+              ? "Domain Parked/For Sale" 
+              : (validationData?.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
+          description: validationData?.reason || (!validationResult.success || !validationData?.is_valid_domain ? "Domain validation failed" : "Domain validated successfully"),
+          variant: (!validationResult.success || (!validationData?.is_valid_domain && !validationData?.is_parked)) ? "destructive" : "default"
+        });
 
         // Only continue with scoring if domain is valid and not parked
         if (validationData?.is_valid_domain && !validationData?.is_parked) {
