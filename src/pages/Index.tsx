@@ -28,9 +28,6 @@ const CATEGORIES = [{
   name: "Sales",
   icon: Briefcase
 }, {
-  name: "Taking Payments",
-  icon: CreditCard
-}, {
   name: "Operations",
   icon: SettingsIcon
 }, {
