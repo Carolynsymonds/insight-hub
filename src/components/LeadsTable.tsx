@@ -3553,41 +3553,6 @@ const LeadsTable = ({
                                               </div> : null;
                                   })()}
 
-                                        {/* Enrich with Apollo + Scrape Website Button - only show when domain is found and match_score >= 50% */}
-                                        {!isClientRole && lead.domain && (lead.match_score ?? 0) >= 50 && <div className="pt-4 border-t space-y-2">
-                                            {lead.enrichment_source === "apollo_api" && <p className="text-xs text-primary">
-                                                ✓ Domain found via Apollo - direct retrieval
-                                              </p>}
-                                            <Button size="sm" onClick={() => handleEnrichCompanyDetails(lead)} disabled={enrichingCompanyDetails === lead.id} className="w-full bg-[#0e0f4d] hover:bg-[#0e0f4d]/90">
-                                              {enrichingCompanyDetails === lead.id ? <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  {companyDetailsStep?.message || "Enriching..."}
-                                                </> : <>
-                                                  <Sparkles className="mr-2 h-4 w-4" />
-                                  Enrich with Apollo + Scrape Website
-                                                </>}
-                                            </Button>
-                                            {enrichingCompanyDetails !== lead.id && <p className="text-xs text-muted-foreground text-center">
-                                                Fetches: Size, Revenue, Industry, Description, Tech Stack, LinkedIn
-                                              </p>}
-                                            <Button size="sm" variant="outline" onClick={() => handleEnrichCompanyWithClay(lead)} disabled={enrichingCompanyWithClay === lead.id} className="w-full mt-2">
-                                              {enrichingCompanyWithClay === lead.id ? <>
-                                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                  Sending to Clay...
-                                                </> : <>
-                                                  <Sparkles className="mr-2 h-4 w-4" />
-                                                  Enrich with Clay
-                                                </>}
-                                            </Button>
-                                            {enrichingCompanyWithClay !== lead.id && <p className="text-xs text-muted-foreground text-center">
-                                                Sends domain to Clay for company enrichment
-                                              </p>}
-                                          </div>}
-                                        {!isClientRole && lead.domain && (lead.match_score === null || (lead.match_score ?? 0) < 50) && <div className="pt-4 border-t">
-                                            <p className="text-xs text-destructive/70 text-center">
-                                              {lead.match_score === null ? "Blocked: Match Score not calculated (run Calculate Match Score first)" : `Blocked: Match Score is ${lead.match_score}% (requires ≥50%)`}
-                                            </p>
-                                          </div>}
 
                                         {/* Find Domain - Combined Action - Hide for client role */}
                                         {!isClientRole && (
