@@ -89,74 +89,19 @@ function Tabs({ activeTab, onTabChange }: { activeTab: TabType; onTabChange: (ta
 }
 
 function SummaryTabContent({ lead }: { lead: Lead }) {
-  const getConfidenceScore = () => {
-    if (lead.enrichment_confidence !== null) {
-      return Math.round(lead.enrichment_confidence);
-    }
-    return null;
-  };
-
-  const formatDomain = () => {
-    if (!lead.domain) return null;
-    return lead.domain.startsWith('http') ? lead.domain : `https://${lead.domain}`;
-  };
 
   return (
-    <div className="mt-6 space-y-4">
-      <div>
-        {lead.short_summary ? (
-          <div 
-            className="text-sm text-neutral-600 leading-relaxed [&_a]:text-blue-600 [&_a]:hover:underline [&_strong]:font-semibold"
-            dangerouslySetInnerHTML={{ __html: lead.short_summary }}
-          />
-        ) : (
-          <p className="text-sm text-neutral-600 leading-relaxed">
-            {lead.description || <span className="text-neutral-400">No summary available</span>}
-          </p>
-        )}
-      </div>
-
-      {lead.domain && (
-        <div className="flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <a
-            href={formatDomain() || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:underline"
-          >
-            {lead.domain}
-          </a>
-          {getConfidenceScore() !== null && (
-            <span className="text-xs text-neutral-500">| {getConfidenceScore()}% confidence</span>
-          )}
-        </div>
+    <div className="mt-6">
+      {lead.short_summary ? (
+        <div 
+          className="text-sm text-neutral-600 leading-relaxed [&_a]:text-blue-600 [&_a]:hover:underline [&_strong]:font-semibold"
+          dangerouslySetInnerHTML={{ __html: lead.short_summary }}
+        />
+      ) : (
+        <p className="text-sm text-neutral-600 leading-relaxed">
+          {lead.description || <span className="text-neutral-400">No summary available</span>}
+        </p>
       )}
-
-      <div className="flex items-center gap-4 pt-2">
-        {lead.facebook ? (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-neutral-700">Facebook</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full border-2 border-neutral-300" />
-            <span className="text-sm text-neutral-500">Facebook</span>
-          </div>
-        )}
-        {lead.instagram ? (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-neutral-700">Instagram</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full border-2 border-neutral-300" />
-            <span className="text-sm text-neutral-500">Instagram</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
