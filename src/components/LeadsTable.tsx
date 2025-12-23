@@ -4006,7 +4006,7 @@ const LeadsTable = ({
                                               </p>
                                             </div>}
 
-                                          <Button size="sm" variant="default" className="w-full" disabled={calculatingMatchScore === lead.id} onClick={() => handleCalculateMatchScore(lead)}>
+                                          <Button size="sm" variant="default" className="w-full bg-[#0e0f4d] hover:bg-[#0e0f4d]/90" disabled={calculatingMatchScore === lead.id} onClick={() => handleCalculateMatchScore(lead)}>
                                             {calculatingMatchScore === lead.id ? <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                 Calculating...
