@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       const igUrl = instagram.startsWith('http') ? instagram : `https://${instagram}`;
       socials.push(`<a href="${igUrl}" target="_blank" rel="noopener noreferrer">${instagram_validated ? '✓' : '○'} Instagram</a>`);
     }
-    const socialStatus = socials.length > 0 ? socials.join(', ') : 'No socials found';
+    const socialStatus = socials.length > 0 ? socials.join(' &nbsp;•&nbsp; ') : 'No socials found';
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -129,8 +129,8 @@ Generate the sentence with bold formatting now:`
       throw new Error('Empty response from AI');
     }
 
-    // Combine AI summary with enrichment status (no emoji icons)
-    const shortSummary = `${aiSummary}\n\n${domainLink} | ${confidenceStatus}\n${socialStatus}`;
+    // Combine AI summary with enrichment status using HTML line breaks
+    const shortSummary = `${aiSummary}<br><br>${domainLink} &nbsp;|&nbsp; ${confidenceStatus}<br>${socialStatus}`;
 
     console.log(`Generated short summary: ${shortSummary.substring(0, 100)}...`);
 
