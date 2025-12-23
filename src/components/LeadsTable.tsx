@@ -3558,7 +3558,7 @@ const LeadsTable = ({
                                             {lead.enrichment_source === "apollo_api" && <p className="text-xs text-primary">
                                                 ✓ Domain found via Apollo - direct retrieval
                                               </p>}
-                                            <Button size="sm" onClick={() => handleEnrichCompanyDetails(lead)} disabled={enrichingCompanyDetails === lead.id} className="w-full">
+                                            <Button size="sm" onClick={() => handleEnrichCompanyDetails(lead)} disabled={enrichingCompanyDetails === lead.id} className="w-full bg-[#0e0f4d] hover:bg-[#0e0f4d]/90">
                                               {enrichingCompanyDetails === lead.id ? <>
                                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                   {companyDetailsStep?.message || "Enriching..."}
@@ -3592,7 +3592,7 @@ const LeadsTable = ({
                                         {/* Find Domain - Combined Action - Hide for client role */}
                                         {!isClientRole && (
                                         <div className="mb-4">
-                                          <Button size="sm" onClick={() => handleFindDomain(lead)} disabled={findingDomain === lead.id || !lead.company} className="w-full" variant="default">
+                                          <Button size="sm" onClick={() => handleFindDomain(lead)} disabled={findingDomain === lead.id || !lead.company} className="w-full bg-[#0e0f4d] hover:bg-[#0e0f4d]/90" variant="default">
                                             {findingDomain === lead.id ? <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                 {findDomainStep || "Finding Domain..."}
