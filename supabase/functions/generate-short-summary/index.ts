@@ -123,11 +123,14 @@ Generate the sentence with bold formatting now:`
     }
 
     const data = await response.json();
-    const aiSummary = data.choices?.[0]?.message?.content?.trim();
+    let aiSummary = data.choices?.[0]?.message?.content?.trim();
 
     if (!aiSummary) {
       throw new Error('Empty response from AI');
     }
+
+    // Convert markdown **bold** to HTML <strong> tags
+    aiSummary = aiSummary.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
     // Combine AI summary with enrichment status using HTML line breaks
     const shortSummary = `${aiSummary}<br><br>${domainLink} &nbsp;|&nbsp; ${confidenceStatus}<br>${socialStatus}`;
