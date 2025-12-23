@@ -89,16 +89,16 @@ function Tabs({ activeTab, onTabChange }: { activeTab: TabType; onTabChange: (ta
 }
 
 function SummaryTabContent({ lead }: { lead: Lead }) {
-
   return (
-    <div className="mt-6">
+    <div className="mt-6 space-y-4">
+      <h3 className="text-sm font-semibold text-[#0F0F4B]">Short Summary</h3>
       {lead.short_summary ? (
         <div 
-          className="text-sm text-neutral-600 leading-relaxed [&_a]:text-blue-600 [&_a]:hover:underline [&_strong]:font-semibold"
+          className="text-base text-[#0F0F4B] leading-relaxed [&_a]:text-[#0F0F4B] [&_a]:hover:underline [&_strong]:font-bold [&_br]:block [&_br]:mt-4"
           dangerouslySetInnerHTML={{ __html: lead.short_summary }}
         />
       ) : (
-        <p className="text-sm text-neutral-600 leading-relaxed">
+        <p className="text-base text-[#0F0F4B] leading-relaxed">
           {lead.description || <span className="text-neutral-400">No summary available</span>}
         </p>
       )}
