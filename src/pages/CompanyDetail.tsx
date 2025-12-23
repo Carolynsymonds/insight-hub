@@ -104,9 +104,16 @@ function SummaryTabContent({ lead }: { lead: Lead }) {
   return (
     <div className="mt-6 space-y-4">
       <div>
-        <p className="text-sm text-neutral-600 leading-relaxed">
-          {lead.short_summary || lead.description || <span className="text-neutral-400">No summary available</span>}
-        </p>
+        {lead.short_summary ? (
+          <div 
+            className="text-sm text-neutral-600 leading-relaxed [&_a]:text-blue-600 [&_a]:hover:underline [&_strong]:font-semibold"
+            dangerouslySetInnerHTML={{ __html: lead.short_summary }}
+          />
+        ) : (
+          <p className="text-sm text-neutral-600 leading-relaxed">
+            {lead.description || <span className="text-neutral-400">No summary available</span>}
+          </p>
+        )}
       </div>
 
       {lead.domain && (
