@@ -4970,10 +4970,12 @@ const LeadsTable = ({
                                                             {matchedContact.email}
                                                           </a>
                                                         </div>}
-                                                      <div className="flex justify-between">
-                                                        <span className="text-muted-foreground">Source</span>
-                                                        <span>{matchedContact.source === "apollo_people_search" ? "Apollo" : "Scraped"}</span>
-                                                      </div>
+                                                      {userRole === 'admin' && (
+                                                        <div className="flex justify-between">
+                                                          <span className="text-muted-foreground">Source</span>
+                                                          <span>{matchedContact.source === "apollo_people_search" ? "Apollo" : "Scraped"}</span>
+                                                        </div>
+                                                      )}
                                                     </div>
 
                                                     {/* Enrichment logs */}
