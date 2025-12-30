@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface Lead {
   id: string;
@@ -58,6 +59,7 @@ interface Lead {
 export default function PatientOverview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { role } = useAdmin();
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [keyInsightsOpen, setKeyInsightsOpen] = useState(false);
@@ -596,7 +598,7 @@ export default function PatientOverview() {
                                   LinkedIn
                                 </a>
                               )}
-                              {contact.source && (
+                              {contact.source && role === 'admin' && (
                                 <span className="text-gray-400">Source: {contact.source}</span>
                               )}
                             </div>
