@@ -635,7 +635,7 @@ const LeadsTable = ({
     return true;
   }).sort((a, b) => {
     // Apply sorting for contact and all views when showing valid leads
-    if (viewMode === 'contact' || viewMode === 'all') {
+    if (viewMode === 'contact' || viewMode === 'all' || viewMode === 'company') {
       // Check if leads have validated socials
       const aHasValidSocials = a.facebook_validated === true || 
                                a.linkedin_validated === true || 
