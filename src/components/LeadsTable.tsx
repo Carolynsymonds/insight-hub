@@ -634,10 +634,42 @@ const LeadsTable = ({
     
     return true;
   }).sort((a, b) => {
-    // Sort by name when in contact view
-    if (viewMode === 'contact') {
+    // Apply sorting for contact and all views when showing valid leads
+    if (viewMode === 'contact' || viewMode === 'all') {
+      // Check if leads have validated socials
+      const aHasValidSocials = a.facebook_validated === true || 
+                               a.linkedin_validated === true || 
+                               a.instagram_validated === true;
+      const bHasValidSocials = b.facebook_validated === true || 
+                               b.linkedin_validated === true || 
+                               b.instagram_validated === true;
+      
+      // Get match scores (treat null as -1 for sorting)
+      const aScore = a.match_score ?? -1;
+      const bScore = b.match_score ?? -1;
+      
+      // Primary: Sort by match score (descending - higher first)
+      // Leads with valid match score (>= 50) come first
+      const aHasValidScore = a.match_score !== null && a.match_score >= 50;
+      const bHasValidScore = b.match_score !== null && b.match_score >= 50;
+      
+      // Valid score leads first, then by score descending
+      if (aHasValidScore && !bHasValidScore) return -1;
+      if (!aHasValidScore && bHasValidScore) return 1;
+      
+      // If both have valid scores, sort by score descending
+      if (aHasValidScore && bHasValidScore) {
+        if (aScore !== bScore) return bScore - aScore;
+      }
+      
+      // Secondary: Among remaining leads, those with valid socials come first
+      if (aHasValidSocials && !bHasValidSocials) return -1;
+      if (!aHasValidSocials && bHasValidSocials) return 1;
+      
+      // Fallback: sort by name for consistency
       return (a.full_name || '').localeCompare(b.full_name || '');
     }
+    
     return 0;
   });
   const wasFoundViaGoogle = (logs: EnrichmentLog[] | null): boolean => {
