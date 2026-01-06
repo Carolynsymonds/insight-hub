@@ -1613,7 +1613,7 @@ serve(async (req) => {
     // Get existing lead data including current domain, confidence, and validation status
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source, email_domain_validated")
+      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source, email_domain_validated, source_url, enrichment_status")
       .eq("id", leadId)
       .single();
 
@@ -1687,8 +1687,19 @@ serve(async (req) => {
       updateData.enrichment_status = "failed";
       console.log(`No domain found, marking as failed`);
     } else {
-      // Preserve existing domain - just log this enrichment attempt
+      // Preserve existing domain - explicitly keep all domain-related fields
+      // This happens when new enrichment finds nothing but existing domain is valid
       console.log(`Preserving existing domain: ${existingDomain} (${existingConfidence}%) - new enrichment (${result.source}: ${result.confidence}%) not better`);
+      // Explicitly preserve domain fields to prevent them from being cleared
+      updateData.domain = existingDomain;
+      updateData.source_url = existingLead?.source_url || null;
+      updateData.enrichment_source = existingLead?.enrichment_source || result.source;
+      updateData.enrichment_confidence = existingConfidence;
+      updateData.enrichment_status = existingLead?.enrichment_status || "enriched";
+      // Only update email_domain_validated if it's not already set
+      if (existingLead?.email_domain_validated !== undefined) {
+        updateData.email_domain_validated = existingLead.email_domain_validated;
+      }
     }
 
     // Add GPS coordinates if found (only from Google enrichment)

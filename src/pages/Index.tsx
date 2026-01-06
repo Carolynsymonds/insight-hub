@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { AccountSettings } from "@/components/AccountSettings";
+import { runPipelineForLead } from "@/lib/runPipeline";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -911,237 +912,32 @@ const Index = () => {
         }));
 
         try {
-          // PATH B: Contact enrichment - runs in parallel
-          const contactEnrichmentPromise = supabase.functions.invoke("enrich-contact", {
-            body: {
-              leadId: lead.id,
-              full_name: lead.full_name,
-              email: lead.email,
-              domain: lead.domain,
-              company: lead.company
-            }
-          });
-
-          // PATH A: Domain enrichment flow
-          setPipelineProgress(prev => ({ ...prev, currentStep: 'Finding Domain (1/9)...' }));
-
-          // Apollo
-          await supabase.functions.invoke("enrich-lead", {
-            body: {
-              leadId: lead.id,
-              company: lead.company,
-              city: lead.city,
-              state: lead.state,
-              mics_sector: lead.mics_sector,
-              email: lead.email,
-              source: "apollo"
-            }
-          });
-
-          // Google
-          await supabase.functions.invoke("enrich-lead", {
-            body: {
-              leadId: lead.id,
-              company: lead.company,
-              city: lead.city,
-              state: lead.state,
-              mics_sector: lead.mics_sector,
-              email: lead.email,
-              source: "google"
-            }
-          });
-
-          // Email
-          if (lead.email) {
-            await supabase.functions.invoke("enrich-lead", {
-              body: {
-                leadId: lead.id,
-                company: lead.company,
-                city: lead.city,
-                state: lead.state,
-                mics_sector: lead.mics_sector,
-                email: lead.email,
-                source: "email"
-              }
-            });
-          }
-
-          // Check if domain was found
-          const { data: updatedLead } = await supabase
-            .from("leads")
-            .select("domain, enrichment_logs, source_url")
-            .eq("id", lead.id)
-            .single();
-
-          const domainFound = !!updatedLead?.domain;
-
-          if (domainFound) {
-            // Step 2: Validate Domain
-            setPipelineProgress(prev => ({ ...prev, currentStep: 'Validating Domain (2/9)...' }));
-            const { data: validationData } = await supabase.functions.invoke("validate-domain", {
-              body: { domain: updatedLead.domain }
-            });
-
-            // Log domain validation result
-            if (validationData) {
-              const validationLog = {
-                step: 'validate_domain',
-                domain: updatedLead.domain,
-                is_valid: validationData.is_valid_domain,
-                is_parked: validationData.is_parked,
-                reason: validationData.reason,
-                http_status: validationData.http_status,
-                timestamp: new Date().toISOString()
+          await runPipelineForLead(lead, {
+            setPipelineStep: (step) => {
+              // Map step names to numbered format for bulk pipeline
+              const stepMap: Record<string, string> = {
+                'Finding Domain...': 'Finding Domain (1/9)...',
+                'Validating Domain...': 'Validating Domain (2/9)...',
+                'Finding Coordinates...': 'Finding Coordinates (3/9)...',
+                'Calculating Distance...': 'Calculating Distance (4/9)...',
+                'Scoring Domain Relevance...': 'Scoring Domain (5/9)...',
+                'Calculating Match Score...': 'Calculating Match Score (6/9)...',
+                'Enriching Company...': 'Enriching Company (7/9)...',
+                'Finding Contacts...': 'Finding Contacts (8/9)...',
+                'Getting News...': 'Getting News (9/9)...'
               };
-              
-              const currentLogs = Array.isArray(updatedLead?.enrichment_logs) ? updatedLead.enrichment_logs : [];
-              await supabase.from("leads").update({
-                email_domain_validated: validationData.is_valid_domain,
-                enrichment_logs: [...currentLogs, validationLog]
-              }).eq("id", lead.id);
-            } else if (validationData?.is_valid_domain) {
-              await supabase.from("leads").update({
-                email_domain_validated: validationData.is_valid_domain
-              }).eq("id", lead.id);
+              setPipelineProgress(prev => ({ 
+                ...prev, 
+                currentStep: step ? (stepMap[step] || step) : '' 
+              }));
+            },
+            toast: ({ title, description, variant }) => {
+              toast({ title, description, variant });
+            },
+            onEnrichComplete: () => {
+              // Optional: refresh leads if needed
             }
-
-            if (validationData?.is_valid_domain && !validationData?.is_parked) {
-              // Step 3: Find Coordinates
-              setPipelineProgress(prev => ({ ...prev, currentStep: 'Finding Coordinates (3/9)...' }));
-              await supabase.functions.invoke("find-company-coordinates", {
-                body: {
-                  leadId: lead.id,
-                  domain: updatedLead.domain,
-                  sourceUrl: updatedLead.source_url
-                }
-              });
-
-              const { data: leadWithCoords } = await supabase
-                .from("leads")
-                .select("latitude, longitude")
-                .eq("id", lead.id)
-                .single();
-
-              // Step 4: Calculate Distance
-              if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
-                setPipelineProgress(prev => ({ ...prev, currentStep: 'Calculating Distance (4/9)...' }));
-                await supabase.functions.invoke("calculate-distance", {
-                  body: {
-                    leadId: lead.id,
-                    city: lead.city,
-                    state: lead.state,
-                    zipcode: lead.zipcode,
-                    latitude: leadWithCoords.latitude,
-                    longitude: leadWithCoords.longitude
-                  }
-                });
-              }
-
-              // Step 5: Score Domain Relevance
-              setPipelineProgress(prev => ({ ...prev, currentStep: 'Scoring Domain (5/9)...' }));
-              await supabase.functions.invoke("score-domain-relevance", {
-                body: {
-                  leadId: lead.id,
-                  companyName: lead.company,
-                  domain: updatedLead.domain,
-                  city: lead.city,
-                  state: lead.state,
-                  dma: lead.dma
-                }
-              });
-
-              // Step 6: Calculate Match Score
-              setPipelineProgress(prev => ({ ...prev, currentStep: 'Calculating Match Score (6/9)...' }));
-              await supabase.functions.invoke("calculate-match-score", {
-                body: { leadId: lead.id }
-              });
-
-              const { data: leadWithScore } = await supabase
-                .from("leads")
-                .select("match_score, enrichment_source, apollo_not_found")
-                .eq("id", lead.id)
-                .single();
-
-              // Company enrichment only if match score > 50
-              if (leadWithScore?.match_score && leadWithScore.match_score > 50) {
-                const { data: { user } } = await supabase.auth.getUser();
-
-                setPipelineProgress(prev => ({ ...prev, currentStep: 'Enriching Company (7/9)...' }));
-                await supabase.functions.invoke("enrich-company-details", {
-                  body: {
-                    leadId: lead.id,
-                    domain: updatedLead.domain,
-                    enrichmentSource: leadWithScore.enrichment_source,
-                    apolloNotFound: leadWithScore.apollo_not_found
-                  }
-                });
-
-                setPipelineProgress(prev => ({ ...prev, currentStep: 'Finding Contacts (8/9)...' }));
-                await supabase.functions.invoke("find-company-contacts", {
-                  body: {
-                    leadId: lead.id,
-                    domain: updatedLead.domain,
-                    category: lead.category,
-                    userId: user?.id
-                  }
-                });
-
-                setPipelineProgress(prev => ({ ...prev, currentStep: 'Getting News (9/9)...' }));
-                await supabase.functions.invoke("get-company-news", {
-                  body: {
-                    leadId: lead.id,
-                    company: lead.company,
-                    domain: updatedLead.domain
-                  }
-                });
-              }
-            } else {
-              // Domain invalid or parked
-              await supabase.from("leads").update({
-                match_score: validationData?.is_parked ? 25 : 0,
-                match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
-              }).eq("id", lead.id);
-            }
-          } else {
-            // No domain found - search socials
-            setPipelineProgress(prev => ({ ...prev, currentStep: 'Searching Socials...' }));
-            await Promise.all([
-              supabase.functions.invoke("search-facebook-serper", {
-                body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-              }),
-              supabase.functions.invoke("search-linkedin-serper", {
-                body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-              }),
-              supabase.functions.invoke("search-instagram-serper", {
-                body: { leadId: lead.id, company: lead.company, city: lead.city, state: lead.state }
-              })
-            ]);
-
-            setPipelineProgress(prev => ({ ...prev, currentStep: 'Calculating Score...' }));
-            await supabase.functions.invoke("calculate-match-score", {
-              body: { leadId: lead.id }
-            });
-
-            setPipelineProgress(prev => ({ ...prev, currentStep: 'Diagnosing...' }));
-            await supabase.functions.invoke("diagnose-enrichment", {
-              body: {
-                leadId: lead.id,
-                leadData: {
-                  company: lead.company,
-                  city: lead.city,
-                  state: lead.state,
-                  zipcode: lead.zipcode,
-                  email: lead.email,
-                  mics_sector: lead.mics_sector,
-                  full_name: lead.full_name
-                },
-                enrichmentLogs: updatedLead?.enrichment_logs || []
-              }
-            });
-          }
-
-          // Wait for contact enrichment to complete
-          await contactEnrichmentPromise;
+          });
 
         } catch (leadError: any) {
           console.error(`Error processing lead ${lead.id}:`, leadError);
