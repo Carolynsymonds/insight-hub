@@ -1639,7 +1639,7 @@ serve(async (req) => {
     // Get existing lead data including current domain, confidence, and validation status
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source, email_domain_validated, source_url, enrichment_status")
+      .select("enrichment_logs, domain, enrichment_confidence, enrichment_source, email_domain_validated, source_url, enrichment_status, match_score, match_score_source")
       .eq("id", leadId)
       .single();
 
