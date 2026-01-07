@@ -382,8 +382,9 @@ Format: {"company": "...", "city": "...", "state": "..."}`
     const corrections: { field: string; original: string; corrected: string }[] = [];
 
     const correctedCompany = parsed.company || company;
-    const correctedCity = parsed.city === "N/A" ? city : (parsed.city || city);
-    const correctedState = parsed.state === "N/A" ? state : (parsed.state || state);
+    // If AI returns "N/A" or null, keep original value, but convert "N/A" strings to null for consistency
+    const correctedCity = parsed.city === "N/A" || parsed.city === null ? (city === "N/A" ? null : city) : (parsed.city || city);
+    const correctedState = parsed.state === "N/A" || parsed.state === null ? (state === "N/A" ? null : state) : (parsed.state || state);
 
     // Track corrections
     if (correctedCompany.toLowerCase() !== company.toLowerCase()) {
@@ -469,7 +470,10 @@ async function enrichWithGoogle(
     console.log("Step 0: No corrections needed");
   }
 
-  const locationPart = [searchCity, searchState].filter(Boolean).join(" ");
+  // Filter out "N/A" values and null/empty values when building location part
+  const locationPart = [searchCity, searchState]
+    .filter(val => val && val !== "N/A" && val.trim() !== "")
+    .join(" ");
 
   // STEP 1: Detailed search with company name, location, and MICS sector (if available)
   const micsPartStep1 = micsSector ? ` ${micsSector}` : "";
@@ -487,7 +491,9 @@ async function enrichWithGoogle(
   let finalSearchInformation: any = undefined;
 
   try {
+    console.log(`Starting Step 1 search with query: ${step1Query}`);
     const step1Result = await performGoogleSearch(step1Query, serpApiKey);
+    console.log(`Step 1 search completed. Domain found: ${step1Result.domain !== null}, source: ${step1Result.sourceType || 'none'}`);
 
     searchSteps.push({
       step: 1,
@@ -495,6 +501,7 @@ async function enrichWithGoogle(
       resultFound: step1Result.domain !== null,
       source: step1Result.sourceType || undefined,
     });
+    console.log(`Step 1 added to searchSteps. Total steps: ${searchSteps.length}`);
 
     if (step1Result.domain) {
       // Step 1 found a result
@@ -1154,6 +1161,25 @@ async function enrichWithGoogle(
     };
   } catch (error) {
     console.error("Error calling SerpAPI:", error);
+    console.error("Error details:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error(`Current searchSteps length: ${searchSteps.length}`);
+    console.error(`Step 1 query that failed: ${step1Query}`);
+
+    // Log which step failed and ensure Step 1 is logged even if it errors
+    if (searchSteps.length === 1) {
+      console.error("Error occurred during Step 1 (first Google search) - adding error step to log");
+      // Add a step to indicate the error
+      searchSteps.push({
+        step: "1",
+        query: step1Query,
+        resultFound: false,
+        source: "error",
+      });
+      console.error(`Added error step. New searchSteps length: ${searchSteps.length}`);
+    } else {
+      console.error(`Error occurred but searchSteps already has ${searchSteps.length} steps`);
+    }
 
     // Create error log
     const log: EnrichmentLog = {
@@ -1669,13 +1695,21 @@ serve(async (req) => {
         // Check if domain is parked
         if ("isParked" in result && result.isParked) {
           // Parked domain - valid but flagged
-          updateData.match_score = 25;
-          updateData.match_score_source = "parked_domain";
+          // Only set match_score if it hasn't been calculated yet (preserve calculated scores)
+          if (existingLead?.match_score_source !== "calculated") {
+            updateData.match_score = 25;
+            updateData.match_score_source = "parked_domain";
+          }
           console.log(`Domain is parked/for sale: ${"parkingIndicator" in result ? result.parkingIndicator : 'unknown'}`);
         } else if (result.domainValidated === false) {
-          // Invalid domain - set match score to 0
-          updateData.match_score = 0;
-          updateData.match_score_source = "invalid_domain";
+          // Invalid domain - only set match score to 0 if it hasn't been calculated yet
+          // Preserve calculated match scores (they may have been calculated before validation)
+          if (existingLead?.match_score_source !== "calculated") {
+            updateData.match_score = 0;
+            updateData.match_score_source = "invalid_domain";
+          } else {
+            console.log(`Domain invalid but preserving calculated match_score: ${existingLead?.match_score}`);
+          }
         }
       }
       

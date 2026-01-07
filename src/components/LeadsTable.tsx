@@ -1595,7 +1595,9 @@ const LeadsTable = ({
       if (error) throw error;
       toast({
         title: data.facebook ? "Facebook Found!" : "No Facebook Found",
-        description: data.facebook ? `Found with ${data.confidence}% confidence (${data.stepsExecuted} steps)` : `No Facebook page found after ${data.stepsExecuted} search steps`
+        description: data.facebook 
+          ? `Found with ${data.confidence || 0}% confidence${data.stepsExecuted != null ? ` (${data.stepsExecuted} steps)` : ''}` 
+          : `No Facebook page found${data.stepsExecuted != null ? ` after ${data.stepsExecuted} search steps` : ''}`
       });
       onEnrichComplete();
     } catch (error: any) {
@@ -1626,7 +1628,9 @@ const LeadsTable = ({
       if (error) throw error;
       toast({
         title: data.linkedin ? "LinkedIn Found!" : "No LinkedIn Found",
-        description: data.linkedin ? `Found with ${data.confidence}% confidence (${data.stepsExecuted} steps)` : `No LinkedIn page found after ${data.stepsExecuted} search steps`
+        description: data.linkedin 
+          ? `Found with ${data.confidence || 0}% confidence${data.stepsExecuted != null ? ` (${data.stepsExecuted} steps)` : ''}` 
+          : `No LinkedIn page found${data.stepsExecuted != null ? ` after ${data.stepsExecuted} search steps` : ''}`
       });
       onEnrichComplete();
     } catch (error: any) {
@@ -2674,7 +2678,7 @@ const LeadsTable = ({
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                               {(lead.match_score !== null || lead.email_domain_validated === false) && <Badge variant="outline" className="text-xs bg-white text-black border-border" onClick={e => e.stopPropagation()}>
-                                  {lead.email_domain_validated === false ? 0 : lead.match_score}%
+                                  {lead.match_score !== null ? `${lead.match_score}%` : '0%'}
                                 </Badge>}
                             </div> : lead.enrichment_logs && lead.enrichment_logs.length > 0 ? (() => {
                     const checkedSources = new Set<string>();
@@ -3240,7 +3244,7 @@ const LeadsTable = ({
                                                       </h4>
                                                       {mostRecentLog.domain && <div className="flex items-center gap-1">
                                                           <Badge variant="outline" className="text-xs">
-                                                            {lead.email_domain_validated === false && lead.domain === mostRecentLog.domain ? "0%" : `${mostRecentLog.confidence}%`} confidence
+                                                            {lead.email_domain_validated === false && lead.domain === mostRecentLog.domain && lead.match_score_source !== "calculated" ? "0%" : `${mostRecentLog.confidence}%`} confidence
                                                           </Badge>
                                                           {(lead.email_domain_validated !== null || lead.match_score_source === "invalid_domain" || lead.match_score_source === "parked_domain") && lead.domain === mostRecentLog.domain && <TooltipProvider>
                                                               <Tooltip>
