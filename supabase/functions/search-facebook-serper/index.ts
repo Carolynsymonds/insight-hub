@@ -39,6 +39,12 @@ const extractFacebookProfile = (url: string): string => {
       return `https://www.${normalizedHost}${urlObj.pathname}`;
     }
     
+    // Handle /pages/PageName/ID/ format - return full URL
+    if (pathParts[0] === "pages" && pathParts.length > 1) {
+      // Return the full URL with normalized host
+      return `https://www.${normalizedHost}${urlObj.pathname}`;
+    }
+    
     // Handle /p/PageName/ format (Facebook page URLs)
     if (pathParts[0] === "p" && pathParts.length > 1) {
       return `https://${normalizedHost}/p/${pathParts[1]}`;
