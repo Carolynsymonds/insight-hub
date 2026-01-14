@@ -1007,7 +1007,39 @@ const Index = () => {
       "Products & Services", "Contact Job Title", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
     ];
     
-    const rows = filteredLeads.map((lead) => {
+    // Sort leads to match table display order (high match score first)
+    const sortedLeads = [...filteredLeads].sort((a, b) => {
+      const aScore = a.match_score ?? -1;
+      const bScore = b.match_score ?? -1;
+      
+      // Leads with valid match score (>= 50) come first
+      const aHasValidScore = a.match_score !== null && a.match_score >= 50;
+      const bHasValidScore = b.match_score !== null && b.match_score >= 50;
+      
+      if (aHasValidScore && !bHasValidScore) return -1;
+      if (!aHasValidScore && bHasValidScore) return 1;
+      
+      // If both have valid scores, sort by score descending
+      if (aHasValidScore && bHasValidScore) {
+        if (aScore !== bScore) return bScore - aScore;
+      }
+      
+      // Check for validated socials
+      const aHasValidSocials = a.facebook_validated === true || 
+                               a.linkedin_validated === true || 
+                               a.instagram_validated === true;
+      const bHasValidSocials = b.facebook_validated === true || 
+                               b.linkedin_validated === true || 
+                               b.instagram_validated === true;
+      
+      if (aHasValidSocials && !bHasValidSocials) return -1;
+      if (!aHasValidSocials && bHasValidSocials) return 1;
+      
+      // Fallback: sort by name
+      return (a.full_name || '').localeCompare(b.full_name || '');
+    });
+    
+    const rows = sortedLeads.map((lead) => {
       // Parse contact_details to extract job title if available
       let contactJobTitle = "";
       if (lead.contact_details) {
