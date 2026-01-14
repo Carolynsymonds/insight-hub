@@ -1001,8 +1001,8 @@ const Index = () => {
 
   const handleExportCSV = () => {
     const headers = [
-      "Name", "Email", "Company", "ZIPCode", "DMA",
-      "Company Website", "Match Score", "Industry", "Company Revenue", "Company Size",
+      "Name", "Email", "Company", "Zipcode", "DMA",
+      "Company Website", "Company Match Score", "Industry", "Company Revenue", "Company Size",
       "Founded", "Company LinkedIn", "Company Facebook", "Company Summary", "Key Insights",
       "Products & Services", "Contact Job Title", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
     ];
