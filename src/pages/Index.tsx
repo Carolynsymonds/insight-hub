@@ -999,13 +999,13 @@ const Index = () => {
     return true;
   });
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
       "Company Website", "Company Match Score", "Industry", "Company Revenue", "Company Size",
       "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
-      "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact LinkedIn", 
-      "Contact Facebook", "Contact YouTube"
+      "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
+      "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
     ];
     
     // Sort leads to match table display order (high match score first)
@@ -1040,6 +1040,19 @@ const Index = () => {
       return (a.full_name || '').localeCompare(b.full_name || '');
     });
     
+    // Fetch clay enrichments for contact phone and summary
+    const leadIds = sortedLeads.map(l => l.id);
+    const { data: clayEnrichments } = await supabase
+      .from("clay_enrichments")
+      .select("lead_id, phone_clay, summary_clay")
+      .in("lead_id", leadIds.length > 0 ? leadIds : ['none']);
+    
+    // Create a map for quick lookup
+    const clayMap = new Map<string, { phone_clay: string | null; summary_clay: string | null }>();
+    clayEnrichments?.forEach(ce => {
+      clayMap.set(ce.lead_id, { phone_clay: ce.phone_clay, summary_clay: ce.summary_clay });
+    });
+
     const rows = sortedLeads.map((lead) => {
       // Parse contact_details to extract job title if available
       let contactJobTitle = "";
@@ -1053,6 +1066,9 @@ const Index = () => {
           contactJobTitle = "";
         }
       }
+      
+      // Get clay enrichment data for this lead
+      const clayData = clayMap.get(lead.id);
       
       // Format company contacts
       let companyContactsStr = "";
@@ -1096,6 +1112,8 @@ const Index = () => {
         lead.must_knows || "",
         lead.products_services_summary || lead.products_services || "",
         contactJobTitle,
+        clayData?.phone_clay || "",
+        clayData?.summary_clay || "",
         lead.contact_linkedin || "",
         lead.contact_facebook || "",
         lead.contact_youtube || "",
