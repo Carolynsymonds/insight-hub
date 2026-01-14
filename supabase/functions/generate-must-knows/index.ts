@@ -73,7 +73,27 @@ serve(async (req) => {
       instagram ? `Instagram: ${instagram}` : null,
     ].filter(Boolean).join("\n");
 
-    const newsSection = news ? `Recent News: ${news}` : "";
+    // Parse news JSON and extract formatted items
+    let formattedNews = "";
+    if (news) {
+      try {
+        const newsData = typeof news === 'string' ? JSON.parse(news) : news;
+        if (newsData.items && newsData.items.length > 0) {
+          formattedNews = newsData.items.map((item: any) => 
+            `- "${item.title}" (${item.source || 'Unknown'}, ${item.date || 'Unknown date'}): ${item.snippet || ''}`
+          ).join("\n");
+        }
+      } catch (e) {
+        // If parsing fails, use raw value if it's a meaningful string
+        if (typeof news === 'string' && news.length > 10) {
+          formattedNews = news;
+        }
+      }
+    }
+
+    const newsSection = formattedNews 
+      ? `Recent News Articles Found (evaluate relevance carefully):\n${formattedNews}` 
+      : "";
 
     const prompt = `Generate Key Insights for this company as SHORT bullet points.
 
@@ -97,8 +117,14 @@ STRICT RULES:
    - Founded year (e.g., "Founded in 1958")
    - Location with zip (e.g., "Based in Phoenix, AZ (85027)")
    - Core specialty (e.g., "Specializes in post-tensioned concrete and hydrogrid fast-drying courts")
-   - Recent acquisition or notable news (e.g., "Acquired by AstroTurf Corporation (Feb 11, 2025)")
+   - Recent acquisition or notable news ONLY if DIRECTLY about this specific company
 5. Maximum 5 bullets. Skip any category with no data.
+6. NEWS HANDLING - CRITICAL:
+   - ONLY include news if the article is DIRECTLY and SPECIFICALLY about "${company}" company
+   - IGNORE news that just happens to match keywords (e.g., "all seasons" tires when company is "All Seasons Landscaping")
+   - IGNORE generic industry news that doesn't mention the company by name
+   - If no news is directly relevant to this company, simply OMIT any news bullet entirely
+   - NEVER write "No relevant news found" - just skip the news bullet
 
 Generate the bullet points now:`;
 
