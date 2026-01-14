@@ -1003,8 +1003,9 @@ const Index = () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
       "Company Website", "Company Match Score", "Industry", "Company Revenue", "Company Size",
-      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Key Insights",
-      "Products & Services", "Contact Job Title", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
+      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
+      "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact LinkedIn", 
+      "Contact Facebook", "Contact YouTube"
     ];
     
     // Sort leads to match table display order (high match score first)
@@ -1053,6 +1054,28 @@ const Index = () => {
         }
       }
       
+      // Format company contacts
+      let companyContactsStr = "";
+      if (lead.company_contacts) {
+        try {
+          const contacts = typeof lead.company_contacts === 'string' 
+            ? JSON.parse(lead.company_contacts) 
+            : lead.company_contacts;
+          if (Array.isArray(contacts) && contacts.length > 0) {
+            companyContactsStr = contacts.map((c: any) => {
+              const parts = [];
+              if (c.name) parts.push(c.name);
+              if (c.title) parts.push(`(${c.title})`);
+              if (c.email) parts.push(c.email);
+              if (c.linkedin) parts.push(c.linkedin);
+              return parts.join(" ");
+            }).join(" | ");
+          }
+        } catch (e) {
+          companyContactsStr = "";
+        }
+      }
+
       return [
         lead.full_name || "",
         lead.email || "",
@@ -1068,6 +1091,8 @@ const Index = () => {
         lead.linkedin || "",
         lead.facebook || "",
         lead.long_summary || lead.short_summary || "",
+        companyContactsStr,
+        lead.news || "",
         lead.must_knows || "",
         lead.products_services_summary || lead.products_services || "",
         contactJobTitle,
