@@ -30,6 +30,9 @@ interface Lead {
   contact_instagram: string | null;
   contact_youtube: string | null;
   news: string | null;
+  must_knows: string | null;
+  products_services: string | null;
+  products_services_summary: string | null;
   company_contacts: Array<{
     id?: string;
     name?: string;
@@ -73,7 +76,7 @@ export default function PatientOverview() {
       
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, company, domain, company_industry, size, annual_revenue, description, short_summary, long_summary, logo_url, city, state, phone, email, founded_date, linkedin, facebook, instagram, contact_linkedin, contact_facebook, contact_youtube, news, company_contacts, contact_details")
+        .select("id, full_name, company, domain, company_industry, size, annual_revenue, description, short_summary, long_summary, logo_url, city, state, phone, email, founded_date, linkedin, facebook, instagram, contact_linkedin, contact_facebook, contact_youtube, news, company_contacts, contact_details, must_knows, products_services, products_services_summary")
         .eq("id", id)
         .single();
 
@@ -454,24 +457,18 @@ export default function PatientOverview() {
                 )}
               </div>
               {keyInsightsOpen && (
-                <ul className="space-y-2 text-sm text-[#0F0F4B]">
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>Divine is a small business selling clothing.</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>They are located in the Austin, TX DMA.</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>The owner, Cheryl Lynne, seems to operate the business, as Divine has a Facebook account under her name.</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span>Divine promotes their products via Instagram on the "dailytribnews" account.</span>
-                  </li>
-                </ul>
+                lead.must_knows ? (
+                  <ul className="space-y-2 text-sm text-[#0F0F4B]">
+                    {lead.must_knows.split('\n').filter(line => line.trim()).map((insight, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        <span>{insight.replace(/^[-•*]\s*/, '').trim()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500">No key insights available</p>
+                )
               )}
             </div>
             
@@ -489,16 +486,18 @@ export default function PatientOverview() {
                 )}
               </div>
               {productsServicesOpen && (
-                <ul className="space-y-2 text-sm text-[#0F0F4B]">
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span><strong>Core Offerings:</strong> Floral arrangements, gifts</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-2">•</span>
-                    <span><strong>Customer Segment:</strong> Local customers in La Junta, CO</span>
-                  </li>
-                </ul>
+                (lead.products_services_summary || lead.products_services) ? (
+                  <ul className="space-y-2 text-sm text-[#0F0F4B]">
+                    {(lead.products_services_summary || lead.products_services || '').split('\n').filter(line => line.trim()).map((item, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        <span dangerouslySetInnerHTML={{ __html: item.replace(/^[-•*]\s*/, '').trim() }} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500">No products & services information available</p>
+                )
               )}
             </div>
           </div>
