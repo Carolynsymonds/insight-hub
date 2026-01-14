@@ -1092,6 +1092,23 @@ const Index = () => {
         }
       }
 
+      // Format news for CSV
+      let newsStr = "";
+      if (lead.news) {
+        try {
+          const newsData = typeof lead.news === 'string' 
+            ? JSON.parse(lead.news) 
+            : lead.news;
+          if (newsData?.items && Array.isArray(newsData.items)) {
+            newsStr = newsData.items.map((item: any) => {
+              return `${item.title || ""} - ${item.source || ""} • ${item.date || ""}: ${item.snippet || ""}`;
+            }).join(" || ");
+          }
+        } catch (e) {
+          newsStr = "";
+        }
+      }
+
       return [
         lead.full_name || "",
         lead.email || "",
@@ -1108,7 +1125,7 @@ const Index = () => {
         lead.facebook || "",
         lead.long_summary || lead.short_summary || "",
         companyContactsStr,
-        lead.news || "",
+        newsStr,
         lead.must_knows || "",
         lead.products_services_summary || lead.products_services || "",
         contactJobTitle,
