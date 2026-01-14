@@ -999,46 +999,51 @@ const Index = () => {
     return true;
   });
 
-  const handleExportCompanyCSV = () => {
-    const headers = ["Company Name", "Domain", "Match Score", "City", "State", "Industry"];
-    const rows = filteredLeads.map((lead) => [
-      lead.company || "",
-      lead.domain || "",
-      lead.match_score !== null ? `${lead.match_score}%` : "",
-      lead.city || "",
-      lead.state || "",
-      lead.company_industry || "",
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `company-details-${new Date().toISOString().split("T")[0]}.csv`);
-    link.click();
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Export Complete",
-      description: `Exported ${filteredLeads.length} company details to CSV`,
+  const handleExportCSV = () => {
+    const headers = [
+      "Name", "Email", "Company", "ZIPCode", "DMA",
+      "Company Website", "Match Score", "Industry", "Company Revenue", "Company Size",
+      "Founded", "Company LinkedIn", "Company Facebook", "Company Summary", "Key Insights",
+      "Products & Services", "Contact Job Title", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
+    ];
+    
+    const rows = filteredLeads.map((lead) => {
+      // Parse contact_details to extract job title if available
+      let contactJobTitle = "";
+      if (lead.contact_details) {
+        try {
+          const details = typeof lead.contact_details === 'string' 
+            ? JSON.parse(lead.contact_details) 
+            : lead.contact_details;
+          contactJobTitle = details?.title || details?.job_title || "";
+        } catch (e) {
+          contactJobTitle = "";
+        }
+      }
+      
+      return [
+        lead.full_name || "",
+        lead.email || "",
+        lead.company || "",
+        lead.zipcode || "",
+        lead.dma || "",
+        lead.domain || "",
+        lead.match_score !== null ? `${lead.match_score}%` : "",
+        lead.company_industry || "",
+        lead.annual_revenue || "",
+        lead.size || "",
+        lead.founded_date || "",
+        lead.linkedin || "",
+        lead.facebook || "",
+        lead.long_summary || lead.short_summary || "",
+        lead.must_knows || "",
+        lead.products_services_summary || lead.products_services || "",
+        contactJobTitle,
+        lead.contact_linkedin || "",
+        lead.contact_facebook || "",
+        lead.contact_youtube || "",
+      ];
     });
-  };
-
-  const handleExportContactsCSV = () => {
-    const headers = ["Name", "Email", "Company", "LinkedIn", "City", "State"];
-    const rows = filteredLeads.map((lead) => [
-      lead.full_name || "",
-      lead.email || "",
-      lead.company || "",
-      lead.contact_linkedin || "",
-      lead.city || "",
-      lead.state || "",
-    ]);
 
     const csvContent = [
       headers.join(","),
@@ -1049,13 +1054,13 @@ const Index = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `contact-details-${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `leads-export-${new Date().toISOString().split("T")[0]}.csv`);
     link.click();
     URL.revokeObjectURL(url);
 
     toast({
       title: "Export Complete",
-      description: `Exported ${filteredLeads.length} contact details to CSV`,
+      description: `Exported ${filteredLeads.length} leads to CSV`,
     });
   };
 
@@ -1251,17 +1256,15 @@ const Index = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        Export CSV
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleExportCompanyCSV}>Export Company Details</DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleExportContactsCSV}>Export Contact Details</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={handleExportCSV}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
