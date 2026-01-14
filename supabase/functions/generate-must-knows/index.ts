@@ -12,23 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const {
-      leadId,
-      company,
-      company_industry,
-      mics_sector,
-      products_services,
-      size,
-      annual_revenue,
-      founded_date,
-      zipcode,
-      dma,
-      domain,
-      linkedin,
-      facebook,
-      instagram,
-      news,
-    } = await req.json();
+    const payload = await req.json();
+
+    const leadId = payload?.leadId as string | undefined;
 
     if (!leadId) {
       return new Response(JSON.stringify({ error: "leadId is required" }), {
@@ -47,52 +33,101 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Always fetch the latest lead data from the database to avoid missing fields in client payloads.
+    const { data: leadRow, error: leadFetchError } = await supabase
+      .from("leads")
+      .select(
+        "company, company_industry, mics_sector, products_services, size, annual_revenue, founded_date, zipcode, dma, domain, linkedin, facebook, instagram, news"
+      )
+      .eq("id", leadId)
+      .single();
+
+    if (leadFetchError) {
+      console.error("Lead fetch error:", leadFetchError);
+      throw leadFetchError;
+    }
+
+    const company = (payload?.company ?? leadRow?.company) as string | null | undefined;
+    const company_industry = (payload?.company_industry ?? leadRow?.company_industry) as
+      | string
+      | null
+      | undefined;
+    const mics_sector = (payload?.mics_sector ?? leadRow?.mics_sector) as string | null | undefined;
+    const products_services = (payload?.products_services ?? leadRow?.products_services) as
+      | string
+      | null
+      | undefined;
+    const size = (payload?.size ?? leadRow?.size) as string | null | undefined;
+    const annual_revenue = (payload?.annual_revenue ?? leadRow?.annual_revenue) as string | null | undefined;
+    const founded_date = (payload?.founded_date ?? leadRow?.founded_date) as string | null | undefined;
+    const zipcode = (payload?.zipcode ?? leadRow?.zipcode) as string | null | undefined;
+    const dma = (payload?.dma ?? leadRow?.dma) as string | null | undefined;
+    const domain = (payload?.domain ?? leadRow?.domain) as string | null | undefined;
+    const linkedin = (payload?.linkedin ?? leadRow?.linkedin) as string | null | undefined;
+    const facebook = (payload?.facebook ?? leadRow?.facebook) as string | null | undefined;
+    const instagram = (payload?.instagram ?? leadRow?.instagram) as string | null | undefined;
+    const news = (payload?.news ?? leadRow?.news) as unknown;
+
     // Build context sections
     const coreIdentity = [
       company ? `Company: ${company}` : null,
       company_industry ? `Industry: ${company_industry}` : null,
       mics_sector ? `Sector: ${mics_sector}` : null,
       products_services ? `Products/Services: ${products_services}` : null,
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const businessScale = [
       size ? `Size: ${size} employees` : null,
       annual_revenue ? `Revenue: ${annual_revenue}` : null,
       founded_date ? `Founded: ${founded_date}` : null,
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    const location = [
-      zipcode ? `Zipcode: ${zipcode}` : null,
-      dma ? `DMA/Region: ${dma}` : null,
-    ].filter(Boolean).join("\n");
+    const location = [zipcode ? `Zipcode: ${zipcode}` : null, dma ? `DMA/Region: ${dma}` : null]
+      .filter(Boolean)
+      .join("\n");
 
     const digitalPresence = [
       domain ? `Website: ${domain}` : null,
       linkedin ? `LinkedIn: ${linkedin}` : null,
       facebook ? `Facebook: ${facebook}` : null,
       instagram ? `Instagram: ${instagram}` : null,
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     // Parse news JSON and extract formatted items
     let formattedNews = "";
     if (news) {
       try {
-        const newsData = typeof news === 'string' ? JSON.parse(news) : news;
-        if (newsData.items && newsData.items.length > 0) {
-          formattedNews = newsData.items.map((item: any) => 
-            `- "${item.title}" (${item.source || 'Unknown'}, ${item.date || 'Unknown date'}): ${item.snippet || ''}`
-          ).join("\n");
+        const newsData: any = typeof news === "string" ? JSON.parse(news) : news;
+        const items = Array.isArray(newsData)
+          ? newsData
+          : Array.isArray(newsData?.items)
+            ? newsData.items
+            : Array.isArray(newsData?.news)
+              ? newsData.news
+              : [];
+
+        if (items.length > 0) {
+          formattedNews = items
+            .map((item: any) =>
+              `- "${item?.title ?? ""}" (${item?.source ?? item?.publisher ?? "Unknown"}, ${item?.date ?? item?.publishedAt ?? "Unknown date"}): ${item?.snippet ?? item?.summary ?? ""}`
+            )
+            .join("\n");
         }
-      } catch (e) {
-        // If parsing fails, use raw value if it's a meaningful string
-        if (typeof news === 'string' && news.length > 10) {
+      } catch (_e) {
+        if (typeof news === "string" && news.length > 10) {
           formattedNews = news;
         }
       }
     }
 
-    const newsSection = formattedNews 
-      ? `Recent News Articles Found (evaluate relevance carefully):\n${formattedNews}` 
+    const newsSection = formattedNews
+      ? `Recent News Articles Found (evaluate relevance carefully):\n${formattedNews}`
       : "";
 
     const prompt = `Generate Key Insights for this company as SHORT bullet points.
@@ -120,11 +155,11 @@ STRICT RULES:
    - Recent acquisition or notable news ONLY if DIRECTLY about this specific company
 5. Maximum 5 bullets. Skip any category with no data.
 6. NEWS HANDLING - CRITICAL:
-   - ONLY include news if the article is DIRECTLY and SPECIFICALLY about "${company}" company
-   - IGNORE news that just happens to match keywords (e.g., "all seasons" tires when company is "All Seasons Landscaping")
+   - ONLY include news if the article is DIRECTLY and SPECIFICALLY about "${company ?? "this company"}"
+   - IGNORE news that just happens to match keywords
    - IGNORE generic industry news that doesn't mention the company by name
-   - If no news is directly relevant to this company, simply OMIT any news bullet entirely
-   - NEVER write "No relevant news found" - just skip the news bullet
+   - If no news is directly relevant to this company, OMIT the news bullet entirely
+   - NEVER write "No relevant news found" / "No relevant recent news" / similar
 
 Generate the bullet points now:`;
 
@@ -137,11 +172,12 @@ Generate the bullet points now:`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
-            content: "You output ONLY bullet points with short fact fragments. No prose. No full sentences. No 'what they do' summaries.",
+            content:
+              "You output ONLY bullet points with short fact fragments. No prose. No full sentences. No 'what they do' summaries.",
           },
           { role: "user", content: prompt },
         ],
@@ -155,10 +191,28 @@ Generate the bullet points now:`;
     }
 
     const aiData = await response.json();
-    const mustKnows = aiData.choices?.[0]?.message?.content?.trim();
+    const rawMustKnows = (aiData.choices?.[0]?.message?.content as string | undefined)?.trim();
+
+    if (!rawMustKnows) {
+      throw new Error("No content generated from AI");
+    }
+
+    // Post-process to enforce rule compliance and remove forbidden "no news" bullets.
+    const mustKnows = rawMustKnows
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .filter((l) => !/(no\s+relevant\s+(recent\s+)?news|no\s+recent\s+news)/i.test(l))
+      .slice(0, 5)
+      .map((l) => {
+        const cleaned = l.replace(/^[-•*]\s*/, "").trim();
+        return cleaned ? `• ${cleaned}` : "";
+      })
+      .filter(Boolean)
+      .join("\n");
 
     if (!mustKnows) {
-      throw new Error("No content generated from AI");
+      throw new Error("AI output contained no valid bullet points");
     }
 
     console.log("Generated Must Knows:", mustKnows);
@@ -174,15 +228,14 @@ Generate the bullet points now:`;
       throw updateError;
     }
 
-    return new Response(
-      JSON.stringify({ success: true, must_knows: mustKnows }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, must_knows: mustKnows }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
     console.error("Error in generate-must-knows:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message || "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
