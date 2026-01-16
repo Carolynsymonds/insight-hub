@@ -153,9 +153,12 @@ serve(async (req) => {
     let parkingIndicator: string | null = null;
     let reason = '';
 
-    // Create abort controller with 10 second timeout
+    // Create abort controller with 15 second timeout (increased for slow sites)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    // Use a realistic browser User-Agent to avoid being blocked by WAFs
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
     try {
       const httpResponse = await fetch(`https://${domain}`, {
@@ -163,7 +166,9 @@ serve(async (req) => {
         redirect: 'manual',
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
+          'User-Agent': userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5'
         }
       });
       
@@ -229,7 +234,7 @@ serve(async (req) => {
           console.log(`[validate-domain] No parking markers in content, checking for JS redirects`);
           
           const followController = new AbortController();
-          const followTimeoutId = setTimeout(() => followController.abort(), 10000);
+          const followTimeoutId = setTimeout(() => followController.abort(), 15000);
           
           try {
             const followResponse = await fetch(`https://${domain}`, {
@@ -237,7 +242,9 @@ serve(async (req) => {
               redirect: 'follow',
               signal: followController.signal,
               headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
+                'User-Agent': userAgent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
               }
             });
             clearTimeout(followTimeoutId);
@@ -299,7 +306,7 @@ serve(async (req) => {
       
       // Try HTTP if HTTPS fails
       const fallbackController = new AbortController();
-      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 10000);
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 15000);
       
       try {
         console.log(`[validate-domain] Retrying with http://${domain}`);
@@ -308,7 +315,9 @@ serve(async (req) => {
           redirect: 'manual',
           signal: fallbackController.signal,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; DomainValidator/1.0)'
+            'User-Agent': userAgent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5'
           }
         });
         
@@ -356,9 +365,10 @@ serve(async (req) => {
       } catch (fallbackError) {
         clearTimeout(fallbackTimeoutId);
         console.log(`[validate-domain] HTTP fallback also failed:`, fallbackError);
-        // DNS valid but HTTP completely fails - domain might be inactive
-        isValid = false;
-        reason = 'Domain has valid DNS but HTTP connection failed. Domain may be inactive or blocking connections.';
+        // DNS is valid, so domain exists - mark as valid but note HTTP couldn't be verified
+        // Many legitimate sites block cloud/function IPs or have strict WAF rules
+        isValid = true;
+        reason = 'Domain has valid DNS but HTTP verification failed. Site may block automated requests or be temporarily unreachable. Domain likely exists.';
       }
     }
 
