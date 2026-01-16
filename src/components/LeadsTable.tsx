@@ -3245,7 +3245,27 @@ const LeadsTable = ({
                                                       </h4>
                                                       {mostRecentLog.domain && <div className="flex items-center gap-1">
                                                           <Badge variant="outline" className="text-xs">
-                                                            {lead.email_domain_validated === false && lead.domain === mostRecentLog.domain && lead.match_score_source !== "calculated" ? "0%" : `${mostRecentLog.confidence}%`} confidence
+                                                            {(() => {
+                                                              const validationLog = lead.enrichment_logs
+                                                                ?.slice()
+                                                                .reverse()
+                                                                .find((log: any) => (log as any).step === "validate_domain" && (log as any).domain === mostRecentLog.domain) as any;
+
+                                                              // If the domain is validated, don't confuse users with a 0% "source" confidence
+                                                              if (validationLog?.is_valid && mostRecentLog.confidence === 0) {
+                                                                return "Validated";
+                                                              }
+
+                                                              if (
+                                                                lead.email_domain_validated === false &&
+                                                                lead.domain === mostRecentLog.domain &&
+                                                                lead.match_score_source !== "calculated"
+                                                              ) {
+                                                                return "0% confidence";
+                                                              }
+
+                                                              return `${mostRecentLog.confidence}% confidence`;
+                                                            })()}
                                                           </Badge>
                                                           {(lead.email_domain_validated !== null || lead.match_score_source === "invalid_domain" || lead.match_score_source === "parked_domain") && lead.domain === mostRecentLog.domain && <TooltipProvider>
                                                               <Tooltip>
