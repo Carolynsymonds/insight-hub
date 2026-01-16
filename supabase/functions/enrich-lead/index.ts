@@ -1214,8 +1214,9 @@ async function enrichWithEmail(
 ): Promise<{ domain: string | null; sourceUrl: string | null; confidence: number; source: string; log: EnrichmentLog }> {
   const timestamp = new Date().toISOString();
 
-  // List of common personal email domains to skip
+  // List of common personal email domains and ISP domains to skip
   const PERSONAL_EMAIL_DOMAINS = [
+    // Free email providers
     "gmail.com",
     "yahoo.com",
     "hotmail.com",
@@ -1232,6 +1233,32 @@ async function enrichWithEmail(
     "yandex.com",
     "gmx.com",
     "fastmail.com",
+    "ymail.com",
+    // ISP / Internet Service Provider domains
+    "comcast.net",
+    "verizon.net",
+    "att.net",
+    "spectrum.net",
+    "cox.net",
+    "charter.net",
+    "earthlink.net",
+    "sbcglobal.net",
+    "bellsouth.net",
+    "metrocast.net",
+    "frontier.com",
+    "centurylink.net",
+    "windstream.net",
+    "optimum.net",
+    "rcn.com",
+    "mediacom.net",
+    "suddenlink.net",
+    "breezeline.com",
+    "xfinity.com",
+    "twc.com",
+    "roadrunner.com",
+    "embarqmail.com",
+    "cableone.net",
+    "atlanticbb.net",
   ];
 
   const searchSteps: EnrichmentLog["searchSteps"] = [];
