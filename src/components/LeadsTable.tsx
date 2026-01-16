@@ -347,6 +347,7 @@ const LeadsTable = ({
   const [findingDomain, setFindingDomain] = useState<string | null>(null);
   const [findDomainStep, setFindDomainStep] = useState<string | null>(null);
   const [checkingDomain, setCheckingDomain] = useState<string | null>(null);
+  const [revalidatingDomain, setRevalidatingDomain] = useState<string | null>(null);
   const [runningPipeline, setRunningPipeline] = useState<string | null>(null);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [pipelineCompleted, setPipelineCompleted] = useState<{ domainValidated: boolean; socialsSearched: boolean }>({ domainValidated: false, socialsSearched: false });
@@ -3525,9 +3526,69 @@ const LeadsTable = ({
                                                               {validationLog.http_status && (
                                                                 <p><span className="font-medium text-foreground">HTTP Status:</span> {validationLog.http_status}</p>
                                                               )}
-                                                              <p className="text-xs opacity-60 mt-2">
-                                                                {new Date(validationLog.timestamp).toLocaleString()}
-                                                              </p>
+                                                              <div className="flex items-center justify-between mt-2">
+                                                                <p className="text-xs opacity-60">
+                                                                  {new Date(validationLog.timestamp).toLocaleString()}
+                                                                </p>
+                                                                <Button
+                                                                  size="sm"
+                                                                  variant="outline"
+                                                                  className="h-6 text-xs"
+                                                                  disabled={revalidatingDomain === lead.id}
+                                                                  onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!lead.domain) return;
+                                                                    setRevalidatingDomain(lead.id);
+                                                                    try {
+                                                                      // Remove old validation logs, keep other logs
+                                                                      const currentLogs = Array.isArray(lead.enrichment_logs) 
+                                                                        ? lead.enrichment_logs.filter((log: any) => log.step !== 'validate_domain')
+                                                                        : [];
+                                                                      const result = await validateAndSaveDomain(
+                                                                        lead.id,
+                                                                        lead.domain,
+                                                                        lead.source_url || undefined,
+                                                                        lead.enrichment_confidence || undefined,
+                                                                        currentLogs
+                                                                      );
+                                                                      if (result.success) {
+                                                                        toast({
+                                                                          title: result.data?.is_parked 
+                                                                            ? "Domain Parked/For Sale" 
+                                                                            : (result.data?.is_valid_domain ? "Domain Valid" : "Domain Invalid"),
+                                                                          description: result.data?.reason || "Re-validation complete",
+                                                                          variant: result.data?.is_parked ? "default" : (result.data?.is_valid_domain ? "default" : "destructive")
+                                                                        });
+                                                                        onEnrichComplete();
+                                                                      } else {
+                                                                        toast({
+                                                                          title: "Re-validation Failed",
+                                                                          description: "Failed to re-validate domain. Please try again.",
+                                                                          variant: "destructive"
+                                                                        });
+                                                                      }
+                                                                    } catch (err) {
+                                                                      console.error("Re-validation error:", err);
+                                                                      toast({
+                                                                        title: "Re-validation Error",
+                                                                        description: "An error occurred during re-validation.",
+                                                                        variant: "destructive"
+                                                                      });
+                                                                    } finally {
+                                                                      setRevalidatingDomain(null);
+                                                                    }
+                                                                  }}
+                                                                >
+                                                                  {revalidatingDomain === lead.id ? (
+                                                                    <>
+                                                                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                                                      Validating...
+                                                                    </>
+                                                                  ) : (
+                                                                    "Re-validate"
+                                                                  )}
+                                                                </Button>
+                                                              </div>
                                                             </div>
                                                           </div>
                                                         ))}
