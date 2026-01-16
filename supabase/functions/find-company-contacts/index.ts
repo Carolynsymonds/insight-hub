@@ -60,6 +60,40 @@ Deno.serve(async (req) => {
     console.log(`Lead ID: ${leadId}`);
     console.log(`Domain: ${normalizedDomain}`);
     console.log(`Category: ${category || 'not specified'}`);
+
+    // List of common ISP/email provider domains that should be skipped
+    const ispDomains = [
+      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+      'icloud.com', 'me.com', 'mac.com', 'live.com', 'msn.com',
+      'comcast.net', 'verizon.net', 'att.net', 'spectrum.net', 'cox.net',
+      'charter.net', 'earthlink.net', 'sbcglobal.net', 'bellsouth.net',
+      'metrocast.net', 'frontier.com', 'centurylink.net', 'windstream.net',
+      'optimum.net', 'rcn.com', 'mediacom.net', 'suddenlink.net',
+      'protonmail.com', 'zoho.com', 'mail.com', 'ymail.com'
+    ];
+
+    // Check if domain is an ISP/email provider
+    if (ispDomains.some(isp => normalizedDomain.toLowerCase().includes(isp))) {
+      console.log(`Skipping contact search - domain appears to be ISP/email provider: ${normalizedDomain}`);
+      
+      // Update lead to indicate search was attempted but skipped
+      await supabase
+        .from('leads')
+        .update({ company_contacts: [] })
+        .eq('id', leadId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          contactsFound: 0,
+          usedFallback: false,
+          skipped: true,
+          reason: 'Domain is an ISP or email provider, not a company domain',
+          contacts: []
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     console.log(`User ID: ${userId || 'not specified'}`);
 
     // Base roles that apply to ALL categories
