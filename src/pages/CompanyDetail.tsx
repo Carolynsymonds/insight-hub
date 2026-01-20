@@ -488,12 +488,18 @@ export default function PatientOverview() {
               {productsServicesOpen && (
                 (lead.products_services_summary || lead.products_services) ? (
                   <ul className="space-y-2 text-sm text-[#0F0F4B]">
-                    {(lead.products_services_summary || lead.products_services || '').split('\n').filter(line => line.trim()).map((item, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span dangerouslySetInnerHTML={{ __html: item.replace(/^[-•*]\s*/, '').trim() }} />
-                      </li>
-                    ))}
+                        {(lead.products_services_summary || lead.products_services || '').split('\n').filter(line => line.trim()).map((item, index) => {
+                          // Remove leading bullets but preserve markdown asterisks for bold
+                          const cleanedItem = item.replace(/^[-•]\s*/, '').trim();
+                          // Convert markdown **bold** to HTML <strong>
+                          const htmlItem = cleanedItem.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                          return (
+                            <li key={index} className="flex items-start">
+                              <span className="mr-2">•</span>
+                              <span dangerouslySetInnerHTML={{ __html: htmlItem }} />
+                            </li>
+                          );
+                        })}
                   </ul>
                 ) : (
                   <p className="text-sm text-gray-500">No products & services information available</p>
