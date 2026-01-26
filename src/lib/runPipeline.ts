@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { attemptDomainFallback } from "./domainFallback";
 
 interface Lead {
   id: string;
@@ -294,15 +295,66 @@ export const runPipelineForLead = async (
       // Refresh so the VALID/INVALID/PARKED badge appears immediately while pipeline continues
       if (onEnrichComplete) onEnrichComplete();
       
+      // Track the current working domain (may change after fallback)
+      let workingDomain = updatedLead.domain;
+      let workingValidationData = validationData;
+      
+      // If domain is parked or invalid, attempt to find a valid alternative
+      if (validationData?.is_parked || !validationData?.is_valid_domain) {
+        updateStep('Finding Alternative Domain...');
+        
+        // Refetch logs to get the latest (including validation log just added)
+        const { data: leadWithLogs } = await supabase
+          .from("leads")
+          .select("enrichment_logs")
+          .eq("id", lead.id)
+          .single();
+        
+        const latestLogs = Array.isArray(leadWithLogs?.enrichment_logs) ? leadWithLogs.enrichment_logs : [];
+        
+        const fallbackResult = await attemptDomainFallback(
+          lead.id,
+          updatedLead.domain,
+          latestLogs
+        );
+        
+        if (fallbackResult.success && fallbackResult.fallbackDomain) {
+          // Successfully found a valid alternative domain
+          workingDomain = fallbackResult.fallbackDomain;
+          workingValidationData = fallbackResult.validationData;
+          
+          showToast({
+            title: "Alternative Domain Found",
+            description: `Switched from parked domain to ${fallbackResult.fallbackDomain} (${fallbackResult.fallbackConfidence}% confidence from ${fallbackResult.fallbackSource})`
+          });
+          
+          // Refresh UI to show the new domain
+          if (onEnrichComplete) onEnrichComplete();
+        } else {
+          // No valid alternative found - keep the parked/invalid domain and set score
+          await supabase.from("leads").update({
+            match_score: validationData?.is_parked ? 25 : 0,
+            match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
+          }).eq("id", lead.id);
+          matchScore = validationData?.is_parked ? 25 : 0;
+          
+          showToast({
+            title: "No Valid Alternative Found",
+            description: `Primary domain is ${validationData?.is_parked ? 'parked' : 'invalid'} and no valid alternatives exist in enrichment logs.`,
+            variant: "destructive"
+          });
+        }
+      }
+      
       // Only continue with scoring if domain is valid and not parked
-      if (validationData?.is_valid_domain && !validationData?.is_parked) {
+      if (workingValidationData?.is_valid_domain && !workingValidationData?.is_parked) {
         // Step 3: Find Coordinates
         updateStep('Finding Coordinates...');
         await supabase.functions.invoke("find-company-coordinates", {
           body: {
             leadId: lead.id,
-            domain: updatedLead.domain,
-            sourceUrl: updatedLead.source_url
+            domain: workingDomain,
+            sourceUrl: workingDomain
           }
         });
 
@@ -334,7 +386,7 @@ export const runPipelineForLead = async (
           body: {
             leadId: lead.id,
             companyName: lead.company,
-            domain: updatedLead.domain,
+            domain: workingDomain,
             city: lead.city,
             state: lead.state,
             dma: lead.dma
@@ -355,13 +407,6 @@ export const runPipelineForLead = async (
           .single();
 
         matchScore = leadWithScore?.match_score;
-      } else {
-        // Domain is invalid or parked - set appropriate match score
-        await supabase.from("leads").update({
-          match_score: validationData?.is_parked ? 25 : 0,
-          match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
-        }).eq("id", lead.id);
-        matchScore = validationData?.is_parked ? 25 : 0;
       }
     }
 
