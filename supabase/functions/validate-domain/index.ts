@@ -19,6 +19,21 @@ const DOMAIN_MARKETPLACES = [
   'register.com'
 ];
 
+// JavaScript redirect patterns that indicate domain parking/monetization
+const JS_REDIRECT_PATTERNS = [
+  'window.location.href',
+  'window.location.replace',
+  'window.location.assign',
+  'window.location =',
+  'window.location=',
+  'document.location.href',
+  'document.location =',
+  'document.location=',
+  'top.location.href',
+  'top.location =',
+  'top.location=',
+];
+
 // Content markers that indicate a parked or for-sale domain page
 const PARKING_PAGE_MARKERS = [
   'this domain is for sale',
@@ -48,6 +63,16 @@ const PARKING_PAGE_MARKERS = [
   'domainlore',
   'parked by',
   'parked free',
+  // Domain monetization system markers
+  'psystem=',
+  'trellian.com',
+  'above.com',
+  'dsparking',
+  'domainsponsor',
+  'domaincontrol.com',
+  'website coming soon',
+  'this site is currently unavailable',
+  'secureserver.net',
 ];
 
 interface ValidationResult {
@@ -69,6 +94,31 @@ function containsParkingMarkers(html: string): string | null {
       return marker;
     }
   }
+  return null;
+}
+
+// Check if page contains JavaScript redirect patterns
+function containsJsRedirect(html: string): string | null {
+  const htmlLower = html.toLowerCase();
+  
+  // Check for JS redirect patterns
+  for (const pattern of JS_REDIRECT_PATTERNS) {
+    if (htmlLower.includes(pattern.toLowerCase())) {
+      return pattern;
+    }
+  }
+  
+  // Check for meta refresh redirect
+  const metaRefresh = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]+>/i);
+  if (metaRefresh) {
+    return 'meta refresh redirect';
+  }
+  
+  // Check for domain= parameter in scripts (monetization indicator)
+  if (htmlLower.includes('domain=') && (htmlLower.includes('<script') || htmlLower.includes('redirect'))) {
+    return 'domain monetization redirect';
+  }
+  
   return null;
 }
 
@@ -216,11 +266,16 @@ serve(async (req) => {
           }
         }
       } else if (httpStatus === 200) {
-        // HTTP 200 - need to check the page content for parking markers
-        console.log(`[validate-domain] HTTP 200 - checking page content for parking markers`);
+        // HTTP 200 - need to check the page content for parking markers and JS redirects
+        console.log(`[validate-domain] HTTP 200 - checking page content for parking markers and JS redirects`);
         
         const bodyText = await httpResponse.text();
+        
+        // Log content preview for debugging
+        console.log(`[validate-domain] Page content preview (first 500 chars): ${bodyText.substring(0, 500)}`);
+        
         const parkingMarker = containsParkingMarkers(bodyText);
+        const jsRedirect = containsJsRedirect(bodyText);
         
         if (parkingMarker) {
           console.log(`[validate-domain] Parking marker found: "${parkingMarker}"`);
@@ -229,6 +284,13 @@ serve(async (req) => {
           isParked = true;
           parkingIndicator = parkingMarker;
           reason = `Domain appears to be parked or for sale (detected: "${parkingMarker}"). Domain exists but may be available for purchase.`;
+        } else if (jsRedirect) {
+          console.log(`[validate-domain] JavaScript redirect detected: "${jsRedirect}"`);
+          // JS redirect domain - mark as VALID but flagged as parked
+          isValid = true;
+          isParked = true;
+          parkingIndicator = jsRedirect;
+          reason = `Domain appears to be parked (JavaScript redirect detected: "${jsRedirect}"). Domain exists but redirects to external content.`;
         } else {
           // Also do a follow-redirect check to see where JS redirects might go
           console.log(`[validate-domain] No parking markers in content, checking for JS redirects`);
