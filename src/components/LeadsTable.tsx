@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
 import { EnrichContactStepper } from "./EnrichContactStepper";
+import { attemptDomainFallback } from "@/lib/domainFallback";
 interface EnrichmentLog {
   timestamp: string;
   action: string;
@@ -1069,6 +1070,7 @@ const LeadsTable = ({
 
       const domainFound = !!updatedLead?.domain;
       let matchScore = null;
+      let workingDomain = updatedLead?.domain || null;
 
       if (domainFound) {
         // Step 1.5: Enrich with Clay (non-blocking)
@@ -1121,15 +1123,69 @@ const LeadsTable = ({
 
         // Refresh so the VALID/INVALID/PARKED badge appears immediately while pipeline continues
         onEnrichComplete();
+
+        // Track the current working domain (may change after fallback)
+        workingDomain = updatedLead.domain;
+        let workingValidationData = validationData;
+
+        // If domain is parked or invalid, attempt to find a valid alternative
+        if (validationData?.is_parked || !validationData?.is_valid_domain) {
+          setPipelineStep('Finding Alternative Domain...');
+          
+          // Refetch logs to get the latest (including validation log just added)
+          const { data: leadWithLogs } = await supabase
+            .from("leads")
+            .select("enrichment_logs")
+            .eq("id", lead.id)
+            .maybeSingle();
+          
+          const latestLogs = Array.isArray(leadWithLogs?.enrichment_logs) 
+            ? leadWithLogs.enrichment_logs : [];
+          
+          const fallbackResult = await attemptDomainFallback(
+            lead.id,
+            updatedLead.domain,
+            latestLogs
+          );
+          
+          if (fallbackResult.success && fallbackResult.fallbackDomain) {
+            // Successfully found a valid alternative domain
+            workingDomain = fallbackResult.fallbackDomain;
+            workingValidationData = fallbackResult.validationData;
+            
+            toast({
+              title: "Alternative Domain Found",
+              description: `Switched from parked domain to ${fallbackResult.fallbackDomain} (${fallbackResult.fallbackConfidence}% confidence from ${fallbackResult.fallbackSource})`
+            });
+            
+            // Refresh UI to show the new domain
+            onEnrichComplete();
+          } else {
+            // No valid alternative found - keep the parked/invalid domain and set score
+            await supabase.from("leads").update({
+              match_score: validationData?.is_parked ? 25 : 0,
+              match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
+            }).eq("id", lead.id);
+            
+            toast({
+              title: "No Valid Alternative Found",
+              description: `Primary domain is ${validationData?.is_parked ? 'parked' : 'invalid'} and no valid alternatives exist.`,
+              variant: "destructive"
+            });
+            
+            matchScore = validationData?.is_parked ? 25 : 0;
+          }
+        }
+
         // Only continue with scoring if domain is valid and not parked
-        if (validationData?.is_valid_domain && !validationData?.is_parked) {
+        if (workingValidationData?.is_valid_domain && !workingValidationData?.is_parked) {
           // Step 3: Find Coordinates
           setPipelineStep('Finding Coordinates...');
           await supabase.functions.invoke("find-company-coordinates", {
             body: {
               leadId: lead.id,
-              domain: updatedLead.domain,
-              sourceUrl: updatedLead.source_url
+              domain: workingDomain,
+              sourceUrl: workingDomain
             }
           });
 
@@ -1138,7 +1194,7 @@ const LeadsTable = ({
             .from("leads")
             .select("latitude, longitude")
             .eq("id", lead.id)
-            .single();
+            .maybeSingle();
 
           // Step 4: Calculate Distance (only if coordinates found)
           if (leadWithCoords?.latitude && leadWithCoords?.longitude) {
@@ -1161,7 +1217,7 @@ const LeadsTable = ({
             body: {
               leadId: lead.id,
               companyName: lead.company,
-              domain: updatedLead.domain,
+              domain: workingDomain,
               city: lead.city,
               state: lead.state,
               dma: lead.dma
@@ -1179,16 +1235,9 @@ const LeadsTable = ({
             .from("leads")
             .select("match_score, enrichment_source, apollo_not_found")
             .eq("id", lead.id)
-            .single();
+            .maybeSingle();
 
           matchScore = leadWithScore?.match_score;
-        } else {
-          // Domain is invalid or parked - set appropriate match score
-          await supabase.from("leads").update({
-            match_score: validationData?.is_parked ? 25 : 0,
-            match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
-          }).eq("id", lead.id);
-          matchScore = validationData?.is_parked ? 25 : 0;
         }
       }
 
@@ -1254,7 +1303,7 @@ const LeadsTable = ({
             await supabase.functions.invoke("enrich-company-details", {
               body: {
                 leadId: lead.id,
-                domain: updatedLead.domain,
+                domain: workingDomain,
             enrichmentSource: leadWithScore?.enrichment_source,
             apolloNotFound: leadWithScore?.apollo_not_found
               }
@@ -1264,7 +1313,7 @@ const LeadsTable = ({
             await supabase.functions.invoke("find-company-contacts", {
               body: {
                 leadId: lead.id,
-                domain: updatedLead.domain,
+                domain: workingDomain,
                 category: lead.category,
                 userId: user?.id
               }
@@ -1275,7 +1324,7 @@ const LeadsTable = ({
               body: {
                 leadId: lead.id,
                 company: lead.company,
-                domain: updatedLead.domain
+                domain: workingDomain
               }
             });
 
@@ -1287,7 +1336,7 @@ const LeadsTable = ({
 
             toast({
               title: "Full Pipeline Complete",
-          description: `Enriched ${updatedLead.domain} (Score: ${matchScore})`
+          description: `Enriched ${workingDomain} (Score: ${matchScore})`
         });
       } else if (!domainFound) {
         // If no domain: Score → Diagnose
