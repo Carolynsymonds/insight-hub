@@ -1,93 +1,98 @@
 
-# Fix: Detect JavaScript-Based Domain Parking Redirects
+# Fix: Fallback to Alternative Domain When Primary Domain is Parked/Invalid
 
-## Problem
-The domain `paving-pros.com` passes validation as "valid" with 95% confidence, but it actually uses a JavaScript-based redirect to send visitors to `https://www.dot-realty.org/articles/...?psystem=PW&domain=paving-pros.com`.
+## Problem Summary
+When the email domain enrichment finds a domain with 95% confidence (`paving-pros.com`) but validation reveals it's parked/monetized, the system keeps showing the parked domain as primary instead of falling back to an alternative domain found by other enrichment sources (like `pavingprosraleigh.com` from Google at 20% confidence).
 
-This is a domain monetization system that:
-1. Returns HTTP 200 (no server-side redirect)
-2. Uses JavaScript to redirect users to affiliate content
-3. Passes the original domain in a URL parameter (`domain=paving-pros.com`)
+## Current Flow
+1. Apollo search - no domain found
+2. Google search - finds `pavingprosraleigh.com` (20% confidence)
+3. Email extraction - finds `paving-pros.com` (95% confidence) - becomes primary domain
+4. Validate Domain - detects `paving-pros.com` is PARKED (JS redirect)
+5. **Problem**: Parked domain remains as primary, user cannot easily see the valid alternative
 
-The current validation only checks HTTP redirects, which JavaScript redirects bypass.
+## Proposed Solution
 
-## Solution
+### Option A: Automatic Fallback (Recommended)
+After domain validation detects a PARKED or INVALID domain, automatically search the enrichment logs for alternative domains and fall back to the best valid one.
 
-Update `supabase/functions/validate-domain/index.ts` to detect JavaScript-based redirects and monetization patterns by:
+### Changes Required
 
-1. **Add JavaScript redirect detection patterns** - Check HTML content for common JS redirect code
-2. **Add domain monetization system markers** - Detect known parking/monetization platforms
-3. **Add meta refresh detection** - Catch `<meta http-equiv="refresh">` redirects
-4. **Flag as parked when detected** - Mark these domains as parked, not valid
+**1. Update `runPipeline.ts` - Add fallback logic after validation**
 
-## Changes to validate-domain/index.ts
-
-### 1. Add JavaScript Redirect Patterns (new constant)
-```text
-const JS_REDIRECT_PATTERNS = [
-  'window.location.href',
-  'window.location.replace',
-  'window.location.assign',
-  'window.location =',
-  'document.location.href',
-  'document.location =',
-  'top.location.href',
-  'top.location =',
-  'meta http-equiv="refresh"',
-  'meta http-equiv=\'refresh\'',
-];
+After validation detects a parked/invalid domain:
 ```
-
-### 2. Expand PARKING_PAGE_MARKERS with monetization indicators
-Add these markers:
-- `psystem=` (parking system parameter seen in the redirect URL)
-- `domain=` in query strings (common in monetization systems)
-- `parking.` (subdomain prefix)
-- `trellian.com` (known monetization network)
-- `above.com` (known parking service)
-- `dsparking` (domain parking service)
-- `domainsponsor` (monetization service)
-- `.pw` domain references (common in monetization)
-
-### 3. Add new detection function
-```text
-function containsJsRedirect(html: string): string | null {
-  const htmlLower = html.toLowerCase();
-  for (const pattern of JS_REDIRECT_PATTERNS) {
-    if (htmlLower.includes(pattern.toLowerCase())) {
-      return pattern;
-    }
+// If domain is parked/invalid, try to find a fallback from enrichment logs
+if (validationData?.is_parked || !validationData?.is_valid_domain) {
+  // Search enrichment logs for alternative domains
+  const enrichmentLogs = updatedLead.enrichment_logs || [];
+  const alternativeDomains = enrichmentLogs
+    .filter(log => log.domain && log.domain !== updatedLead.domain)
+    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+  
+  if (alternativeDomains.length > 0) {
+    const fallbackDomain = alternativeDomains[0];
+    // Validate the fallback domain
+    // If valid, update the lead to use fallback domain
+    // Log the domain change in enrichment_logs
   }
-  // Check for meta refresh
-  const metaRefresh = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]+>/i);
-  if (metaRefresh) {
-    return 'meta refresh redirect';
-  }
-  return null;
 }
 ```
 
-### 4. Update HTTP 200 handling logic
-When HTTP 200 is received, before declaring the domain valid:
-1. Check for parking markers (existing)
-2. Check for JavaScript redirect patterns (new)
-3. If JS redirect detected, mark as parked with reason "JavaScript redirect detected"
+**2. Update `validateAndSaveDomain` in LeadsTable.tsx**
 
-### 5. Add logging for page content preview
-Log the first 1000 characters of page content when no markers found, to aid debugging similar issues:
-```text
-console.log(`[validate-domain] Page content preview: ${bodyText.substring(0, 1000)}`);
-```
+Add optional parameter to trigger fallback search when domain is invalid/parked.
 
-## Expected Result After Fix
+**3. UI Enhancement (Optional)**
 
-For `paving-pros.com`:
-- `is_valid_domain`: true
-- `is_parked`: true  
-- `parking_indicator`: "window.location" or detected pattern
-- `reason`: "Domain appears to be parked (JavaScript redirect detected). Domain exists but redirects to external content."
+When a domain is marked as PARKED, show an alternative domain suggestion in the UI if one exists in the logs.
 
-This will:
-- Show "PARKED" badge instead of "VALID"
-- Set match score to 25 instead of 95
-- Display the specific reason in logs
+## Implementation Details
+
+### Step 1: Create fallback logic in pipeline
+In `src/lib/runPipeline.ts`, after domain validation:
+- Check if `is_parked` or `!is_valid_domain`
+- Parse `enrichment_logs` to find other domains
+- Exclude the current (invalid/parked) domain
+- Sort by confidence descending
+- Take the first alternative and validate it
+- If the alternative is valid, update the lead's domain field
+
+### Step 2: Update validation flow
+Modify `validateAndSaveDomain` to optionally return fallback domain info when the primary domain fails validation.
+
+### Step 3: Log the fallback action
+Add a new log entry type `domain_fallback` to track when the system automatically switches to an alternative domain.
+
+## Expected Behavior After Fix
+
+For the Paving Pros case:
+1. Pipeline finds `pavingprosraleigh.com` (Google, 20%) and `paving-pros.com` (Email, 95%)
+2. `paving-pros.com` becomes primary (highest confidence)
+3. Validation detects `paving-pros.com` is PARKED
+4. **New**: System finds `pavingprosraleigh.com` in logs as alternative
+5. **New**: Validates `pavingprosraleigh.com` - it's VALID
+6. **New**: Updates lead to use `pavingprosraleigh.com` as primary domain
+7. User sees the valid domain with appropriate confidence
+8. Enrichment logs show the fallback action for transparency
+
+## Files to Modify
+
+1. **src/lib/runPipeline.ts**
+   - Add fallback logic after domain validation step
+   - Search enrichment_logs for alternative domains
+   - Validate and switch to best alternative if primary is parked/invalid
+
+2. **src/components/LeadsTable.tsx** (optional)
+   - Update `validateAndSaveDomain` to support fallback workflow
+   - Add UI indicator when fallback domain was used
+
+3. **supabase/functions/validate-domain/index.ts** (no changes needed)
+   - Already correctly detects parked domains
+
+## Edge Cases to Handle
+
+- All alternative domains are also invalid/parked - mark lead as "no valid domain"
+- No alternative domains exist in logs - keep parked domain but clearly flag it
+- Alternative domain validation fails (network error) - retry or keep original
+- Circular fallback prevention - track which domains have been tried
