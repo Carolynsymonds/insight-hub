@@ -9,7 +9,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause, ChevronRight, ChevronDown, Info } from "lucide-react";
+import { Briefcase, ShoppingCart, Globe, TrendingUp, CreditCard, Settings as SettingsIcon, DollarSign, Zap, Building2, Car, Shield, Download, Settings2, Search, Loader2, Target, Users, CheckCircle, Sparkles, Share2, Pause, ChevronRight, ChevronDown, Info, CalendarIcon } from "lucide-react";
 import { CategoryRolesDialog } from "@/components/CategoryRolesDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,6 +17,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { AccountSettings } from "@/components/AccountSettings";
 import { runPipelineForLead } from "@/lib/runPipeline";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 const CATEGORIES = [{
   name: "Marketing",
@@ -67,6 +72,8 @@ const Index = () => {
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [domainFilter, setDomainFilter] = useState<'all' | 'valid' | 'invalid' | 'not_enriched' | 'today_enriched'>('valid');
   const [batchFilter, setBatchFilter] = useState<'all' | number>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'custom'>('all');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -972,6 +979,39 @@ const Index = () => {
     // Batch filter
     if (batchFilter !== 'all' && lead.upload_batch !== batchFilter) return false;
     
+    // Date filter - filter by created_at
+    if (dateFilter !== 'all') {
+      const leadDate = lead.created_at ? new Date(lead.created_at) : null;
+      if (!leadDate) return false;
+      
+      if (dateFilter === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (leadDate < today) return false;
+      } else if (dateFilter === 'last7days') {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        weekAgo.setHours(0, 0, 0, 0);
+        if (leadDate < weekAgo) return false;
+      } else if (dateFilter === 'last30days') {
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+        monthAgo.setHours(0, 0, 0, 0);
+        if (leadDate < monthAgo) return false;
+      } else if (dateFilter === 'custom' && customDateRange) {
+        if (customDateRange.from) {
+          const fromDate = new Date(customDateRange.from);
+          fromDate.setHours(0, 0, 0, 0);
+          if (leadDate < fromDate) return false;
+        }
+        if (customDateRange.to) {
+          const toDate = new Date(customDateRange.to);
+          toDate.setHours(23, 59, 59, 999);
+          if (leadDate > toDate) return false;
+        }
+      }
+    }
+    
     // Check if lead has validated socials (only check validated flag, not URL presence)
     const hasValidatedSocials = lead.facebook_validated === true || 
                                  lead.linkedin_validated === true || 
@@ -1430,6 +1470,64 @@ const Index = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select 
+                  value={dateFilter} 
+                  onValueChange={(value: 'all' | 'today' | 'last7days' | 'last30days' | 'custom') => {
+                    setDateFilter(value);
+                    if (value !== 'custom') {
+                      setCustomDateRange(undefined);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Dates</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="last7days">Last 7 Days</SelectItem>
+                    <SelectItem value="last30days">Last 30 Days</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+                {dateFilter === 'custom' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[240px] justify-start text-left font-normal",
+                          !customDateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customDateRange?.from ? (
+                          customDateRange.to ? (
+                            <>
+                              {format(customDateRange.from, "LLL dd, y")} -{" "}
+                              {format(customDateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(customDateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={customDateRange?.from}
+                        selected={customDateRange}
+                        onSelect={setCustomDateRange}
+                        numberOfMonths={2}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <span className="text-sm text-[#0F0F4B]">
                   Showing {filteredLeads.length} of {categoryFilteredLeads.length} leads
                 </span>
