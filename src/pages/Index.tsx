@@ -1118,7 +1118,7 @@ const Index = () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
       "Company Website", "SOURCE", "Company Match Score", "Industry", "Company Revenue", "Company Size",
-      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
+      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Social Status", "Company Summary", "Company Contacts",
       "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
       "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
     ];
@@ -1224,6 +1224,29 @@ const Index = () => {
         }
       }
 
+      // Determine social status
+      const hasValidSocial = 
+        lead.linkedin_validated === true ||
+        lead.instagram_validated === true ||
+        lead.facebook_validated === true;
+      const hasSocialUrls = 
+        lead.linkedin !== null ||
+        lead.instagram !== null ||
+        lead.facebook !== null;
+      const validationsRun = 
+        lead.facebook_validated !== null ||
+        lead.linkedin_validated !== null ||
+        lead.instagram_validated !== null;
+      
+      let socialStatus = "";
+      if (hasValidSocial) {
+        socialStatus = "valid";
+      } else if (validationsRun && hasSocialUrls) {
+        socialStatus = "socials found but invalid";
+      } else if (validationsRun && !hasSocialUrls) {
+        socialStatus = "socials not found";
+      }
+
       return [
         lead.full_name || "",
         lead.email || "",
@@ -1239,6 +1262,7 @@ const Index = () => {
         lead.founded_date || "",
         lead.linkedin || "",
         lead.facebook || "",
+        socialStatus,
         lead.long_summary || lead.short_summary || "",
         companyContactsStr,
         newsStr,
