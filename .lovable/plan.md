@@ -1,54 +1,74 @@
 
-# Replace Domain Source with SOURCE Column
+
+# Add "Enrichment Type" Filter
 
 ## Overview
-Remove the old "Domain Source" logic/column and rename "SOURCE v2" to just "SOURCE". This simplifies the codebase by keeping only the enrichment_logs-based source detection.
+Add a new filter dropdown called "Enrichment Type" that allows users to filter leads by what type of enrichment they have:
+- **All** (default) - Shows all leads
+- **Enrichment Company Domain** - Shows leads that have a domain (from any source: Apollo, Google, or Email)
+- **Enrichment Socials** - Shows leads that have social media information found
 
-## Current State
-1. **Domain Source filter** - Uses `domainSourceFilter` state and `getDomainSource()` function
-2. **SOURCE v2 filter** - Uses `sourceV2Filter` state and `getSourceV2()` function
-3. **CSV Export** - Has both "Domain Source" and "SOURCE v2" columns
+## Classification Logic
 
-## Changes Required
+| Enrichment Type | Condition |
+|----------------|-----------|
+| **Enrichment Company Domain** | Lead has a non-null `domain` field |
+| **Enrichment Socials** | Lead has at least one social found: `facebook`, `linkedin`, or `instagram` is non-null |
+
+## Technical Implementation
 
 ### File: `src/pages/Index.tsx`
 
-**1. Remove `domainSourceFilter` state declaration (line 77):**
-- Delete: `const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');`
+**1. Add new state variable (around line 77, after `sourceFilter`):**
 
-**2. Rename `sourceV2Filter` to `sourceFilter` (line 78):**
-- Change to: `const [sourceFilter, setSourceFilter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');`
+```typescript
+const [enrichmentTypeFilter, setEnrichmentTypeFilter] = useState<'all' | 'company_domain' | 'socials'>('all');
+```
 
-**3. Remove Domain Source filter logic (lines 1051-1072):**
-- Delete the entire `domainSourceFilter` block that checks `email` and `search` sources
+**2. Add filter logic in the `filteredLeads` computation (after the SOURCE filter block, around line 1095):**
 
-**4. Update SOURCE v2 filter to use `sourceFilter` (lines 1075-1097):**
-- Rename comment from "SOURCE v2 filter" to "SOURCE filter"
-- Replace all `sourceV2Filter` references with `sourceFilter`
+```typescript
+// Enrichment Type filter
+if (enrichmentTypeFilter !== 'all') {
+  if (enrichmentTypeFilter === 'company_domain') {
+    // Show leads that have a domain (from any source)
+    if (!lead.domain) return false;
+  } else if (enrichmentTypeFilter === 'socials') {
+    // Show leads that have at least one social found
+    const hasSocials = lead.facebook || lead.linkedin || lead.instagram;
+    if (!hasSocials) return false;
+  }
+}
+```
 
-**5. Remove `getDomainSource` helper function (lines 1110-1131):**
-- Delete the entire function
+**3. Add filter dropdown UI (after the SOURCE filter Select, around line 1555):**
 
-**6. Rename `getSourceV2` to `getSource` (lines 1133-1154):**
-- Update function name and comment
+```tsx
+<Select 
+  value={enrichmentTypeFilter} 
+  onValueChange={(value: 'all' | 'company_domain' | 'socials') => setEnrichmentTypeFilter(value)}
+>
+  <SelectTrigger className="w-[200px]">
+    <SelectValue placeholder="Enrichment Type" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Enrichment Types</SelectItem>
+    <SelectItem value="company_domain">Enrichment Company Domain</SelectItem>
+    <SelectItem value="socials">Enrichment Socials</SelectItem>
+  </SelectContent>
+</Select>
+```
 
-**7. Update CSV headers (line 1157-1163):**
-- Remove "Domain Source"
-- Rename "SOURCE v2" to "SOURCE"
+## Filter Bar Layout
 
-**8. Update CSV row mapping (lines 1273-1274):**
-- Remove: `getDomainSource(lead.enrichment_source, lead.email, lead.domain),`
-- Change: `getSourceV2(lead.enrichment_logs),` to `getSource(lead.enrichment_logs),`
+The filter bar will show:
+1. View Mode buttons (Company | Contact | View All)
+2. Domain Status dropdown
+3. Date dropdown
+4. SOURCE dropdown
+5. **Enrichment Type dropdown** ← NEW
+6. "Showing X of Y leads" text
 
-**9. Remove Domain Source filter UI (lines 1593-1605):**
-- Delete the entire Domain Source `<Select>` component
+## Files to Modify
+1. **`src/pages/Index.tsx`** - Add state, filter logic, and dropdown UI
 
-**10. Update SOURCE v2 filter UI (lines 1606-1619):**
-- Update state references from `sourceV2Filter` to `sourceFilter`
-- Update label from "SOURCE v2" to "SOURCE"
-- Update SelectItem labels to just show source names
-
-## Result
-- Single "SOURCE" column in CSV export showing which enrichment sources found a domain
-- Single "SOURCE" filter dropdown in the UI
-- Cleaner, simpler codebase with one unified approach
