@@ -1078,9 +1078,13 @@ const Index = () => {
         // Show leads that have a domain (from any source)
         if (!lead.domain) return false;
       } else if (enrichmentTypeFilter === 'socials') {
-        // Show leads that have at least one social found
-        const hasSocials = lead.facebook || lead.linkedin || lead.instagram;
-        if (!hasSocials) return false;
+        // Show leads that have at least one VALID social found
+        // Socials that are found but marked invalid should not count
+        const hasValidSocials = 
+          lead.facebook_validated === true || 
+          lead.linkedin_validated === true || 
+          lead.instagram_validated === true;
+        if (!hasValidSocials) return false;
       }
     }
 
