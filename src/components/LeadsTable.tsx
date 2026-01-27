@@ -2819,9 +2819,19 @@ const LeadsTable = ({
                           lead.facebook !== null
                         );
                         
+                        // Check if at least one social is validated as VALID
+                        const hasValidSocial = (
+                          lead.linkedin_validated === true ||
+                          lead.instagram_validated === true ||
+                          lead.facebook_validated === true
+                        );
+                        
                         // Show specific message if socials were searched/validated
                         if (socialsSearched || validationsRun) {
-                          if (hasSocialUrls) {
+                          if (hasValidSocial) {
+                            // At least one social is valid - don't show the invalid message
+                            return null;
+                          } else if (hasSocialUrls) {
                             // Socials were found but all are invalid
                             return <span className="text-[#0F0F4B] text-xs italic">socials found but invalid</span>;
                           } else {
@@ -2967,9 +2977,19 @@ const LeadsTable = ({
                                   lead.contact_facebook !== null
                                 );
                                 
+                                // Check if at least one social is validated as VALID
+                                const hasValidSocial = (
+                                  lead.linkedin_validated === true ||
+                                  lead.instagram_validated === true ||
+                                  lead.facebook_validated === true
+                                );
+                                
                                 // Show specific message if socials were searched/validated
                                 if (socialsSearched || validationsRun) {
-                                  if (hasSocialUrls) {
+                                  if (hasValidSocial) {
+                                    // At least one social is valid - don't show the invalid message
+                                    return null;
+                                  } else if (hasSocialUrls) {
                                     // Socials were found but all are invalid
                                     return <span className="text-[#0F0F4B] text-xs italic">socials found but invalid</span>;
                                   } else {
