@@ -75,6 +75,7 @@ const Index = () => {
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'custom'>('all');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');
+  const [sourceV2Filter, setSourceV2Filter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -1071,6 +1072,30 @@ const Index = () => {
       }
     }
 
+    // SOURCE v2 filter - check enrichment_logs for qualifying sources
+    if (sourceV2Filter !== 'all') {
+      const logs = Array.isArray(lead.enrichment_logs) ? lead.enrichment_logs as any[] : [];
+      let hasQualifyingSource = false;
+      
+      for (const log of logs) {
+        // Skip if no domain found or confidence < 50
+        if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
+        
+        if (sourceV2Filter === 'apollo' && log.source === 'apollo_api') {
+          hasQualifyingSource = true;
+          break;
+        } else if (sourceV2Filter === 'google' && (log.source === 'google_knowledge_graph' || log.source === 'google_local_results')) {
+          hasQualifyingSource = true;
+          break;
+        } else if (sourceV2Filter === 'email' && log.source === 'email_domain_verified') {
+          hasQualifyingSource = true;
+          break;
+        }
+      }
+      
+      if (!hasQualifyingSource) return false;
+    }
+
     return true;
   });
 
@@ -1576,6 +1601,20 @@ const Index = () => {
                     <SelectItem value="all">All Sources</SelectItem>
                     <SelectItem value="email">From Email</SelectItem>
                     <SelectItem value="search">From Apollo/Google</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={sourceV2Filter} 
+                  onValueChange={(value: 'all' | 'apollo' | 'google' | 'email') => setSourceV2Filter(value)}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="SOURCE v2" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All SOURCE v2</SelectItem>
+                    <SelectItem value="apollo">Apollo (≥50%)</SelectItem>
+                    <SelectItem value="google">Google (≥50%)</SelectItem>
+                    <SelectItem value="email">Email (≥50%)</SelectItem>
                   </SelectContent>
                 </Select>
                 {dateFilter === 'custom' && (
