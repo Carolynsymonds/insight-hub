@@ -1055,10 +1055,21 @@ const Index = () => {
     return true;
   });
 
+  const getDomainSource = (enrichmentSource: string | null): string => {
+    if (enrichmentSource === 'email_domain_verified') {
+      return 'Email';
+    } else if (enrichmentSource === 'apollo_api') {
+      return 'Apollo';
+    } else if (enrichmentSource === 'google_knowledge_graph' || enrichmentSource === 'google_local_results') {
+      return 'Google';
+    }
+    return '';
+  };
+
   const handleExportCSV = async () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
-      "Company Website", "Company Match Score", "Industry", "Company Revenue", "Company Size",
+      "Company Website", "Domain Source", "Company Match Score", "Industry", "Company Revenue", "Company Size",
       "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
       "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
       "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
@@ -1172,6 +1183,7 @@ const Index = () => {
         lead.zipcode || "",
         lead.dma || "",
         lead.domain || "",
+        getDomainSource(lead.enrichment_source),
         lead.match_score !== null ? `${lead.match_score}%` : "",
         lead.company_industry || "",
         lead.annual_revenue || "",
