@@ -1500,7 +1500,7 @@ const Index = () => {
                   <SelectContent>
                     <SelectItem value="all">All Sources</SelectItem>
                     <SelectItem value="email">From Email</SelectItem>
-                    <SelectItem value="search">From Search</SelectItem>
+                    <SelectItem value="search">From Apollo/Google</SelectItem>
                   </SelectContent>
                 </Select>
                 {dateFilter === 'custom' && (
