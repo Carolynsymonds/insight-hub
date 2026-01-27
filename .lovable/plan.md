@@ -1,77 +1,71 @@
 
-# Add Domain Source Filter to Leads Table
+# Add Domain Source Column to CSV Export
 
 ## Overview
-Add a new filter dropdown that allows users to filter leads based on how the domain was found:
-- **All Sources** - Show all leads (default)
-- **Email Domain** - Show leads where domain was extracted from contact's email
-- **Search (Apollo/Google)** - Show leads where domain was found via Apollo API or Google search
-
-## Current Data Distribution
-Based on database query:
-| Source | Count |
-|--------|-------|
-| Google Knowledge Graph | 84 |
-| Google Local Results | 54 |
-| Email Domain Verified | 29 |
-| Apollo API | 16 |
+Add a new "Domain Source" column to the CSV export that indicates whether the domain was found via Apollo, Google, or Email.
 
 ## Technical Implementation
 
 ### File: `src/pages/Index.tsx`
 
-**1. Add new state variable (around line 74):**
+**1. Add "Domain Source" to headers array (line 1060):**
 ```typescript
-const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');
+const headers = [
+  "Name", "Email", "Company", "Zipcode", "DMA",
+  "Company Website", "Domain Source", // NEW COLUMN
+  "Company Match Score", "Industry", "Company Revenue", "Company Size",
+  "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
+  "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
+  "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
+];
 ```
 
-**2. Add filtering logic in the `filteredLeads` filter function (around line 1039, before `return true`):**
+**2. Add helper function to determine domain source (before `handleExportCSV`):**
 ```typescript
-// Domain source filter
-if (domainSourceFilter !== 'all') {
-  if (domainSourceFilter === 'email') {
-    // Only show leads where domain came from email
-    return lead.enrichment_source === 'email_domain_verified';
+const getDomainSource = (enrichmentSource: string | null): string => {
+  if (enrichmentSource === 'email_domain_verified') {
+    return 'Email';
+  } else if (enrichmentSource === 'apollo_api') {
+    return 'Apollo';
+  } else if (enrichmentSource === 'google_knowledge_graph' || enrichmentSource === 'google_local_results') {
+    return 'Google';
   }
-  if (domainSourceFilter === 'search') {
-    // Show leads where domain came from Apollo or Google search
-    return lead.enrichment_source === 'apollo_api' || 
-           lead.enrichment_source === 'google_knowledge_graph' || 
-           lead.enrichment_source === 'google_local_results';
-  }
-}
+  return '';
+};
 ```
 
-**3. Add new filter dropdown in the filter bar (after the date filter, around line 1476):**
+**3. Add domain source value to row data (line 1175, after domain):**
 ```typescript
-<Select 
-  value={domainSourceFilter} 
-  onValueChange={(value: 'all' | 'email' | 'search') => setDomainSourceFilter(value)}
->
-  <SelectTrigger className="w-[160px]">
-    <SelectValue placeholder="Domain Source" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Sources</SelectItem>
-    <SelectItem value="email">From Email</SelectItem>
-    <SelectItem value="search">From Search</SelectItem>
-  </SelectContent>
-</Select>
+return [
+  lead.full_name || "",
+  lead.email || "",
+  lead.company || "",
+  lead.zipcode || "",
+  lead.dma || "",
+  lead.domain || "",
+  getDomainSource(lead.enrichment_source), // NEW VALUE
+  lead.match_score !== null ? `${lead.match_score}%` : "",
+  // ... rest of columns
+];
 ```
 
-## Filter Behavior
+## CSV Output Example
 
-| Filter Value | `enrichment_source` Values Shown |
-|-------------|-----------------------------------|
-| All Sources | All leads (no filtering by source) |
-| From Email | `email_domain_verified` only |
-| From Search | `apollo_api`, `google_knowledge_graph`, `google_local_results` |
+| Name | Email | Company | ... | Company Website | Domain Source | Company Match Score |
+|------|-------|---------|-----|-----------------|---------------|---------------------|
+| John Smith | john@acme.com | Acme Corp | ... | acme.com | Email | 99% |
+| Sarah Lee | sarah@tech.io | Tech Inc | ... | techinc.com | Apollo | 85% |
+| Bob Wilson | bob@example.com | Example LLC | ... | example.org | Google | 72% |
+
+## Source Mapping
+
+| `enrichment_source` value | CSV Display |
+|---------------------------|-------------|
+| `email_domain_verified` | Email |
+| `apollo_api` | Apollo |
+| `google_knowledge_graph` | Google |
+| `google_local_results` | Google |
+| `null` or other | (empty) |
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`**
-   - Add `domainSourceFilter` state
-   - Add filter logic to `filteredLeads`
-   - Add dropdown UI in filter bar
-
-## UI Location
-The new dropdown will appear in the filter bar next to the existing "Date" filter dropdown, maintaining consistent styling with the existing filters.
+1. **`src/pages/Index.tsx`** - Add helper function, update headers, and add column value to row mapping
