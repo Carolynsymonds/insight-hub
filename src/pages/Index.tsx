@@ -1039,12 +1039,20 @@ const Index = () => {
       if (enrichedDate < today) return false;
     }
 
+    // Helper to check if domain matches email domain
+    const domainMatchesEmail = (email: string | null, domain: string | null): boolean => {
+      if (!email || !domain) return false;
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      const leadDomain = domain.toLowerCase().replace(/^www\./, '');
+      return emailDomain === leadDomain;
+    };
+
     // Domain source filter
     if (domainSourceFilter !== 'all') {
       if (domainSourceFilter === 'email') {
-        // Prioritize email domain validation - if domain matches email, include it
-        if (lead.email_domain_validated === true) {
-          // Domain was validated via email, include this lead
+        // Check if domain actually matches the email domain
+        if (domainMatchesEmail(lead.email, lead.domain)) {
+          // Domain matches email, include this lead
         } else {
           // Fall back to checking enrichment_source
           const emailSources = [
@@ -1066,9 +1074,17 @@ const Index = () => {
     return true;
   });
 
-  const getDomainSource = (enrichmentSource: string | null, emailDomainValidated: boolean | null): string => {
-    // Prioritize email domain validation - if domain matches email, show "Email"
-    if (emailDomainValidated === true) {
+  // Helper to check if domain matches email domain
+  const domainMatchesEmail = (email: string | null, domain: string | null): boolean => {
+    if (!email || !domain) return false;
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    const leadDomain = domain.toLowerCase().replace(/^www\./, '');
+    return emailDomain === leadDomain;
+  };
+
+  const getDomainSource = (enrichmentSource: string | null, email: string | null, domain: string | null): string => {
+    // Check if domain actually matches the email domain
+    if (domainMatchesEmail(email, domain)) {
       return 'Email';
     }
     
@@ -1206,7 +1222,7 @@ const Index = () => {
         lead.zipcode || "",
         lead.dma || "",
         lead.domain || "",
-        getDomainSource(lead.enrichment_source, lead.email_domain_validated),
+        getDomainSource(lead.enrichment_source, lead.email, lead.domain),
         lead.match_score !== null ? `${lead.match_score}%` : "",
         lead.company_industry || "",
         lead.annual_revenue || "",
