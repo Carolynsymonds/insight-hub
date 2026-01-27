@@ -1042,14 +1042,19 @@ const Index = () => {
     // Domain source filter
     if (domainSourceFilter !== 'all') {
       if (domainSourceFilter === 'email') {
-        // Show leads where domain extraction was attempted via email
-        const emailSources = [
-          'email_domain_verified',
-          'email_personal_domain_skipped',
-          'email_domain_not_verified',
-          'email_invalid_format'
-        ];
-        if (!emailSources.includes(lead.enrichment_source)) return false;
+        // Prioritize email domain validation - if domain matches email, include it
+        if (lead.email_domain_validated === true) {
+          // Domain was validated via email, include this lead
+        } else {
+          // Fall back to checking enrichment_source
+          const emailSources = [
+            'email_domain_verified',
+            'email_personal_domain_skipped',
+            'email_domain_not_verified',
+            'email_invalid_format'
+          ];
+          if (!emailSources.includes(lead.enrichment_source)) return false;
+        }
       }
       if (domainSourceFilter === 'search') {
         // Show leads where domain came from Apollo or Google search
