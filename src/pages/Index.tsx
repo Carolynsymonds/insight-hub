@@ -1078,8 +1078,8 @@ const Index = () => {
       let hasQualifyingSource = false;
       
       for (const log of logs) {
-        // Skip if no domain found or confidence < 50
-        if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
+        // Skip if no domain found
+        if (!log.domain) continue;
         
         if (sourceV2Filter === 'apollo' && log.source === 'apollo_api') {
           hasQualifyingSource = true;
@@ -1130,15 +1130,15 @@ const Index = () => {
     return '';
   };
 
-  // Helper to extract qualifying sources from enrichment_logs (domain found with >=50% confidence)
+  // Helper to extract sources that found a domain from enrichment_logs
   const getSourceV2 = (enrichmentLogs: any): string => {
     if (!enrichmentLogs || !Array.isArray(enrichmentLogs)) return '';
     
     const qualifyingSources: string[] = [];
     
     for (const log of enrichmentLogs) {
-      // Skip if no domain found or confidence < 50
-      if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
+      // Skip if no domain found
+      if (!log.domain) continue;
       
       // Map source to friendly name
       if (log.source === 'apollo_api' && !qualifyingSources.includes('Apollo')) {
@@ -1612,9 +1612,9 @@ const Index = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All SOURCE v2</SelectItem>
-                    <SelectItem value="apollo">Apollo (≥50%)</SelectItem>
-                    <SelectItem value="google">Google (≥50%)</SelectItem>
-                    <SelectItem value="email">Email (≥50%)</SelectItem>
+                    <SelectItem value="apollo">Apollo</SelectItem>
+                    <SelectItem value="google">Google</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
                   </SelectContent>
                 </Select>
                 {dateFilter === 'custom' && (
