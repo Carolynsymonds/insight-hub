@@ -1061,7 +1061,12 @@ const Index = () => {
     return true;
   });
 
-  const getDomainSource = (enrichmentSource: string | null): string => {
+  const getDomainSource = (enrichmentSource: string | null, emailDomainValidated: boolean | null): string => {
+    // Prioritize email domain validation - if domain matches email, show "Email"
+    if (emailDomainValidated === true) {
+      return 'Email';
+    }
+    
     const emailSources = [
       'email_domain_verified',
       'email_personal_domain_skipped',
@@ -1196,7 +1201,7 @@ const Index = () => {
         lead.zipcode || "",
         lead.dma || "",
         lead.domain || "",
-        getDomainSource(lead.enrichment_source),
+        getDomainSource(lead.enrichment_source, lead.email_domain_validated),
         lead.match_score !== null ? `${lead.match_score}%` : "",
         lead.company_industry || "",
         lead.annual_revenue || "",
