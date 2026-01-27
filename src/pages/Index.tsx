@@ -75,6 +75,7 @@ const Index = () => {
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'custom'>('all');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');
+  const [enrichmentTypeFilter, setEnrichmentTypeFilter] = useState<'all' | 'company_domain' | 'socials'>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -1071,6 +1072,18 @@ const Index = () => {
       if (!hasQualifyingSource) return false;
     }
 
+    // Enrichment Type filter
+    if (enrichmentTypeFilter !== 'all') {
+      if (enrichmentTypeFilter === 'company_domain') {
+        // Show leads that have a domain (from any source)
+        if (!lead.domain) return false;
+      } else if (enrichmentTypeFilter === 'socials') {
+        // Show leads that have at least one social found
+        const hasSocials = lead.facebook || lead.linkedin || lead.instagram;
+        if (!hasSocials) return false;
+      }
+    }
+
     return true;
   });
 
@@ -1545,6 +1558,19 @@ const Index = () => {
                     <SelectItem value="apollo">Apollo</SelectItem>
                     <SelectItem value="google">Google</SelectItem>
                     <SelectItem value="email">Email</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={enrichmentTypeFilter} 
+                  onValueChange={(value: 'all' | 'company_domain' | 'socials') => setEnrichmentTypeFilter(value)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Enrichment Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Enrichment Types</SelectItem>
+                    <SelectItem value="company_domain">Enrichment Company Domain</SelectItem>
+                    <SelectItem value="socials">Enrichment Socials</SelectItem>
                   </SelectContent>
                 </Select>
                 {dateFilter === 'custom' && (
