@@ -1117,7 +1117,7 @@ const Index = () => {
   const handleExportCSV = async () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
-      "Company Website", "Source", "Company Match Score", "Industry", "Company Revenue", "Company Size",
+      "Company Website", "Domain Source", "Company Match Score", "Industry", "Company Revenue", "Company Size",
       "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Enrichment Type", "Company Summary", "Company Contacts",
       "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
       "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
