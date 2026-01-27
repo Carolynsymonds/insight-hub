@@ -1062,7 +1062,14 @@ const Index = () => {
   });
 
   const getDomainSource = (enrichmentSource: string | null): string => {
-    if (enrichmentSource === 'email_domain_verified') {
+    const emailSources = [
+      'email_domain_verified',
+      'email_personal_domain_skipped',
+      'email_domain_not_verified',
+      'email_invalid_format'
+    ];
+    
+    if (emailSources.includes(enrichmentSource || '')) {
       return 'Email';
     } else if (enrichmentSource === 'apollo_api') {
       return 'Apollo';
