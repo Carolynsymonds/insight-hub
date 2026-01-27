@@ -1,111 +1,82 @@
 
+# Update SOURCE v2 to Check Domain Validity Instead of Confidence
 
-# Add "SOURCE v2" Column to CSV Export
+## Current Issue
+The `yorkexcavating.com` domain is valid (HTTP 200), but it's not showing in SOURCE v2 because it was found by Google with only 20% confidence. The current logic filters out sources with confidence < 50%.
 
-## Overview
-Add a new "SOURCE v2" column to the CSV export that shows which enrichment sources found a valid domain with confidence >= 50%. This column will list all qualifying sources (Apollo, Google, Email) based on the `enrichment_logs` data.
+## New Logic
+Change SOURCE v2 to show sources that found a **valid domain**, regardless of confidence:
+- Only require that `log.domain` exists (not null)
+- Remove the confidence >= 50% check entirely
 
-## How It Works
-The `enrichment_logs` field is a JSONB array where each entry contains:
-- `source`: The enrichment source (e.g., "apollo_api", "google_knowledge_graph", "email_domain_verified")
-- `domain`: The domain found (or null if not found)
-- `confidence`: The confidence percentage (0-100)
-
-Example from screenshot:
-- Apollo: domain "midasfoods.com" with 95% confidence → **Include "Apollo"**
-- Google: domain "midas.com" with 10% confidence → **Exclude** (below 50%)
-- Email: No domain found → **Exclude**
-
-## Technical Implementation
+## Technical Changes
 
 ### File: `src/pages/Index.tsx`
 
-**1. Add a helper function to parse enrichment logs and extract qualifying sources:**
+**1. Update the filter logic (lines 1080-1082):**
 
+Change from:
 ```typescript
-const getSourceV2 = (enrichmentLogs: any): string => {
-  if (!enrichmentLogs || !Array.isArray(enrichmentLogs)) return '';
-  
-  const qualifyingSources: string[] = [];
-  
-  for (const log of enrichmentLogs) {
-    // Skip if no domain found or confidence < 50
-    if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
-    
-    // Map source to friendly name
-    if (log.source === 'apollo_api' && !qualifyingSources.includes('Apollo')) {
-      qualifyingSources.push('Apollo');
-    } else if ((log.source === 'google_knowledge_graph' || log.source === 'google_local_results') && !qualifyingSources.includes('Google')) {
-      qualifyingSources.push('Google');
-    } else if (log.source === 'email_domain_verified' && !qualifyingSources.includes('Email')) {
-      qualifyingSources.push('Email');
-    }
-  }
-  
-  return qualifyingSources.join(', ');
-};
+// Skip if no domain found or confidence < 50
+if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
 ```
 
-**2. Add "SOURCE v2" to the CSV headers (after "Domain Source"):**
-
-Current headers array (around line 1109):
+To:
 ```typescript
-const headers = [
-  "Name", "Email", "Company", "Zipcode", "DMA",
-  "Company Website", "Domain Source", "Company Match Score", ...
-];
+// Skip if no domain found
+if (!log.domain) continue;
 ```
 
-Updated:
+**2. Update the `getSourceV2` function (lines 1140-1141):**
+
+Change from:
 ```typescript
-const headers = [
-  "Name", "Email", "Company", "Zipcode", "DMA",
-  "Company Website", "Domain Source", "SOURCE v2", "Company Match Score", ...
-];
+// Skip if no domain found or confidence < 50
+if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
 ```
 
-**3. Add the new column value in the row mapping (around line 1225):**
-
-Current:
+To:
 ```typescript
-return [
-  lead.full_name || "",
-  lead.email || "",
-  lead.company || "",
-  lead.zipcode || "",
-  lead.dma || "",
-  lead.domain || "",
-  getDomainSource(lead.enrichment_source, lead.email, lead.domain),
-  lead.match_score !== null ? `${lead.match_score}%` : "",
-  ...
-];
+// Skip if no domain found
+if (!log.domain) continue;
 ```
 
-Updated:
+**3. Update filter dropdown labels (lines 1614-1617):**
+
+Change from:
 ```typescript
-return [
-  lead.full_name || "",
-  lead.email || "",
-  lead.company || "",
-  lead.zipcode || "",
-  lead.dma || "",
-  lead.domain || "",
-  getDomainSource(lead.enrichment_source, lead.email, lead.domain),
-  getSourceV2(lead.enrichment_logs),
-  lead.match_score !== null ? `${lead.match_score}%` : "",
-  ...
-];
+<SelectItem value="apollo">Apollo (≥50%)</SelectItem>
+<SelectItem value="google">Google (≥50%)</SelectItem>
+<SelectItem value="email">Email (≥50%)</SelectItem>
 ```
 
-## Expected Output Examples
+To:
+```typescript
+<SelectItem value="apollo">Apollo</SelectItem>
+<SelectItem value="google">Google</SelectItem>
+<SelectItem value="email">Email</SelectItem>
+```
 
-| Domain Source | SOURCE v2 | Explanation |
-|--------------|-----------|-------------|
-| Email | Apollo, Email | Apollo found domain at 95%, Email also verified at 95% |
-| Google | Apollo, Google | Both found domains with 50%+ confidence |
-| Apollo | Apollo | Only Apollo found a domain with 50%+ confidence |
-| Email | (empty) | Domain matches email, but no sources have 50%+ confidence in enrichment_logs |
+**4. Update the function comment (line 1133):**
+
+Change from:
+```typescript
+// Helper to extract qualifying sources from enrichment_logs (domain found with >=50% confidence)
+```
+
+To:
+```typescript
+// Helper to extract sources that found a domain from enrichment_logs
+```
+
+## Expected Result
+After this change, `yorkexcavating.com` will show "Google" in SOURCE v2 because Google found a valid domain, even though the confidence was only 20%.
+
+| Lead | Google Confidence | Before | After |
+|------|-------------------|--------|-------|
+| York Excavating | 20% | (empty) | Google |
+| Midas Foods | 95% | Apollo | Apollo |
+| General Acrylics | 95% | Apollo, Email | Apollo, Email |
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`** - Add `getSourceV2` helper function, update headers array, and add column to row mapping
-
+1. **`src/pages/Index.tsx`** - Update filter logic, `getSourceV2` function, dropdown labels, and comment
