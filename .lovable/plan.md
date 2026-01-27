@@ -1,58 +1,60 @@
 
 
-# Update Domain Source Logic to Prioritize Email Validation
+# Update "From Email" Filter to Check Email Domain Validation
 
 ## Overview
-Update the `getDomainSource` function to prioritize email domain validation status. When a lead's domain has been validated via email (`email_domain_validated = true`), it should show "Email" as the domain source in the CSV export, regardless of how the domain was originally discovered.
+Update the domain source filter to also check the `email_domain_validated` field, matching the logic we added to the CSV export. This ensures leads like `elegantjohns.com` appear when filtering by "From Email" because their domain matches their email address.
 
 ## Current Issue
 - Lead `amanda@elegantjohns.com` has `enrichment_source = google_knowledge_graph`
-- But also has `email_domain_validated = true` (showing 95% confidence and VALID in UI)
-- Current logic only checks `enrichment_source`, so CSV shows "Google" instead of "Email"
+- But also has `email_domain_validated = true`
+- The filter only checks `enrichment_source`, so it gets excluded from "From Email" filter
+- The CSV export was updated to prioritize `email_domain_validated`, but the filter was not
 
 ## Technical Implementation
 
 ### File: `src/pages/Index.tsx`
 
-**1. Update `getDomainSource` function signature to accept both parameters:**
+**Update filter logic (lines 1044-1052):**
 
+Current:
 ```typescript
-const getDomainSource = (enrichmentSource: string | null, emailDomainValidated: boolean | null): string => {
-  // Prioritize email domain validation - if domain matches email, show "Email"
-  if (emailDomainValidated === true) {
-    return 'Email';
-  }
-  
+if (domainSourceFilter === 'email') {
   const emailSources = [
     'email_domain_verified',
     'email_personal_domain_skipped',
     'email_domain_not_verified',
     'email_invalid_format'
   ];
-  
-  if (emailSources.includes(enrichmentSource || '')) {
-    return 'Email';
-  } else if (enrichmentSource === 'apollo_api') {
-    return 'Apollo';
-  } else if (enrichmentSource === 'google_knowledge_graph' || enrichmentSource === 'google_local_results') {
-    return 'Google';
-  }
-  return '';
-};
+  if (!emailSources.includes(lead.enrichment_source)) return false;
+}
 ```
 
-**2. Update the function call in CSV export:**
-
+Updated:
 ```typescript
-getDomainSource(lead.enrichment_source, lead.email_domain_validated),
+if (domainSourceFilter === 'email') {
+  // Prioritize email domain validation - if domain matches email, include it
+  if (lead.email_domain_validated === true) {
+    // Domain was validated via email, include this lead
+  } else {
+    // Fall back to checking enrichment_source
+    const emailSources = [
+      'email_domain_verified',
+      'email_personal_domain_skipped',
+      'email_domain_not_verified',
+      'email_invalid_format'
+    ];
+    if (!emailSources.includes(lead.enrichment_source)) return false;
+  }
+}
 ```
 
 ## Result
 After this change:
-- Leads where the domain matches the email address (validated via email) will show "Email" in the CSV
-- This includes `amanda@elegantjohns.com` which will now correctly show "Email" instead of "Google"
-- The logic prioritizes the email validation status over the original enrichment source
+- Leads where `email_domain_validated = true` will appear in the "From Email" filter
+- This includes `amanda@elegantjohns.com` which will now correctly show when filtering by email
+- The filter logic matches the CSV export logic for consistency
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`** - Update `getDomainSource` function signature and call site
+1. **`src/pages/Index.tsx`** - Update the email filter condition to also check `email_domain_validated`
 
