@@ -1,82 +1,54 @@
 
-# Update SOURCE v2 to Check Domain Validity Instead of Confidence
+# Replace Domain Source with SOURCE Column
 
-## Current Issue
-The `yorkexcavating.com` domain is valid (HTTP 200), but it's not showing in SOURCE v2 because it was found by Google with only 20% confidence. The current logic filters out sources with confidence < 50%.
+## Overview
+Remove the old "Domain Source" logic/column and rename "SOURCE v2" to just "SOURCE". This simplifies the codebase by keeping only the enrichment_logs-based source detection.
 
-## New Logic
-Change SOURCE v2 to show sources that found a **valid domain**, regardless of confidence:
-- Only require that `log.domain` exists (not null)
-- Remove the confidence >= 50% check entirely
+## Current State
+1. **Domain Source filter** - Uses `domainSourceFilter` state and `getDomainSource()` function
+2. **SOURCE v2 filter** - Uses `sourceV2Filter` state and `getSourceV2()` function
+3. **CSV Export** - Has both "Domain Source" and "SOURCE v2" columns
 
-## Technical Changes
+## Changes Required
 
 ### File: `src/pages/Index.tsx`
 
-**1. Update the filter logic (lines 1080-1082):**
+**1. Remove `domainSourceFilter` state declaration (line 77):**
+- Delete: `const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');`
 
-Change from:
-```typescript
-// Skip if no domain found or confidence < 50
-if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
-```
+**2. Rename `sourceV2Filter` to `sourceFilter` (line 78):**
+- Change to: `const [sourceFilter, setSourceFilter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');`
 
-To:
-```typescript
-// Skip if no domain found
-if (!log.domain) continue;
-```
+**3. Remove Domain Source filter logic (lines 1051-1072):**
+- Delete the entire `domainSourceFilter` block that checks `email` and `search` sources
 
-**2. Update the `getSourceV2` function (lines 1140-1141):**
+**4. Update SOURCE v2 filter to use `sourceFilter` (lines 1075-1097):**
+- Rename comment from "SOURCE v2 filter" to "SOURCE filter"
+- Replace all `sourceV2Filter` references with `sourceFilter`
 
-Change from:
-```typescript
-// Skip if no domain found or confidence < 50
-if (!log.domain || (log.confidence !== undefined && log.confidence < 50)) continue;
-```
+**5. Remove `getDomainSource` helper function (lines 1110-1131):**
+- Delete the entire function
 
-To:
-```typescript
-// Skip if no domain found
-if (!log.domain) continue;
-```
+**6. Rename `getSourceV2` to `getSource` (lines 1133-1154):**
+- Update function name and comment
 
-**3. Update filter dropdown labels (lines 1614-1617):**
+**7. Update CSV headers (line 1157-1163):**
+- Remove "Domain Source"
+- Rename "SOURCE v2" to "SOURCE"
 
-Change from:
-```typescript
-<SelectItem value="apollo">Apollo (≥50%)</SelectItem>
-<SelectItem value="google">Google (≥50%)</SelectItem>
-<SelectItem value="email">Email (≥50%)</SelectItem>
-```
+**8. Update CSV row mapping (lines 1273-1274):**
+- Remove: `getDomainSource(lead.enrichment_source, lead.email, lead.domain),`
+- Change: `getSourceV2(lead.enrichment_logs),` to `getSource(lead.enrichment_logs),`
 
-To:
-```typescript
-<SelectItem value="apollo">Apollo</SelectItem>
-<SelectItem value="google">Google</SelectItem>
-<SelectItem value="email">Email</SelectItem>
-```
+**9. Remove Domain Source filter UI (lines 1593-1605):**
+- Delete the entire Domain Source `<Select>` component
 
-**4. Update the function comment (line 1133):**
+**10. Update SOURCE v2 filter UI (lines 1606-1619):**
+- Update state references from `sourceV2Filter` to `sourceFilter`
+- Update label from "SOURCE v2" to "SOURCE"
+- Update SelectItem labels to just show source names
 
-Change from:
-```typescript
-// Helper to extract qualifying sources from enrichment_logs (domain found with >=50% confidence)
-```
-
-To:
-```typescript
-// Helper to extract sources that found a domain from enrichment_logs
-```
-
-## Expected Result
-After this change, `yorkexcavating.com` will show "Google" in SOURCE v2 because Google found a valid domain, even though the confidence was only 20%.
-
-| Lead | Google Confidence | Before | After |
-|------|-------------------|--------|-------|
-| York Excavating | 20% | (empty) | Google |
-| Midas Foods | 95% | Apollo | Apollo |
-| General Acrylics | 95% | Apollo, Email | Apollo, Email |
-
-## Files to Modify
-1. **`src/pages/Index.tsx`** - Update filter logic, `getSourceV2` function, dropdown labels, and comment
+## Result
+- Single "SOURCE" column in CSV export showing which enrichment sources found a domain
+- Single "SOURCE" filter dropdown in the UI
+- Cleaner, simpler codebase with one unified approach
