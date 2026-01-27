@@ -1455,22 +1455,6 @@ const Index = () => {
                   </SelectContent>
                 </Select>
                 <Select 
-                  value={batchFilter === 'all' ? 'all' : String(batchFilter)} 
-                  onValueChange={(value) => setBatchFilter(value === 'all' ? 'all' : Number(value))}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Batch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-semibold">All Batches</SelectItem>
-                    {uniqueBatches.map((batch) => (
-                      <SelectItem key={batch} value={String(batch)}>
-                        Batch {batch}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select 
                   value={dateFilter} 
                   onValueChange={(value: 'all' | 'today' | 'last7days' | 'last30days' | 'custom') => {
                     setDateFilter(value);
