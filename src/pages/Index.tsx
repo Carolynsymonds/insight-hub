@@ -1248,7 +1248,8 @@ const Index = () => {
         lead.dma || "",
         lead.domain || "",
         getSource(lead.enrichment_logs),
-        lead.match_score !== null ? `${lead.match_score}%` : "",
+        // Only show match score if lead has a domain (match score is about domain confidence)
+        (hasDomain && lead.match_score !== null) ? `${lead.match_score}%` : "",
         lead.company_industry || "",
         lead.annual_revenue || "",
         lead.size || "",
