@@ -74,8 +74,7 @@ const Index = () => {
   const [batchFilter, setBatchFilter] = useState<'all' | number>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'custom'>('all');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
-  const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');
-  const [sourceV2Filter, setSourceV2Filter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'apollo' | 'google' | 'email'>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -1048,32 +1047,8 @@ const Index = () => {
       return emailDomain === leadDomain;
     };
 
-    // Domain source filter
-    if (domainSourceFilter !== 'all') {
-      if (domainSourceFilter === 'email') {
-        // Check if domain actually matches the email domain
-        if (domainMatchesEmail(lead.email, lead.domain)) {
-          // Domain matches email, include this lead
-        } else {
-          // Fall back to checking enrichment_source
-          const emailSources = [
-            'email_domain_verified',
-            'email_personal_domain_skipped',
-            'email_domain_not_verified',
-            'email_invalid_format'
-          ];
-          if (!emailSources.includes(lead.enrichment_source)) return false;
-        }
-      }
-      if (domainSourceFilter === 'search') {
-        // Show leads where domain came from Apollo or Google search
-        const searchSources = ['apollo_api', 'google_knowledge_graph', 'google_local_results'];
-        if (!searchSources.includes(lead.enrichment_source)) return false;
-      }
-    }
-
-    // SOURCE v2 filter - check enrichment_logs for qualifying sources
-    if (sourceV2Filter !== 'all') {
+    // SOURCE filter - check enrichment_logs for sources that found a domain
+    if (sourceFilter !== 'all') {
       const logs = Array.isArray(lead.enrichment_logs) ? lead.enrichment_logs as any[] : [];
       let hasQualifyingSource = false;
       
@@ -1081,13 +1056,13 @@ const Index = () => {
         // Skip if no domain found
         if (!log.domain) continue;
         
-        if (sourceV2Filter === 'apollo' && log.source === 'apollo_api') {
+        if (sourceFilter === 'apollo' && log.source === 'apollo_api') {
           hasQualifyingSource = true;
           break;
-        } else if (sourceV2Filter === 'google' && (log.source === 'google_knowledge_graph' || log.source === 'google_local_results')) {
+        } else if (sourceFilter === 'google' && (log.source === 'google_knowledge_graph' || log.source === 'google_local_results')) {
           hasQualifyingSource = true;
           break;
-        } else if (sourceV2Filter === 'email' && log.source === 'email_domain_verified') {
+        } else if (sourceFilter === 'email' && log.source === 'email_domain_verified') {
           hasQualifyingSource = true;
           break;
         }
@@ -1099,39 +1074,8 @@ const Index = () => {
     return true;
   });
 
-  // Helper to check if domain matches email domain
-  const domainMatchesEmail = (email: string | null, domain: string | null): boolean => {
-    if (!email || !domain) return false;
-    const emailDomain = email.split('@')[1]?.toLowerCase();
-    const leadDomain = domain.toLowerCase().replace(/^www\./, '');
-    return emailDomain === leadDomain;
-  };
-
-  const getDomainSource = (enrichmentSource: string | null, email: string | null, domain: string | null): string => {
-    // Check if domain actually matches the email domain
-    if (domainMatchesEmail(email, domain)) {
-      return 'Email';
-    }
-    
-    const emailSources = [
-      'email_domain_verified',
-      'email_personal_domain_skipped',
-      'email_domain_not_verified',
-      'email_invalid_format'
-    ];
-    
-    if (emailSources.includes(enrichmentSource || '')) {
-      return 'Email';
-    } else if (enrichmentSource === 'apollo_api') {
-      return 'Apollo';
-    } else if (enrichmentSource === 'google_knowledge_graph' || enrichmentSource === 'google_local_results') {
-      return 'Google';
-    }
-    return '';
-  };
-
   // Helper to extract sources that found a domain from enrichment_logs
-  const getSourceV2 = (enrichmentLogs: any): string => {
+  const getSource = (enrichmentLogs: any): string => {
     if (!enrichmentLogs || !Array.isArray(enrichmentLogs)) return '';
     
     const qualifyingSources: string[] = [];
@@ -1156,7 +1100,7 @@ const Index = () => {
   const handleExportCSV = async () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
-      "Company Website", "Domain Source", "SOURCE v2", "Company Match Score", "Industry", "Company Revenue", "Company Size",
+      "Company Website", "SOURCE", "Company Match Score", "Industry", "Company Revenue", "Company Size",
       "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Company Summary", "Company Contacts",
       "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
       "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
@@ -1270,8 +1214,7 @@ const Index = () => {
         lead.zipcode || "",
         lead.dma || "",
         lead.domain || "",
-        getDomainSource(lead.enrichment_source, lead.email, lead.domain),
-        getSourceV2(lead.enrichment_logs),
+        getSource(lead.enrichment_logs),
         lead.match_score !== null ? `${lead.match_score}%` : "",
         lead.company_industry || "",
         lead.annual_revenue || "",
@@ -1591,27 +1534,14 @@ const Index = () => {
                   </SelectContent>
                 </Select>
                 <Select 
-                  value={domainSourceFilter} 
-                  onValueChange={(value: 'all' | 'email' | 'search') => setDomainSourceFilter(value)}
+                  value={sourceFilter} 
+                  onValueChange={(value: 'all' | 'apollo' | 'google' | 'email') => setSourceFilter(value)}
                 >
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Domain Source" />
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="SOURCE" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Sources</SelectItem>
-                    <SelectItem value="email">From Email</SelectItem>
-                    <SelectItem value="search">From Apollo/Google</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select 
-                  value={sourceV2Filter} 
-                  onValueChange={(value: 'all' | 'apollo' | 'google' | 'email') => setSourceV2Filter(value)}
-                >
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="SOURCE v2" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All SOURCE v2</SelectItem>
                     <SelectItem value="apollo">Apollo</SelectItem>
                     <SelectItem value="google">Google</SelectItem>
                     <SelectItem value="email">Email</SelectItem>
