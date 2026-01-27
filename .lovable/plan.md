@@ -1,87 +1,33 @@
 
-# Replace "Social Status" with "Enrichment Type" in CSV Export
+# Empty Match Score for "Socials Only" Enrichment in CSV Export
 
 ## Overview
-Remove the "Social Status" column from the CSV export and replace it with an "Enrichment Type" column that shows the classification of each lead's enrichment results.
+When a lead was enriched only via social profiles (no domain found), the Match Score column in the CSV export should be empty instead of showing "0%". Match Score measures confidence in the lead-to-company **website** match, so it's not applicable when there's no domain.
 
-## Enrichment Type Logic
-Based on the existing filter implementation:
-
-| Value | Condition |
-|-------|-----------|
-| `Company Domain` | Lead has a non-null `domain` field |
-| `Socials` | Lead has at least one validated social (`facebook_validated`, `linkedin_validated`, or `instagram_validated` is `true`) |
-| `Company Domain, Socials` | Lead has BOTH a domain AND validated socials |
-| *(empty)* | Lead has neither |
-
-## Technical Changes
+## Technical Change
 
 ### File: `src/pages/Index.tsx`
 
-**1. Update header (line 1121):**
+**Update match score export logic (line 1251):**
 
 Change:
 ```typescript
-"Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Social Status", "Company Summary", ...
+lead.match_score !== null ? `${lead.match_score}%` : "",
 ```
 
 To:
 ```typescript
-"Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Enrichment Type", "Company Summary", ...
+// Only show match score if lead has a domain (match score is about domain confidence)
+// Socials-only enrichments should have empty match score
+(hasDomain && lead.match_score !== null) ? `${lead.match_score}%` : "",
 ```
 
-**2. Replace social status logic (lines 1227-1248):**
-
-Change:
-```typescript
-// Determine social status
-const hasValidSocial = ...
-...
-let socialStatus = "";
-if (hasValidSocial) {
-  socialStatus = "valid";
-} else if (validationsRun && hasSocialUrls) {
-  socialStatus = "socials found but invalid";
-} else if (validationsRun && !hasSocialUrls) {
-  socialStatus = "socials not found";
-}
-```
-
-To:
-```typescript
-// Determine enrichment type
-const hasValidSocials = 
-  lead.facebook_validated === true ||
-  lead.linkedin_validated === true ||
-  lead.instagram_validated === true;
-const hasDomain = lead.domain !== null && lead.domain !== "";
-
-let enrichmentType = "";
-if (hasDomain && hasValidSocials) {
-  enrichmentType = "Company Domain, Socials";
-} else if (hasDomain) {
-  enrichmentType = "Company Domain";
-} else if (hasValidSocials) {
-  enrichmentType = "Socials";
-}
-```
-
-**3. Update return array (line 1265):**
-
-Change:
-```typescript
-socialStatus,
-```
-
-To:
-```typescript
-enrichmentType,
-```
+This uses the existing `hasDomain` variable (already calculated on line 1232) to conditionally include the match score only when a domain exists.
 
 ## Result
-- CSV will show "Enrichment Type" column instead of "Social Status"
-- Values will be: "Company Domain", "Socials", "Company Domain, Socials", or empty
-- Matches the filter dropdown logic exactly
+- Leads with `enrichmentType === "Socials"` will have an empty Match Score column
+- Leads with `enrichmentType === "Company Domain"` or `"Company Domain, Socials"` will show their match score as before
+- This correctly reflects that Match Score measures domain match confidence
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`** - Update header, logic, and row mapping
+1. **`src/pages/Index.tsx`** - Line 1251: Add `hasDomain` condition to match score export
