@@ -16,6 +16,30 @@ interface EnrichmentLogEntry {
   [key: string]: unknown;
 }
 
+// Helper function to calculate score from distance and domain signals
+function calculateFromSignals(distanceMiles: number, domainScore: number): number {
+  // Convert distance to a score based on ranges:
+  // < 50 miles = High confidence → Score 60-70
+  // 50-100 miles = Medium confidence → Score 20-60
+  // > 100 miles = Low confidence → Score 0-20
+  let distanceScore: number;
+  if (distanceMiles <= 0) {
+    distanceScore = 70; // Perfect distance = top of high range
+  } else if (distanceMiles < 50) {
+    // High confidence range: 60-70
+    distanceScore = 70 - (distanceMiles * 0.2);
+  } else if (distanceMiles <= 100) {
+    // Medium confidence range: 20-60
+    distanceScore = 60 - ((distanceMiles - 50) * 0.8);
+  } else {
+    // Low confidence range: 0-20
+    distanceScore = Math.max(0, 20 - ((distanceMiles - 100) * 0.2));
+  }
+  
+  // Equal weights: 50% each
+  return Math.round((distanceScore + domainScore) / 2);
+}
+
 // Find the best enrichment from logs (highest confidence that found a domain)
 function findBestEnrichment(logs: EnrichmentLogEntry[] | null): { source: string | null; confidence: number } {
   if (!logs || !Array.isArray(logs) || logs.length === 0) {
@@ -84,65 +108,91 @@ serve(async (req) => {
 
     console.log(`Effective enrichment: source=${effectiveSource}, confidence=${effectiveConfidence}% (current: ${lead.enrichment_source}/${lead.enrichment_confidence}%, best from logs: ${bestEnrichment.source}/${bestEnrichment.confidence}%)`);
 
+    // Get quality signals for quality gate checks
+    const distanceMiles = lead.distance_miles ?? 999;
+    const domainScore = lead.domain_relevance_score ?? 0;
+    
+    // Quality gate thresholds
+    const distanceIsReasonable = distanceMiles < 100; // Under 100 miles
+    const domainRelevanceIsReasonable = domainScore >= 30; // At least 30/100
+
     let matchScore: number;
     let matchScoreSource: string;
 
     // Step 1: Check if email domain is verified (using effective source)
+    // BUT only give 99% if quality signals are good
     if (effectiveSource === 'email_domain_verified') {
-      matchScore = 99;
-      matchScoreSource = 'email_domain';
-      console.log('Step 1 applied: Email domain verified - 99%');
+      if (distanceIsReasonable && domainRelevanceIsReasonable) {
+        // Both signals support the match - give full 99%
+        matchScore = 99;
+        matchScoreSource = 'email_domain';
+        console.log(`Step 1a applied: Email domain verified with good quality signals (distance=${distanceMiles}mi, relevance=${domainScore}) - 99%`);
+      } else if (distanceIsReasonable || domainRelevanceIsReasonable) {
+        // One signal is bad - give moderate boost (70-85%)
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.max(baseCalculated, 70);
+        matchScore = Math.min(matchScore, 85);
+        matchScoreSource = 'email_domain_partial';
+        console.log(`Step 1b applied: Email domain with partial quality (distance=${distanceMiles}mi, relevance=${domainScore}, base=${baseCalculated}) - ${matchScore}%`);
+      } else {
+        // Both signals are bad - use calculated score, but with small email bonus
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.min(baseCalculated + 10, 60);
+        matchScoreSource = 'email_domain_low_quality';
+        console.log(`Step 1c applied: Email domain with poor quality (distance=${distanceMiles}mi, relevance=${domainScore}, base=${baseCalculated}) - ${matchScore}%`);
+      }
     }
     // Step 2: Check if domain from Google Knowledge Graph with high confidence
-    // Requires confidence >= 25 (Step 1a/1b at 100%, Step 2a/2b at 25%)
+    // Also apply quality gate here
     else if (effectiveSource === 'google_knowledge_graph' && effectiveConfidence >= 25) {
-      matchScore = 95;
-      matchScoreSource = 'google_knowledge_graph';
-      console.log(`Step 2 applied: Google Knowledge Graph (confidence ${effectiveConfidence}%) - 95%`);
+      if (distanceIsReasonable && domainRelevanceIsReasonable) {
+        // Both signals support the match - give full 95%
+        matchScore = 95;
+        matchScoreSource = 'google_knowledge_graph';
+        console.log(`Step 2a applied: Google Knowledge Graph with good quality signals (confidence=${effectiveConfidence}%, distance=${distanceMiles}mi, relevance=${domainScore}) - 95%`);
+      } else if (distanceIsReasonable || domainRelevanceIsReasonable) {
+        // One signal is bad - give moderate boost (65-80%)
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.max(baseCalculated, 65);
+        matchScore = Math.min(matchScore, 80);
+        matchScoreSource = 'google_kg_partial';
+        console.log(`Step 2b applied: Google KG with partial quality (distance=${distanceMiles}mi, relevance=${domainScore}, base=${baseCalculated}) - ${matchScore}%`);
+      } else {
+        // Both signals are bad - use calculated score with small bonus
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.min(baseCalculated + 5, 55);
+        matchScoreSource = 'google_kg_low_quality';
+        console.log(`Step 2c applied: Google KG with poor quality (distance=${distanceMiles}mi, relevance=${domainScore}, base=${baseCalculated}) - ${matchScore}%`);
+      }
     }
     // Step 2b: Check if email domain verified had high confidence in logs
     else if (bestEnrichment.source === 'email_domain_verified' && bestEnrichment.confidence >= 90) {
-      matchScore = 99;
-      matchScoreSource = 'email_domain';
-      console.log(`Step 2b applied: Email domain verified from logs (confidence ${bestEnrichment.confidence}%) - 99%`);
+      if (distanceIsReasonable && domainRelevanceIsReasonable) {
+        matchScore = 99;
+        matchScoreSource = 'email_domain';
+        console.log(`Step 2b-alt applied: Email domain verified from logs with good quality (confidence=${bestEnrichment.confidence}%) - 99%`);
+      } else if (distanceIsReasonable || domainRelevanceIsReasonable) {
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.max(baseCalculated, 70);
+        matchScore = Math.min(matchScore, 85);
+        matchScoreSource = 'email_domain_partial';
+        console.log(`Step 2b-alt applied: Email domain from logs with partial quality - ${matchScore}%`);
+      } else {
+        const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+        matchScore = Math.min(baseCalculated + 10, 60);
+        matchScoreSource = 'email_domain_low_quality';
+        console.log(`Step 2b-alt applied: Email domain from logs with poor quality - ${matchScore}%`);
+      }
     }
     // Step 3: Equal-weighted calculation (50% each: distance, domain)
     else {
       console.log('Step 3: Calculating with equal weights (distance, domain)');
       
-      // Get distance in miles (default to high distance if not available)
-      const distanceMiles = lead.distance_miles ?? 999;
-      
-      // Convert distance to a score based on ranges:
-      // < 50 miles = High confidence → Score 60-70
-      // 50-100 miles = Medium confidence → Score 20-60
-      // > 100 miles = Low confidence → Score 0-20
-      let distanceScore: number;
-      if (distanceMiles <= 0) {
-        distanceScore = 70; // Perfect distance = top of high range
-      } else if (distanceMiles < 50) {
-        // High confidence range: 60-70
-        // 0mi → 70, 50mi → 60 (linear interpolation)
-        distanceScore = 70 - (distanceMiles * 0.2);
-      } else if (distanceMiles <= 100) {
-        // Medium confidence range: 20-60
-        // 50mi → 60, 100mi → 20 (linear interpolation)
-        distanceScore = 60 - ((distanceMiles - 50) * 0.8);
-      } else {
-        // Low confidence range: 0-20
-        // 100mi → 20, 200mi+ → 0 (linear decay)
-        distanceScore = Math.max(0, 20 - ((distanceMiles - 100) * 0.2));
-      }
-      
-      // Get domain relevance score (0-100)
-      const domainScore = lead.domain_relevance_score || 0;
-      
-      // Equal weights: 50% each
-      matchScore = Math.round((distanceScore + domainScore) / 2);
-      
+      matchScore = calculateFromSignals(distanceMiles, domainScore);
       matchScoreSource = 'calculated';
-      console.log(`Step 3 inputs: Distance=${distanceMiles}mi → ${distanceScore.toFixed(1)}, Domain=${domainScore}`);
-      console.log(`Step 3 calculation: (${distanceScore.toFixed(1)} + ${domainScore}) / 2 = ${matchScore}`);
+      
+      console.log(`Step 3 inputs: Distance=${distanceMiles}mi, Domain=${domainScore}`);
+      console.log(`Step 3 result: ${matchScore}%`);
     }
 
     // Update the lead with match score
