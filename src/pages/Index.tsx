@@ -1118,7 +1118,7 @@ const Index = () => {
     const headers = [
       "Name", "Email", "Company", "Zipcode", "DMA",
       "Company Website", "SOURCE", "Company Match Score", "Industry", "Company Revenue", "Company Size",
-      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Social Status", "Company Summary", "Company Contacts",
+      "Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Enrichment Type", "Company Summary", "Company Contacts",
       "Company News", "Key Insights", "Products & Services", "Contact Job Title", "Contact Phone",
       "Contact Summary", "Contact LinkedIn", "Contact Facebook", "Contact YouTube"
     ];
@@ -1224,27 +1224,20 @@ const Index = () => {
         }
       }
 
-      // Determine social status
-      const hasValidSocial = 
+      // Determine enrichment type
+      const hasValidSocials = 
+        lead.facebook_validated === true ||
         lead.linkedin_validated === true ||
-        lead.instagram_validated === true ||
-        lead.facebook_validated === true;
-      const hasSocialUrls = 
-        lead.linkedin !== null ||
-        lead.instagram !== null ||
-        lead.facebook !== null;
-      const validationsRun = 
-        lead.facebook_validated !== null ||
-        lead.linkedin_validated !== null ||
-        lead.instagram_validated !== null;
-      
-      let socialStatus = "";
-      if (hasValidSocial) {
-        socialStatus = "valid";
-      } else if (validationsRun && hasSocialUrls) {
-        socialStatus = "socials found but invalid";
-      } else if (validationsRun && !hasSocialUrls) {
-        socialStatus = "socials not found";
+        lead.instagram_validated === true;
+      const hasDomain = lead.domain !== null && lead.domain !== "";
+
+      let enrichmentType = "";
+      if (hasDomain && hasValidSocials) {
+        enrichmentType = "Company Domain, Socials";
+      } else if (hasDomain) {
+        enrichmentType = "Company Domain";
+      } else if (hasValidSocials) {
+        enrichmentType = "Socials";
       }
 
       return [
@@ -1262,7 +1255,7 @@ const Index = () => {
         lead.founded_date || "",
         lead.linkedin || "",
         lead.facebook || "",
-        socialStatus,
+        enrichmentType,
         lead.long_summary || lead.short_summary || "",
         companyContactsStr,
         newsStr,
