@@ -1,131 +1,89 @@
 
-# Fix: Domain Fallback Not Working on Single-Lead Pipeline
+
+# Fix: Email Domain Verified Should Consider Quality Signals
+
+## Problem
+The Match Score gives an automatic 99% when a domain is extracted from an email, ignoring critical quality signals:
+- **Distance: 482.4 miles** = Very low confidence (website is far from lead location)
+- **Domain Relevance: 10/100** = Very low (domain name doesn't match company name)
+
+This is clearly a wrong domain match, but the system gives 99% just because a domain was extracted from an email.
 
 ## Root Cause
-The "Run Pipeline" button on individual leads uses `handleRunPipeline` in **LeadsTable.tsx** (lines 953-1320+), which is a completely separate implementation from the shared `runPipelineForLead` in **runPipeline.ts**.
+The current scoring logic in `calculate-match-score/index.ts` has this priority:
+1. Email Domain Verified → 99% (no questions asked)
+2. Google Knowledge Graph → 95%
+3. Calculated from Distance + Domain Relevance
 
-The domain fallback logic we added exists ONLY in `runPipeline.ts`, but that function is only used for **bulk pipeline operations** from `Index.tsx`. The single-lead pipeline in `LeadsTable.tsx` never calls `attemptDomainFallback`.
-
-## Current State
-
-```text
-+------------------------+           +------------------------+
-|  LeadsTable.tsx        |           |  runPipeline.ts        |
-|  handleRunPipeline()   |           |  runPipelineForLead()  |
-+------------------------+           +------------------------+
-| Single Lead "Run       |           | Bulk Pipeline from     |
-| Pipeline" button       |           | Index.tsx              |
-+------------------------+           +------------------------+
-| NO fallback logic      |           | HAS fallback logic     |
-| (lines 953-1320+)      |           | (attemptDomainFallback)|
-+------------------------+           +------------------------+
-```
+The "Email Domain Verified" source gets 99% regardless of whether the domain actually makes sense for the company.
 
 ## Solution
-Add the same domain fallback logic to the `handleRunPipeline` function in `LeadsTable.tsx` after domain validation (around line 1120).
+Add a **quality gate** to the email domain verification step. If either:
+- Distance is very high (>100 miles), OR
+- Domain Relevance is very low (<30)
 
-## Changes Required
+Then fall back to the calculated score instead of giving automatic 99%.
 
-### File: `src/components/LeadsTable.tsx`
+## Technical Changes
 
-**1. Add import for attemptDomainFallback:**
-```typescript
-import { attemptDomainFallback } from "@/lib/domainFallback";
-```
+### File: `supabase/functions/calculate-match-score/index.ts`
 
-**2. Update handleRunPipeline function after domain validation (around line 1120-1125):**
-
-Currently the code checks if domain is valid and not parked, then continues to coordinates. We need to add fallback logic when domain IS parked:
+**Update Step 1 logic (lines 90-95):**
 
 ```typescript
-// After line 1123: onEnrichComplete();
-
-// Track the current working domain (may change after fallback)
-let workingDomain = updatedLead.domain;
-let workingValidationData = validationData;
-
-// If domain is parked or invalid, attempt to find a valid alternative
-if (validationData?.is_parked || !validationData?.is_valid_domain) {
-  setPipelineStep('Finding Alternative Domain...');
+// Step 1: Check if email domain is verified (using effective source)
+// BUT only give 99% if quality signals are good
+if (effectiveSource === 'email_domain_verified') {
+  const distanceMiles = lead.distance_miles ?? 999;
+  const domainScore = lead.domain_relevance_score ?? 0;
   
-  // Refetch logs to get the latest (including validation log just added)
-  const { data: leadWithLogs } = await supabase
-    .from("leads")
-    .select("enrichment_logs")
-    .eq("id", lead.id)
-    .single();
+  // Quality gate: only give 99% if signals support the match
+  const distanceIsReasonable = distanceMiles < 100; // Under 100 miles
+  const domainRelevanceIsReasonable = domainScore >= 30; // At least 30/100
   
-  const latestLogs = Array.isArray(leadWithLogs?.enrichment_logs) 
-    ? leadWithLogs.enrichment_logs : [];
-  
-  const fallbackResult = await attemptDomainFallback(
-    lead.id,
-    updatedLead.domain,
-    latestLogs
-  );
-  
-  if (fallbackResult.success && fallbackResult.fallbackDomain) {
-    // Successfully found a valid alternative domain
-    workingDomain = fallbackResult.fallbackDomain;
-    workingValidationData = fallbackResult.validationData;
-    
-    toast({
-      title: "Alternative Domain Found",
-      description: `Switched from parked domain to ${fallbackResult.fallbackDomain} (${fallbackResult.fallbackConfidence}% confidence from ${fallbackResult.fallbackSource})`
-    });
-    
-    // Refresh UI to show the new domain
-    onEnrichComplete();
+  if (distanceIsReasonable && domainRelevanceIsReasonable) {
+    // Both signals support the match - give full 99%
+    matchScore = 99;
+    matchScoreSource = 'email_domain';
+    console.log('Step 1 applied: Email domain verified with good quality signals - 99%');
+  } else if (distanceIsReasonable || domainRelevanceIsReasonable) {
+    // One signal is bad - give moderate boost (70-85%)
+    const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+    matchScore = Math.max(baseCalculated, 70); // At least 70%, capped at 85%
+    matchScore = Math.min(matchScore, 85);
+    matchScoreSource = 'email_domain_partial';
+    console.log(`Step 1b applied: Email domain with partial quality - ${matchScore}%`);
   } else {
-    // No valid alternative found - keep the parked/invalid domain and set score
-    await supabase.from("leads").update({
-      match_score: validationData?.is_parked ? 25 : 0,
-      match_score_source: validationData?.is_parked ? "parked_domain" : "invalid_domain"
-    }).eq("id", lead.id);
-    
-    toast({
-      title: "No Valid Alternative Found",
-      description: `Primary domain is ${validationData?.is_parked ? 'parked' : 'invalid'} and no valid alternatives exist.`,
-      variant: "destructive"
-    });
+    // Both signals are bad - use calculated score, but with small email bonus
+    const baseCalculated = calculateFromSignals(distanceMiles, domainScore);
+    matchScore = Math.min(baseCalculated + 10, 60); // Small bonus, capped at 60%
+    matchScoreSource = 'email_domain_low_quality';
+    console.log(`Step 1c applied: Email domain with poor quality - ${matchScore}%`);
   }
 }
-
-// Then update the existing condition to use workingDomain and workingValidationData
-if (workingValidationData?.is_valid_domain && !workingValidationData?.is_parked) {
-  // Continue with coordinates, distance, etc. using workingDomain
-}
 ```
 
-**3. Update all subsequent domain references in the pipeline to use `workingDomain` instead of `updatedLead.domain`**
+## Expected Results
 
-This affects:
-- find-company-coordinates call (line 1128)
-- score-domain-relevance call
-- enrich-company-details call
-- find-company-contacts call
-- get-company-news call
+For the case in the screenshot (482 miles, 10/100 relevance):
+- **Current**: 99% (Email Domain Verified)
+- **After fix**: ~15% (calculated: distance ~0 + relevance 10 = ~5, plus 10 bonus = 15%, capped at 60%)
 
-## Expected Behavior After Fix
+This correctly reflects that while we found a domain from the email, the quality signals strongly suggest it's not the right company.
 
-1. User clicks "Run Pipeline" on Paving Pros lead
-2. Pipeline finds `paving-pros.com` (95% from email) and `pavingprosraleigh.com` (20% from Google)
-3. `paving-pros.com` becomes primary (highest confidence)
-4. Validation detects `paving-pros.com` is PARKED (JS redirect)
-5. **NEW**: Pipeline shows "Finding Alternative Domain..."
-6. **NEW**: `attemptDomainFallback` finds `pavingprosraleigh.com` in logs
-7. **NEW**: Validates it - VALID
-8. **NEW**: Updates lead to use `pavingprosraleigh.com` as primary domain
-9. Toast shows "Alternative Domain Found"
-10. Pipeline continues with the valid domain for coordinates, scoring, etc.
+## Quality Thresholds
+
+| Distance | Domain Relevance | Result |
+|----------|-----------------|--------|
+| <100 mi  | ≥30            | 99% (full email domain verified) |
+| <100 mi  | <30            | 70-85% (partial quality) |
+| ≥100 mi  | ≥30            | 70-85% (partial quality) |
+| ≥100 mi  | <30            | Calculated + 10, max 60% |
 
 ## Files to Modify
 
-1. **src/components/LeadsTable.tsx**
-   - Add import for `attemptDomainFallback`
-   - Add fallback logic after domain validation in `handleRunPipeline`
-   - Update domain references to use `workingDomain` variable
+1. **`supabase/functions/calculate-match-score/index.ts`**
+   - Extract distance/domain scoring logic into a helper function
+   - Add quality gate to email domain verification step
+   - Add similar quality gate to Google Knowledge Graph step (optional)
 
-## Alternative Approach (Considered but not recommended)
-
-Replace the inline `handleRunPipeline` with a call to `runPipelineForLead`. This would reduce code duplication but requires significant refactoring of callbacks and state management.
