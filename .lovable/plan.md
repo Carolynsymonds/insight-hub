@@ -1,56 +1,87 @@
 
-
-# Update "Enrichment Socials" Filter to Require Valid Socials
+# Replace "Social Status" with "Enrichment Type" in CSV Export
 
 ## Overview
-Update the "Enrichment Socials" filter to only show leads where at least one social media profile has been validated. Leads with socials that are found but marked as invalid should NOT be included.
+Remove the "Social Status" column from the CSV export and replace it with an "Enrichment Type" column that shows the classification of each lead's enrichment results.
 
-## Current Issue
-The current logic only checks if a social field exists:
-```typescript
-const hasSocials = lead.facebook || lead.linkedin || lead.instagram;
-```
+## Enrichment Type Logic
+Based on the existing filter implementation:
 
-This incorrectly includes leads where socials were found but later marked as invalid during validation.
+| Value | Condition |
+|-------|-----------|
+| `Company Domain` | Lead has a non-null `domain` field |
+| `Socials` | Lead has at least one validated social (`facebook_validated`, `linkedin_validated`, or `instagram_validated` is `true`) |
+| `Company Domain, Socials` | Lead has BOTH a domain AND validated socials |
+| *(empty)* | Lead has neither |
 
-## Updated Classification Logic
-
-| Enrichment Type | Current Condition | New Condition |
-|----------------|-------------------|---------------|
-| **Enrichment Socials** | `facebook`, `linkedin`, or `instagram` is non-null | At least one of `facebook_validated`, `linkedin_validated`, or `instagram_validated` is `true` |
-
-## Technical Implementation
+## Technical Changes
 
 ### File: `src/pages/Index.tsx`
 
-**Update filter logic (lines 1080-1083):**
+**1. Update header (line 1121):**
 
-Change from:
+Change:
 ```typescript
-} else if (enrichmentTypeFilter === 'socials') {
-  // Show leads that have at least one social found
-  const hasSocials = lead.facebook || lead.linkedin || lead.instagram;
-  if (!hasSocials) return false;
+"Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Social Status", "Company Summary", ...
+```
+
+To:
+```typescript
+"Founded", "Valid Company LinkedIn", "Valid Company Facebook", "Enrichment Type", "Company Summary", ...
+```
+
+**2. Replace social status logic (lines 1227-1248):**
+
+Change:
+```typescript
+// Determine social status
+const hasValidSocial = ...
+...
+let socialStatus = "";
+if (hasValidSocial) {
+  socialStatus = "valid";
+} else if (validationsRun && hasSocialUrls) {
+  socialStatus = "socials found but invalid";
+} else if (validationsRun && !hasSocialUrls) {
+  socialStatus = "socials not found";
 }
 ```
 
 To:
 ```typescript
-} else if (enrichmentTypeFilter === 'socials') {
-  // Show leads that have at least one VALID social found
-  // Socials that are found but marked invalid should not count
-  const hasValidSocials = 
-    lead.facebook_validated === true || 
-    lead.linkedin_validated === true || 
-    lead.instagram_validated === true;
-  if (!hasValidSocials) return false;
+// Determine enrichment type
+const hasValidSocials = 
+  lead.facebook_validated === true ||
+  lead.linkedin_validated === true ||
+  lead.instagram_validated === true;
+const hasDomain = lead.domain !== null && lead.domain !== "";
+
+let enrichmentType = "";
+if (hasDomain && hasValidSocials) {
+  enrichmentType = "Company Domain, Socials";
+} else if (hasDomain) {
+  enrichmentType = "Company Domain";
+} else if (hasValidSocials) {
+  enrichmentType = "Socials";
 }
 ```
 
+**3. Update return array (line 1265):**
+
+Change:
+```typescript
+socialStatus,
+```
+
+To:
+```typescript
+enrichmentType,
+```
+
 ## Result
-- Leads with "Socials found but invalid" will NOT appear when filtering by "Enrichment Socials"
-- Only leads where at least one social profile has been validated will be shown
+- CSV will show "Enrichment Type" column instead of "Social Status"
+- Values will be: "Company Domain", "Socials", "Company Domain, Socials", or empty
+- Matches the filter dropdown logic exactly
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`** - Update the `enrichmentTypeFilter === 'socials'` condition
-
+1. **`src/pages/Index.tsx`** - Update header, logic, and row mapping
