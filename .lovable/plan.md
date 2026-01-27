@@ -1,51 +1,39 @@
 
 
-# Update "From Email" Filter to Include All Email-Related Sources
+# Update CSV Export Domain Source Logic
 
 ## Overview
-Expand the "From Email" filter to capture all leads where email domain extraction was attempted, not just successfully verified ones.
-
-## Current Issue
-The filter only matches `email_domain_verified`, missing 107 additional leads with other email-related sources.
-
-## Email Sources to Include
-
-| Source | Count | Description |
-|--------|-------|-------------|
-| `email_domain_verified` | 29 | Email domain was verified |
-| `email_personal_domain_skipped` | 98 | Personal email domain (Gmail, Yahoo, etc.) was skipped |
-| `email_domain_not_verified` | 8 | Email domain extraction attempted but not verified |
-| `email_invalid_format` | 1 | Email had invalid format |
+Update the `getDomainSource` helper function to return "Email" for all email-related enrichment sources, matching the filter logic.
 
 ## Technical Implementation
 
 ### File: `src/pages/Index.tsx`
 
-**Update filtering logic (lines 1043-1047):**
+**Update `getDomainSource` function (lines 1064-1073):**
 
-Current:
 ```typescript
-if (domainSourceFilter === 'email') {
-  if (lead.enrichment_source !== 'email_domain_verified') return false;
-}
-```
-
-Updated:
-```typescript
-if (domainSourceFilter === 'email') {
+const getDomainSource = (enrichmentSource: string | null): string => {
   const emailSources = [
     'email_domain_verified',
-    'email_personal_domain_skipped', 
+    'email_personal_domain_skipped',
     'email_domain_not_verified',
     'email_invalid_format'
   ];
-  if (!emailSources.includes(lead.enrichment_source)) return false;
-}
+  
+  if (emailSources.includes(enrichmentSource || '')) {
+    return 'Email';
+  } else if (enrichmentSource === 'apollo_api') {
+    return 'Apollo';
+  } else if (enrichmentSource === 'google_knowledge_graph' || enrichmentSource === 'google_local_results') {
+    return 'Google';
+  }
+  return '';
+};
 ```
 
 ## Result
-After this change, the "From Email" filter will show all 136 leads where email-based domain extraction was attempted, providing a complete view of email-sourced leads.
+After this change, all 136 email-related leads will show "Email" in the Domain Source column when exported to CSV, consistent with the filter behavior.
 
 ## Files to Modify
-1. **`src/pages/Index.tsx`** - Update the email filter condition to include all email-related enrichment sources
+1. **`src/pages/Index.tsx`** - Update `getDomainSource` helper to include all email-related sources
 
