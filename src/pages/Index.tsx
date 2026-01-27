@@ -74,6 +74,7 @@ const Index = () => {
   const [batchFilter, setBatchFilter] = useState<'all' | number>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'custom'>('all');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
+  const [domainSourceFilter, setDomainSourceFilter] = useState<'all' | 'email' | 'search'>('all');
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [rolesDialogCategory, setRolesDialogCategory] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>('company');
@@ -1018,24 +1019,39 @@ const Index = () => {
                                  lead.instagram_validated === true;
     
     // Domain filter
-    if (domainFilter === 'all') return true;
     if (domainFilter === 'valid') {
       // Valid if match_score >= 50 OR has validated socials found
-      return (lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials;
+      if (!((lead.match_score !== null && lead.match_score >= 50) || hasValidatedSocials)) return false;
     }
     if (domainFilter === 'invalid') {
       // Invalid if lead has been enriched AND no valid match score AND no validated socials
       // (Exclude not-enriched leads from invalid)
-      return (lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials && lead.enriched_at !== null;
+      if (!((lead.match_score === null || lead.match_score < 50) && !hasValidatedSocials && lead.enriched_at !== null)) return false;
     }
-    if (domainFilter === 'not_enriched') return lead.enriched_at === null;
+    if (domainFilter === 'not_enriched') {
+      if (lead.enriched_at !== null) return false;
+    }
     if (domainFilter === 'today_enriched') {
       if (!lead.enriched_at) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const enrichedDate = new Date(lead.enriched_at);
-      return enrichedDate >= today;
+      if (enrichedDate < today) return false;
     }
+
+    // Domain source filter
+    if (domainSourceFilter !== 'all') {
+      if (domainSourceFilter === 'email') {
+        // Only show leads where domain came from email
+        if (lead.enrichment_source !== 'email_domain_verified') return false;
+      }
+      if (domainSourceFilter === 'search') {
+        // Show leads where domain came from Apollo or Google search
+        const searchSources = ['apollo_api', 'google_knowledge_graph', 'google_local_results'];
+        if (!searchSources.includes(lead.enrichment_source)) return false;
+      }
+    }
+
     return true;
   });
 
@@ -1472,6 +1488,19 @@ const Index = () => {
                     <SelectItem value="last7days">Last 7 Days</SelectItem>
                     <SelectItem value="last30days">Last 30 Days</SelectItem>
                     <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={domainSourceFilter} 
+                  onValueChange={(value: 'all' | 'email' | 'search') => setDomainSourceFilter(value)}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Domain Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    <SelectItem value="email">From Email</SelectItem>
+                    <SelectItem value="search">From Search</SelectItem>
                   </SelectContent>
                 </Select>
                 {dateFilter === 'custom' && (
