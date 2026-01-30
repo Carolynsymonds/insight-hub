@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.clay-company-enrichment]
 verify_jwt = false
+
+[functions.enrich-industry]
+verify_jwt = false
