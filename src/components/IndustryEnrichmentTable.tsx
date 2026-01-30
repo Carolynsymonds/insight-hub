@@ -365,7 +365,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">DMA</TableHead>
               <TableHead className="font-semibold">Industry</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
-              <TableHead className="font-semibold">MICS Title</TableHead>
+              <TableHead className="font-semibold">MICS (Input)</TableHead>
+              <TableHead className="font-semibold">MICS (NAICS)</TableHead>
               <TableHead className="font-semibold">NAICS Code</TableHead>
               <TableHead className="font-semibold">NAICS Title</TableHead>
               <TableHead className="font-semibold">Conf.</TableHead>
@@ -398,6 +399,17 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       <Badge variant={getSourceBadgeVariant(source)} className="text-xs">
                         {source}
                       </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
+                      <span className="text-sm truncate max-w-[200px] block" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
+                        {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+                          .filter(Boolean)
+                          .join(" > ")}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
