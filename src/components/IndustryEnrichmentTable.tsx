@@ -86,8 +86,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         </Badge>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="font-semibold">Name</TableHead>
