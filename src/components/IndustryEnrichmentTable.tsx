@@ -289,6 +289,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">Source</TableHead>
               <TableHead className="font-semibold">MICS Title</TableHead>
               <TableHead className="font-semibold">NAICS Code</TableHead>
+              <TableHead className="font-semibold">NAICS Title</TableHead>
               <TableHead className="font-semibold">Conf.</TableHead>
               <TableHead className="font-semibold text-right">Action</TableHead>
             </TableRow>
@@ -336,14 +337,16 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   </TableCell>
                   <TableCell>
                     {hasNaics ? (
-                      <div>
-                        <span className="font-mono text-sm">{lead.naics_code}</span>
-                        {lead.naics_title && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[150px]" title={lead.naics_title}>
-                            {lead.naics_title}
-                          </p>
-                        )}
-                      </div>
+                      <span className="font-mono text-sm">{lead.naics_code}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {lead.naics_title ? (
+                      <span className="text-sm truncate max-w-[200px] block" title={lead.naics_title}>
+                        {lead.naics_title}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -379,7 +382,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             })}
             {filteredLeads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                   No leads found
                 </TableCell>
               </TableRow>
