@@ -44,6 +44,11 @@ interface Lead {
   } | null;
 }
 
+interface NaicsCode {
+  naics_code: string;
+  mics_title: string | null;
+}
+
 interface ClayCompanyEnrichment {
   lead_id: string;
   industry_clay: string | null;
@@ -59,6 +64,7 @@ type FilterOption = "all" | "enriched" | "not_enriched";
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
+  const [naicsMicsTitles, setNaicsMicsTitles] = useState<Map<string, string | null>>(new Map());
   const [classifyingLeads, setClassifyingLeads] = useState<Set<string>>(new Set());
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
@@ -233,6 +239,37 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     fetchClayEnrichments();
   }, [leads]);
 
+  // Fetch MICS titles from naics_codes table
+  useEffect(() => {
+    const fetchMicsTitles = async () => {
+      const naicsCodes = leads
+        .map(l => l.naics_code)
+        .filter((code): code is string => !!code);
+      
+      if (naicsCodes.length === 0) return;
+
+      const uniqueCodes = [...new Set(naicsCodes)];
+      
+      const { data, error } = await supabase
+        .from("naics_codes")
+        .select("naics_code, mics_title")
+        .in("naics_code", uniqueCodes);
+
+      if (error) {
+        console.error("Error fetching MICS titles:", error);
+        return;
+      }
+
+      const micsMap = new Map<string, string | null>();
+      data?.forEach(row => {
+        micsMap.set(row.naics_code, row.mics_title);
+      });
+      setNaicsMicsTitles(micsMap);
+    };
+
+    fetchMicsTitles();
+  }, [leads]);
+
   // Filter leads based on selection
   const filteredLeads = useMemo(() => {
     switch (industryFilter) {
@@ -332,7 +369,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">NAICS Code</TableHead>
               <TableHead className="font-semibold">NAICS Title</TableHead>
               <TableHead className="font-semibold">Conf.</TableHead>
-              <TableHead className="font-semibold text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -340,6 +376,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               const hasIndustry = !!lead.company_industry;
               const source = getIndustrySource(lead);
               const hasNaics = !!lead.naics_code;
+              const micsTitle = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) : null;
               const isClassifying = classifyingLeads.has(lead.id);
 
               return (
@@ -366,11 +403,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                     )}
                   </TableCell>
                   <TableCell>
-                    {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
-                      <span className="text-sm">
-                        {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
-                          .filter(Boolean)
-                          .join(" > ")}
+                    {micsTitle ? (
+                      <span className="text-sm truncate max-w-[200px] block" title={micsTitle}>
+                        {micsTitle}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
