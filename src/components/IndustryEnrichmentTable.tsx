@@ -23,6 +23,9 @@ interface Lead {
   company_industry: string | null;
   domain: string | null;
   description: string | null;
+  mics_sector: string | null;
+  mics_subsector: string | null;
+  mics_segment: string | null;
 }
 
 interface IndustryEnrichmentTableProps {
@@ -96,6 +99,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">Company</TableHead>
               <TableHead className="font-semibold">DMA</TableHead>
               <TableHead className="font-semibold">Industry</TableHead>
+              <TableHead className="font-semibold">MICS Title</TableHead>
               <TableHead className="font-semibold text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -114,6 +118,17 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   <TableCell>
                     {hasIndustry ? (
                       <span className="text-[#0e0f4d] font-medium">{lead.company_industry}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
+                      <span className="text-sm">
+                        {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+                          .filter(Boolean)
+                          .join(" > ")}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -148,7 +163,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             })}
             {leads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No leads found
                 </TableCell>
               </TableRow>
