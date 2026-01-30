@@ -1,85 +1,119 @@
 
-# Add Industry Filter and Source Column to Industry Enrichment Table
+# Add NAICS Classification Button to Industry Enrichment Table
 
 ## Overview
-Add filtering capability to show only leads with enriched industries, and display a "Source" column that shows where the industry data came from (Clay, Apollo, or AI).
+Create a new button that classifies leads into NAICS 2022 industry codes using AI, based on company name, existing industry classification, and nature of business (description/summary).
 
-## Understanding Industry Sources
+## Data Flow
 
-Based on the codebase analysis, industry data can come from three sources:
+```text
++-------------------+     +------------------+     +----------------+
+| Industry Table    | --> | classify-naics   | --> | leads table    |
+| Click "Classify"  |     | Edge Function    |     | naics_code     |
+|                   |     | (Lovable AI)     |     | naics_confidence|
++-------------------+     +------------------+     +----------------+
 
-1. **Clay** - When `clay_company_enrichment.industry_clay` exists for a lead
-2. **Apollo** - When enrichment came from Apollo's organization API (stored in `scraped_data_log.apollo_data.industries`)
-3. **AI** - When industry was set via the `enrich-industry` edge function using Lovable AI
+Input: company, company_industry, description
+Output: { "naics": 541512, "confidence": 85 }
+```
 
 ## Implementation
 
-### 1. Update Lead Interface
-Add the `scraped_data_log` field to the `Lead` interface in `IndustryEnrichmentTable.tsx` to access Apollo enrichment data.
+### 1. Database Migration
+Add two new columns to the `leads` table:
+- `naics_code` (text) - The NAICS 2022 code (e.g., "541512")
+- `naics_confidence` (integer) - Confidence percentage (0-100)
 
-### 2. Add Filter State and UI
-Add a filter dropdown above the table with options:
-- "All Leads" (default)
-- "Enriched Only" (leads with `company_industry` not null)
-- "Not Enriched" (leads with `company_industry` is null)
+### 2. Create Edge Function: `classify-naics`
+New function at `supabase/functions/classify-naics/index.ts`
 
-### 3. Add Source Column
-Add a new "Source" column to the table that determines the industry source:
-- Query the `clay_company_enrichment` table to check if `industry_clay` matches `company_industry`
-- Check `scraped_data_log.apollo_data.industry` for Apollo source
-- Default to "AI" for industries set via the enrich-industry function
+**Input:**
+- `leadId` - Required
+- `company` - Company name
+- `industry` - Current industry classification (`company_industry`)
+- `description` - Nature of business (from `description` field)
 
-### 4. Fetch Clay Company Enrichments
-Fetch `clay_company_enrichment` data for all leads to determine which industries came from Clay.
-
-## Technical Details
-
-### Modified Files
-- `src/components/IndustryEnrichmentTable.tsx` - Add filter, source column, and Clay data fetching
-
-### Filter Implementation
+**AI Prompt:**
 ```text
-+------------------+
-| Filter Dropdown  |
-+------------------+
-| All Leads        | <- shows all leads
-| Enriched Only    | <- shows leads with company_industry
-| Not Enriched     | <- shows leads without company_industry
-+------------------+
+Given the following company information: 
+- Company name: [company]
+- Industry: [industry]
+- Nature of the business: [description]
+
+Categorise company into a best guess of which industry they operate in, 
+using the NAICS 2022 list. Determine your confidence in percentage.
 ```
 
-### Source Logic (pseudo-code)
-```text
-function getIndustrySource(lead, clayEnrichment):
-  if clayEnrichment.industry_clay exists:
-    return "Clay"
-  else if lead.scraped_data_log?.apollo_data?.industry exists:
-    return "Apollo"
-  else if lead.company_industry exists:
-    return "AI"
-  else:
-    return "-"
+**Tool Call Schema:**
+```json
+{
+  "name": "classify_naics",
+  "parameters": {
+    "naics": { "type": "string", "description": "NAICS 2022 code" },
+    "confidence": { "type": "number", "description": "Confidence 0-100" }
+  }
+}
 ```
+
+**Database Update:**
+Updates `leads.naics_code` and `leads.naics_confidence`
+
+### 3. Update Industry Enrichment Table UI
+Modify `src/components/IndustryEnrichmentTable.tsx`:
+
+- Add new columns: "NAICS Code" and "Confidence"
+- Add "Classify NAICS" button for each row
+- Button states: "Classify" (no NAICS) / "Re-classify" (has NAICS)
+- Loading state while classification is in progress
+- Display NAICS code and confidence percentage when available
+
+### 4. Update config.toml
+Add the new function configuration:
+```toml
+[functions.classify-naics]
+verify_jwt = false
+```
+
+## UI Changes
 
 ### Updated Table Structure
 ```text
-+------+-------+-------+---------+-----+----------+--------+------------+--------+
-| Name | Phone | Email | Company | DMA | Industry | Source | MICS Title | Action |
-+------+-------+-------+---------+-----+----------+--------+------------+--------+
-| ...  | ...   | ...   | ...     | ... | Retail   | Clay   | ...        | [...]  |
-| ...  | ...   | ...   | ...     | ... | Tech     | Apollo | ...        | [...]  |
-| ...  | ...   | ...   | ...     | ... | Services | AI     | ...        | [...]  |
-+------+-------+-------+---------+-----+----------+--------+------------+--------+
++------+-------+---------+-----+----------+--------+------------+------------+------+--------+
+| Name | Phone | Company | DMA | Industry | Source | MICS Title | NAICS Code | Conf | Action |
++------+-------+---------+-----+----------+--------+------------+------------+------+--------+
+| ...  | ...   | ...     | ... | Retail   | Clay   | ...        | 441110     | 92%  | [...]  |
+| ...  | ...   | ...     | ... | Tech     | Apollo | ...        | -          | -    | [...]  |
++------+-------+---------+-----+----------+--------+------------+------------+------+--------+
 ```
 
-## Files to Modify
-1. **`src/components/IndustryEnrichmentTable.tsx`**
-   - Add `industryFilter` state
-   - Add filter dropdown UI using existing Select component
-   - Add `clayCompanyEnrichments` state and fetch effect
-   - Add Source column with logic to determine source
-   - Update `colSpan` for empty state
-   - Update table min-width for new column
+### Button Behavior
+- **Primary button** ("Classify NAICS") when no NAICS code exists
+- **Outline button** ("Re-classify") when NAICS code already exists
+- **Loading spinner** during classification
+- **Success toast** showing the classified NAICS code and confidence
+
+## Files to Create/Modify
+
+1. **New File:** `supabase/functions/classify-naics/index.ts`
+   - Edge function for NAICS classification using Lovable AI
+
+2. **Modify:** `supabase/config.toml`
+   - Add classify-naics function configuration
+
+3. **Modify:** `src/components/IndustryEnrichmentTable.tsx`
+   - Add NAICS Code and Confidence columns
+   - Add "Classify NAICS" button
+   - Add loading and success states
+   - Update Lead interface with new fields
+
+4. **Database Migration:**
+   - Add `naics_code` (text, nullable)
+   - Add `naics_confidence` (integer, nullable)
+
+## Error Handling
+- 429 (Rate Limit): Display toast "Rate limits exceeded, please try again later"
+- 402 (Payment Required): Display toast "Payment required, please add funds to your workspace"
+- Other errors: Display specific error message in toast
 
 ## Summary
-This adds the ability to filter leads by industry enrichment status and shows where each industry value came from, making it easier to understand and audit the enrichment data.
+This adds a "Classify NAICS" button that uses Lovable AI to categorize companies into NAICS 2022 codes based on their name, existing industry classification, and business description. The results (code + confidence %) are stored in new database columns and displayed in the table.
