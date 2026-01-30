@@ -114,11 +114,21 @@ Categorise company into a best guess of which industry they operate in, using th
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Look up NAICS title from reference table
+    const { data: naicsData } = await supabase
+      .from("naics_codes")
+      .select("naics_title")
+      .eq("naics_code", naicsCode)
+      .single();
+
+    const naicsTitle = naicsData?.naics_title || null;
+
     const { error: updateError } = await supabase
       .from("leads")
       .update({
         naics_code: naicsCode,
         naics_confidence: confidence,
+        naics_title: naicsTitle,
       })
       .eq("id", leadId);
 
@@ -131,6 +141,7 @@ Categorise company into a best guess of which industry they operate in, using th
       JSON.stringify({
         success: true,
         naics_code: naicsCode,
+        naics_title: naicsTitle,
         naics_confidence: confidence,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
