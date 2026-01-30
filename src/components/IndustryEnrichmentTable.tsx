@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -16,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface Lead {
   id: string;
@@ -30,6 +33,8 @@ interface Lead {
   mics_sector: string | null;
   mics_subsector: string | null;
   mics_segment: string | null;
+  naics_code: string | null;
+  naics_confidence: number | null;
   scraped_data_log: {
     apollo_data?: {
       industry?: string;
@@ -53,6 +58,67 @@ type FilterOption = "all" | "enriched" | "not_enriched";
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
+  const [classifyingLeads, setClassifyingLeads] = useState<Set<string>>(new Set());
+
+  const handleClassifyNaics = async (lead: Lead) => {
+    setClassifyingLeads(prev => new Set(prev).add(lead.id));
+    
+    try {
+      const response = await supabase.functions.invoke("classify-naics", {
+        body: {
+          leadId: lead.id,
+          company: lead.company,
+          industry: lead.company_industry,
+          description: lead.description,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      
+      if (data.error) {
+        if (data.error.includes("Rate limit")) {
+          toast({
+            title: "Rate Limited",
+            description: "Rate limits exceeded, please try again later.",
+            variant: "destructive",
+          });
+        } else if (data.error.includes("Payment required")) {
+          toast({
+            title: "Payment Required",
+            description: "Payment required, please add funds to your workspace.",
+            variant: "destructive",
+          });
+        } else {
+          throw new Error(data.error);
+        }
+        return;
+      }
+
+      toast({
+        title: "NAICS Classified",
+        description: `Classified as ${data.naics_code} with ${data.naics_confidence}% confidence`,
+      });
+
+      onEnrichComplete();
+    } catch (error) {
+      console.error("Classification error:", error);
+      toast({
+        title: "Classification Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setClassifyingLeads(prev => {
+        const next = new Set(prev);
+        next.delete(lead.id);
+        return next;
+      });
+    }
+  };
 
   // Fetch Clay company enrichments for all leads
   useEffect(() => {
@@ -150,7 +216,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       </div>
 
       <div className="border rounded-lg overflow-x-auto">
-        <Table className="min-w-[900px]">
+        <Table className="min-w-[1100px]">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="font-semibold">Name</TableHead>
@@ -161,12 +227,17 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">Industry</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
               <TableHead className="font-semibold">MICS Title</TableHead>
+              <TableHead className="font-semibold">NAICS Code</TableHead>
+              <TableHead className="font-semibold">Conf.</TableHead>
+              <TableHead className="font-semibold text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredLeads.map((lead) => {
               const hasIndustry = !!lead.company_industry;
               const source = getIndustrySource(lead);
+              const hasNaics = !!lead.naics_code;
+              const isClassifying = classifyingLeads.has(lead.id);
 
               return (
                 <TableRow key={lead.id} className="hover:bg-muted/20">
@@ -202,12 +273,45 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {hasNaics ? (
+                      <span className="font-mono text-sm">{lead.naics_code}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {lead.naics_confidence !== null ? (
+                      <span className="text-sm">{lead.naics_confidence}%</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant={hasNaics ? "outline" : "default"}
+                      onClick={() => handleClassifyNaics(lead)}
+                      disabled={isClassifying}
+                    >
+                      {isClassifying ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          Classifying...
+                        </>
+                      ) : hasNaics ? (
+                        "Re-classify"
+                      ) : (
+                        "Classify NAICS"
+                      )}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
             {filteredLeads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   No leads found
                 </TableCell>
               </TableRow>
