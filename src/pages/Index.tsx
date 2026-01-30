@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import LeadUpload from "@/components/LeadUpload";
 import LeadsTable from "@/components/LeadsTable";
+import { IndustryEnrichmentTable } from "@/components/IndustryEnrichmentTable";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/hooks/useAdmin";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -1310,6 +1311,8 @@ const Index = () => {
         <AccountSettings />
       ) : activeView === "admin" ? (
         <AdminDashboard />
+      ) : activeView === "industry-enrichment" ? (
+        <IndustryEnrichmentTable leads={leads} onEnrichComplete={fetchLeads} />
       ) : activeView === "statistics" ? (
         <div className="space-y-8">
           <div>            
