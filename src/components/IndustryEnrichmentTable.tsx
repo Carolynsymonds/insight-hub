@@ -243,7 +243,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {naicsCount === 0 && (
+          {(naicsCount !== null && naicsCount < 2600) && (
             <Button
               variant="outline"
               size="sm"
@@ -255,8 +255,10 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   <Loader2 className="h-4 w-4 animate-spin mr-1" />
                   Importing...
                 </>
-              ) : (
+              ) : naicsCount === 0 ? (
                 "Import NAICS Codes"
+              ) : (
+                `Import All NAICS Codes (${naicsCount} loaded)`
               )}
             </Button>
           )}
