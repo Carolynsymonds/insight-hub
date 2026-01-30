@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -18,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -54,8 +51,6 @@ interface IndustryEnrichmentTableProps {
 type FilterOption = "all" | "enriched" | "not_enriched";
 
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
-  const { toast } = useToast();
-  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
 
@@ -115,44 +110,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     return "AI";
   };
 
-  const handleEnrichIndustry = async (lead: Lead) => {
-    setEnrichingIds(prev => new Set(prev).add(lead.id));
-
-    try {
-      const { data, error } = await supabase.functions.invoke("enrich-industry", {
-        body: {
-          leadId: lead.id,
-          company: lead.company,
-          domain: lead.domain,
-          dma: lead.dma,
-          description: lead.description,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Industry Enriched",
-        description: `Industry set to: ${data.industry}`,
-      });
-
-      onEnrichComplete();
-    } catch (error) {
-      console.error("Error enriching industry:", error);
-      toast({
-        title: "Enrichment Failed",
-        description: error instanceof Error ? error.message : "Failed to enrich industry",
-        variant: "destructive",
-      });
-    } finally {
-      setEnrichingIds(prev => {
-        const next = new Set(prev);
-        next.delete(lead.id);
-        return next;
-      });
-    }
-  };
-
   const getSourceBadgeVariant = (source: string) => {
     switch (source) {
       case "Clay":
@@ -193,7 +150,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       </div>
 
       <div className="border rounded-lg overflow-x-auto">
-        <Table className="min-w-[1000px]">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="font-semibold">Name</TableHead>
@@ -204,12 +161,10 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">Industry</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
               <TableHead className="font-semibold">MICS Title</TableHead>
-              <TableHead className="font-semibold text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredLeads.map((lead) => {
-              const isEnriching = enrichingIds.has(lead.id);
               const hasIndustry = !!lead.company_industry;
               const source = getIndustrySource(lead);
 
@@ -247,37 +202,12 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant={hasIndustry ? "outline" : "default"}
-                      onClick={() => handleEnrichIndustry(lead)}
-                      disabled={isEnriching}
-                    >
-                      {isEnriching ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Enriching...</span>
-                        </>
-                      ) : hasIndustry ? (
-                        <>
-                          <RefreshCw className="h-4 w-4" />
-                          <span>Re-enrich</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4" />
-                          <span>Enrich</span>
-                        </>
-                      )}
-                    </Button>
-                  </TableCell>
                 </TableRow>
               );
             })}
             {filteredLeads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No leads found
                 </TableCell>
               </TableRow>
