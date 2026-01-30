@@ -34,6 +34,7 @@ interface Lead {
   mics_subsector: string | null;
   mics_segment: string | null;
   naics_code: string | null;
+  naics_title: string | null;
   naics_confidence: number | null;
   scraped_data_log: {
     apollo_data?: {
@@ -59,6 +60,49 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
   const [classifyingLeads, setClassifyingLeads] = useState<Set<string>>(new Set());
+  const [isImportingNaics, setIsImportingNaics] = useState(false);
+  const [naicsCount, setNaicsCount] = useState<number | null>(null);
+
+  // Check if NAICS codes are loaded
+  useEffect(() => {
+    const checkNaicsCount = async () => {
+      const { count } = await supabase
+        .from("naics_codes")
+        .select("*", { count: "exact", head: true });
+      setNaicsCount(count || 0);
+    };
+    checkNaicsCount();
+  }, []);
+
+  const handleImportNaics = async () => {
+    setIsImportingNaics(true);
+    try {
+      const response = await fetch("/data/naics-codes.csv");
+      const csvData = await response.text();
+      
+      const result = await supabase.functions.invoke("import-naics-codes", {
+        body: { csvData },
+      });
+
+      if (result.error) throw new Error(result.error.message);
+      if (result.data.error) throw new Error(result.data.error);
+
+      setNaicsCount(result.data.imported);
+      toast({
+        title: "NAICS Codes Imported",
+        description: `Successfully imported ${result.data.imported} NAICS codes`,
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import NAICS codes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImportingNaics(false);
+    }
+  };
 
   const handleClassifyNaics = async (lead: Lead) => {
     setClassifyingLeads(prev => new Set(prev).add(lead.id));
@@ -199,6 +243,23 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {naicsCount === 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImportNaics}
+              disabled={isImportingNaics}
+            >
+              {isImportingNaics ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  Importing...
+                </>
+              ) : (
+                "Import NAICS Codes"
+              )}
+            </Button>
+          )}
           <Select value={industryFilter} onValueChange={(value: FilterOption) => setIndustryFilter(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter leads" />
@@ -275,7 +336,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   </TableCell>
                   <TableCell>
                     {hasNaics ? (
-                      <span className="font-mono text-sm">{lead.naics_code}</span>
+                      <div>
+                        <span className="font-mono text-sm">{lead.naics_code}</span>
+                        {lead.naics_title && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[150px]" title={lead.naics_title}>
+                            {lead.naics_title}
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}

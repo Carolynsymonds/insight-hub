@@ -224,6 +224,7 @@ export type Database = {
           must_knows: string | null
           naics_code: string | null
           naics_confidence: number | null
+          naics_title: string | null
           news: string | null
           phone: string | null
           products_services: string | null
@@ -310,6 +311,7 @@ export type Database = {
           must_knows?: string | null
           naics_code?: string | null
           naics_confidence?: number | null
+          naics_title?: string | null
           news?: string | null
           phone?: string | null
           products_services?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           must_knows?: string | null
           naics_code?: string | null
           naics_confidence?: number | null
+          naics_title?: string | null
           news?: string | null
           phone?: string | null
           products_services?: string | null
@@ -415,6 +418,27 @@ export type Database = {
           vehicle_tracking_interest_score?: number | null
           vehicles_count?: string | null
           zipcode?: string | null
+        }
+        Relationships: []
+      }
+      naics_codes: {
+        Row: {
+          mics_code: string | null
+          mics_title: string | null
+          naics_code: string
+          naics_title: string
+        }
+        Insert: {
+          mics_code?: string | null
+          mics_title?: string | null
+          naics_code: string
+          naics_title: string
+        }
+        Update: {
+          mics_code?: string | null
+          mics_title?: string | null
+          naics_code?: string
+          naics_title?: string
         }
         Relationships: []
       }
