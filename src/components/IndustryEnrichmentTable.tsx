@@ -60,48 +60,91 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
   const [classifyingLeads, setClassifyingLeads] = useState<Set<string>>(new Set());
-  const [isImportingNaics, setIsImportingNaics] = useState(false);
-  const [naicsCount, setNaicsCount] = useState<number | null>(null);
+  const [isBulkClassifying, setIsBulkClassifying] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
-  // Check if NAICS codes are loaded
-  useEffect(() => {
-    const checkNaicsCount = async () => {
-      const { count } = await supabase
-        .from("naics_codes")
-        .select("*", { count: "exact", head: true });
-      setNaicsCount(count || 0);
-    };
-    checkNaicsCount();
-  }, []);
+  // Get leads that need NAICS classification
+  const leadsNeedingClassification = useMemo(() => {
+    return leads.filter(l => !l.naics_code);
+  }, [leads]);
 
-  const handleImportNaics = async () => {
-    setIsImportingNaics(true);
-    try {
-      const response = await fetch("/data/naics-codes.csv");
-      const csvData = await response.text();
-      
-      const result = await supabase.functions.invoke("import-naics-codes", {
-        body: { csvData },
-      });
-
-      if (result.error) throw new Error(result.error.message);
-      if (result.data.error) throw new Error(result.data.error);
-
-      setNaicsCount(result.data.imported);
+  const handleBulkClassify = async () => {
+    if (leadsNeedingClassification.length === 0) {
       toast({
-        title: "NAICS Codes Imported",
-        description: `Successfully imported ${result.data.imported} NAICS codes`,
+        title: "No Leads to Classify",
+        description: "All leads already have NAICS codes assigned.",
       });
-    } catch (error) {
-      console.error("Import error:", error);
-      toast({
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import NAICS codes",
-        variant: "destructive",
-      });
-    } finally {
-      setIsImportingNaics(false);
+      return;
     }
+
+    setIsBulkClassifying(true);
+    setBulkProgress({ current: 0, total: leadsNeedingClassification.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < leadsNeedingClassification.length; i++) {
+      const lead = leadsNeedingClassification[i];
+      setBulkProgress({ current: i + 1, total: leadsNeedingClassification.length });
+      setClassifyingLeads(prev => new Set(prev).add(lead.id));
+
+      try {
+        const response = await supabase.functions.invoke("classify-naics", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            industry: lead.company_industry,
+            description: lead.description,
+          },
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+
+        const data = response.data;
+
+        if (data.error) {
+          if (data.error.includes("Rate limit")) {
+            toast({
+              title: "Rate Limited",
+              description: "Rate limits exceeded. Stopping bulk classification.",
+              variant: "destructive",
+            });
+            break;
+          } else if (data.error.includes("Payment required")) {
+            toast({
+              title: "Payment Required",
+              description: "Payment required. Stopping bulk classification.",
+              variant: "destructive",
+            });
+            break;
+          }
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        console.error("Classification error for lead:", lead.id, error);
+        errorCount++;
+      } finally {
+        setClassifyingLeads(prev => {
+          const next = new Set(prev);
+          next.delete(lead.id);
+          return next;
+        });
+      }
+    }
+
+    setIsBulkClassifying(false);
+    setBulkProgress({ current: 0, total: 0 });
+
+    toast({
+      title: "Bulk Classification Complete",
+      description: `Successfully classified ${successCount} leads. ${errorCount > 0 ? `${errorCount} failed.` : ""}`,
+    });
+
+    onEnrichComplete();
   };
 
   const handleClassifyNaics = async (lead: Lead) => {
@@ -243,6 +286,21 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleBulkClassify}
+            disabled={isBulkClassifying || leadsNeedingClassification.length === 0}
+          >
+            {isBulkClassifying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                Classifying {bulkProgress.current}/{bulkProgress.total}
+              </>
+            ) : (
+              `Classify All (${leadsNeedingClassification.length})`
+            )}
+          </Button>
           <Select value={industryFilter} onValueChange={(value: FilterOption) => setIndustryFilter(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter leads" />
