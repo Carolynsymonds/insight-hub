@@ -111,11 +111,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   <TableCell>{lead.email || "-"}</TableCell>
                   <TableCell>{lead.company || "-"}</TableCell>
                   <TableCell>{lead.dma || "-"}</TableCell>
-                  <TableCell className="min-w-[180px]">
+                  <TableCell>
                     {hasIndustry ? (
-                      <Badge className="bg-[#0e0f4d] text-white whitespace-normal text-left inline-block max-w-[200px]">
-                        {lead.company_industry}
-                      </Badge>
+                      <span className="text-[#0e0f4d] font-medium">{lead.company_industry}</span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
