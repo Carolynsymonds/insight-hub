@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Lead {
@@ -315,6 +315,58 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   };
 
+  const handleExportCSV = () => {
+    const headers = [
+      "Name", "Phone", "Email", "Company", "DMA", 
+      "Industry", "Source", "MICS (form)", "MICS (new)", 
+      "NAICS Code", "NAICS Title", "Conf."
+    ];
+
+    const rows = filteredLeads.map((lead) => {
+      const source = getIndustrySource(lead);
+      const micsForm = [lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+        .filter(Boolean)
+        .join(" > ");
+      const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
+      const confidence = lead.naics_confidence !== null ? `${lead.naics_confidence}%` : "";
+
+      return [
+        lead.full_name || "",
+        lead.phone || "",
+        lead.email || "",
+        lead.company || "",
+        lead.dma || "",
+        lead.company_industry || "",
+        source !== "-" ? source : "",
+        micsForm,
+        micsNew,
+        lead.naics_code || "",
+        lead.naics_title || "",
+        confidence
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `industry-enrichment-${new Date().toISOString().split("T")[0]}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredLeads.length} leads to CSV`
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -325,6 +377,15 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={filteredLeads.length === 0}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export CSV
+          </Button>
           <Button
             variant="default"
             size="sm"
