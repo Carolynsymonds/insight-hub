@@ -70,7 +70,8 @@ type FilterOption = "all" | "enriched" | "not_enriched";
 
 interface AuditResult {
   verdict: "match" | "mismatch" | "partial";
-  explanation: string;
+  why_wrong: string;
+  why_right: string;
 }
 
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
@@ -384,7 +385,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
 
       setAuditResults(prev => new Map(prev).set(lead.id, {
         verdict: data.verdict,
-        explanation: data.explanation,
+        why_wrong: data.why_wrong,
+        why_right: data.why_right,
       }));
 
       toast({
@@ -433,11 +435,19 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   };
 
+  const handleClearAudits = () => {
+    setAuditResults(new Map());
+    toast({
+      title: "Audits Cleared",
+      description: "All audit results have been reset.",
+    });
+  };
+
   const handleExportCSV = () => {
     const headers = [
       "Name", "Phone", "Email", "Company", "DMA", 
       "Industry", "Source", "MICS (form)", "MICS (new)", 
-      "NAICS Code", "NAICS Title", "Conf.", "Audit Verdict", "Audit Explanation"
+      "NAICS Code", "NAICS Title", "Conf.", "Audit Verdict", "Why Wrong", "Why Right"
     ];
 
     const rows = filteredLeads.map((lead) => {
@@ -463,7 +473,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         lead.naics_title || "",
         confidence,
         auditResult?.verdict || "",
-        auditResult?.explanation || ""
+        auditResult?.why_wrong || "",
+        auditResult?.why_right || ""
       ];
     });
 
@@ -498,6 +509,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearAudits}
+            disabled={auditResults.size === 0}
+          >
+            Clear Audits
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -651,8 +670,13 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                               {auditResult.verdict}
                             </Badge>
                           </TooltipTrigger>
-                          <TooltipContent side="left" className="max-w-[300px]">
-                            <p className="text-sm">{auditResult.explanation}</p>
+                          <TooltipContent side="left" className="max-w-[400px]">
+                            <div className="space-y-1">
+                              {auditResult.verdict !== 'match' && (
+                                <p className="text-sm"><span className="font-semibold text-red-500">✗ Wrong:</span> {auditResult.why_wrong}</p>
+                              )}
+                              <p className="text-sm"><span className="font-semibold text-green-600">✓ Correct:</span> {auditResult.why_right}</p>
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       ) : (
@@ -670,11 +694,17 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                         </Button>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-[300px]">
+                    <TableCell className="max-w-[400px]">
                       {auditResult ? (
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {auditResult.explanation}
-                        </p>
+                        <div className="space-y-1 text-xs leading-relaxed">
+                          {auditResult.verdict !== 'match' && (
+                            <p><span className="font-semibold text-red-600">✗ Form Wrong:</span> {auditResult.why_wrong}</p>
+                          )}
+                          {auditResult.verdict === 'match' && (
+                            <p><span className="font-semibold text-green-600">✓ Form Correct:</span> {auditResult.why_wrong}</p>
+                          )}
+                          <p><span className="font-semibold text-green-600">✓ NAICS Correct:</span> {auditResult.why_right}</p>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
