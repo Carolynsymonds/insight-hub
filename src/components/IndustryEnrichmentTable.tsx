@@ -540,7 +540,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
 
       <div className="border rounded-lg overflow-auto max-h-[70vh]">
         <TooltipProvider>
-          <Table className="min-w-[1200px]">
+          <Table className="min-w-[1500px]">
             <TableHeader>
               <TableRow className="bg-muted/30 sticky top-0 z-20">
                 <TableHead className="font-semibold">Name</TableHead>
@@ -556,6 +556,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                 <TableHead className="font-semibold">NAICS Title</TableHead>
                 <TableHead className="font-semibold">Conf.</TableHead>
                 <TableHead className="font-semibold">Audit</TableHead>
+                <TableHead className="font-semibold min-w-[300px]">Audit +</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -669,6 +670,15 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                         </Button>
                       )}
                     </TableCell>
+                    <TableCell className="max-w-[300px]">
+                      {auditResult ? (
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {auditResult.explanation}
+                        </p>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"
@@ -693,7 +703,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               })}
               {filteredLeads.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
                     No leads found
                   </TableCell>
                 </TableRow>
