@@ -1,0 +1,127 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { company, description, micsForm, micsNew, naicsCode, naicsTitle } = await req.json();
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Build comparison prompt
+    const prompt = `Compare these two industry classifications for a company and determine if the user-submitted classification (MICS form) is accurate compared to the AI-derived NAICS classification.
+
+Company: ${company || "Unknown"}
+Business Description: ${description || "No description available"}
+
+MICS (form) - User submitted: ${micsForm || "Not provided"}
+MICS (new) - AI derived from NAICS: ${micsNew || "Not available"}
+NAICS Code: ${naicsCode || "Not classified"}
+NAICS Title: ${naicsTitle || "Not available"}
+
+Analyze and determine:
+1. Are these classifications aligned, partially aligned, or completely different?
+2. If different, explain specifically why MICS (form) may be incorrect (too broad, wrong sector, outdated terminology, etc.)
+3. Explain why MICS (new) / NAICS classification is more accurate based on the company's actual business
+4. Provide a verdict: "match" (classifications align), "mismatch" (clearly different), or "partial" (overlapping but not exact)
+
+Be concise but specific. Reference the actual business activities when explaining.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are an industry classification expert. Analyze company classifications and provide clear, actionable verdicts. Always respond using the audit_classification function." 
+          },
+          { role: "user", content: prompt }
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "audit_classification",
+              description: "Return the audit result comparing MICS form vs NAICS-derived classification",
+              parameters: {
+                type: "object",
+                properties: {
+                  verdict: { 
+                    type: "string", 
+                    enum: ["match", "mismatch", "partial"],
+                    description: "match = classifications align, mismatch = clearly different, partial = overlapping but not exact"
+                  },
+                  explanation: { 
+                    type: "string",
+                    description: "Concise explanation (2-3 sentences) of why the form classification is correct/incorrect and why the NAICS classification is accurate"
+                  }
+                },
+                required: ["verdict", "explanation"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "audit_classification" } }
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required, please add funds to your workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await response.json();
+    
+    // Extract tool call result
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== "audit_classification") {
+      throw new Error("Unexpected AI response format");
+    }
+
+    const result = JSON.parse(toolCall.function.arguments);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Audit error:", error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

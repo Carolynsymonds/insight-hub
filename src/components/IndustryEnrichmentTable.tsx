@@ -17,7 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Download } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Loader2, Download, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Lead {
@@ -62,6 +68,11 @@ interface IndustryEnrichmentTableProps {
 
 type FilterOption = "all" | "enriched" | "not_enriched";
 
+interface AuditResult {
+  verdict: "match" | "mismatch" | "partial";
+  explanation: string;
+}
+
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
@@ -69,6 +80,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [classifyingLeads, setClassifyingLeads] = useState<Set<string>>(new Set());
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [auditingLeads, setAuditingLeads] = useState<Set<string>>(new Set());
+  const [auditResults, setAuditResults] = useState<Map<string, AuditResult>>(new Map());
 
   // Get leads that need NAICS classification
   const leadsNeedingClassification = useMemo(() => {
@@ -315,11 +328,116 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   };
 
+  const handleAudit = async (lead: Lead) => {
+    const micsForm = [lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+      .filter(Boolean)
+      .join(" > ");
+    const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
+
+    if (!micsForm && !micsNew) {
+      toast({
+        title: "Cannot Audit",
+        description: "No MICS data available for comparison.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAuditingLeads(prev => new Set(prev).add(lead.id));
+
+    try {
+      const response = await supabase.functions.invoke("audit-mics-classification", {
+        body: {
+          company: lead.company,
+          description: lead.description,
+          micsForm,
+          micsNew,
+          naicsCode: lead.naics_code,
+          naicsTitle: lead.naics_title,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+
+      if (data.error) {
+        if (data.error.includes("Rate limit")) {
+          toast({
+            title: "Rate Limited",
+            description: "Rate limits exceeded, please try again later.",
+            variant: "destructive",
+          });
+        } else if (data.error.includes("Payment required")) {
+          toast({
+            title: "Payment Required",
+            description: "Payment required, please add funds to your workspace.",
+            variant: "destructive",
+          });
+        } else {
+          throw new Error(data.error);
+        }
+        return;
+      }
+
+      setAuditResults(prev => new Map(prev).set(lead.id, {
+        verdict: data.verdict,
+        explanation: data.explanation,
+      }));
+
+      toast({
+        title: "Audit Complete",
+        description: `Verdict: ${data.verdict}`,
+      });
+    } catch (error) {
+      console.error("Audit error:", error);
+      toast({
+        title: "Audit Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setAuditingLeads(prev => {
+        const next = new Set(prev);
+        next.delete(lead.id);
+        return next;
+      });
+    }
+  };
+
+  const getAuditBadgeVariant = (verdict: string) => {
+    switch (verdict) {
+      case "match":
+        return "default";
+      case "mismatch":
+        return "destructive";
+      case "partial":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
+  const getAuditIcon = (verdict: string) => {
+    switch (verdict) {
+      case "match":
+        return <CheckCircle2 className="h-3 w-3 mr-1" />;
+      case "mismatch":
+        return <AlertTriangle className="h-3 w-3 mr-1" />;
+      case "partial":
+        return <HelpCircle className="h-3 w-3 mr-1" />;
+      default:
+        return null;
+    }
+  };
+
   const handleExportCSV = () => {
     const headers = [
       "Name", "Phone", "Email", "Company", "DMA", 
       "Industry", "Source", "MICS (form)", "MICS (new)", 
-      "NAICS Code", "NAICS Title", "Conf."
+      "NAICS Code", "NAICS Title", "Conf.", "Audit Verdict", "Audit Explanation"
     ];
 
     const rows = filteredLeads.map((lead) => {
@@ -329,6 +447,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         .join(" > ");
       const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
       const confidence = lead.naics_confidence !== null ? `${lead.naics_confidence}%` : "";
+      const auditResult = auditResults.get(lead.id);
 
       return [
         lead.full_name || "",
@@ -342,7 +461,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         micsNew,
         lead.naics_code || "",
         lead.naics_title || "",
-        confidence
+        confidence,
+        auditResult?.verdict || "",
+        auditResult?.explanation || ""
       ];
     });
 
@@ -418,130 +539,168 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       </div>
 
       <div className="border rounded-lg overflow-auto max-h-[70vh]">
-        <Table className="min-w-[1100px]">
-          <TableHeader>
-            <TableRow className="bg-muted/30 sticky top-0 z-20">
-              <TableHead className="font-semibold">Name</TableHead>
-              <TableHead className="font-semibold">Phone</TableHead>
-              <TableHead className="font-semibold">Email</TableHead>
-              <TableHead className="font-semibold sticky left-0 bg-background z-30">Company</TableHead>
-              <TableHead className="font-semibold">DMA</TableHead>
-              <TableHead className="font-semibold">Industry</TableHead>
-              <TableHead className="font-semibold">Source</TableHead>
-              <TableHead className="font-semibold">MICS (form)</TableHead>
-              <TableHead className="font-semibold border-l">MICS (new)</TableHead>
-              <TableHead className="font-semibold">NAICS Code</TableHead>
-              <TableHead className="font-semibold">NAICS Title</TableHead>
-              <TableHead className="font-semibold">Conf.</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeads.map((lead) => {
-              const hasIndustry = !!lead.company_industry;
-              const source = getIndustrySource(lead);
-              const hasNaics = !!lead.naics_code;
-              const micsTitle = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) : null;
-              const isClassifying = classifyingLeads.has(lead.id);
+        <TooltipProvider>
+          <Table className="min-w-[1200px]">
+            <TableHeader>
+              <TableRow className="bg-muted/30 sticky top-0 z-20">
+                <TableHead className="font-semibold">Name</TableHead>
+                <TableHead className="font-semibold">Phone</TableHead>
+                <TableHead className="font-semibold">Email</TableHead>
+                <TableHead className="font-semibold sticky left-0 bg-background z-30">Company</TableHead>
+                <TableHead className="font-semibold">DMA</TableHead>
+                <TableHead className="font-semibold">Industry</TableHead>
+                <TableHead className="font-semibold">Source</TableHead>
+                <TableHead className="font-semibold">MICS (form)</TableHead>
+                <TableHead className="font-semibold border-l">MICS (new)</TableHead>
+                <TableHead className="font-semibold">NAICS Code</TableHead>
+                <TableHead className="font-semibold">NAICS Title</TableHead>
+                <TableHead className="font-semibold">Conf.</TableHead>
+                <TableHead className="font-semibold">Audit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLeads.map((lead) => {
+                const hasIndustry = !!lead.company_industry;
+                const source = getIndustrySource(lead);
+                const hasNaics = !!lead.naics_code;
+                const micsTitle = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) : null;
+                const isClassifying = classifyingLeads.has(lead.id);
+                const isAuditing = auditingLeads.has(lead.id);
+                const auditResult = auditResults.get(lead.id);
+                const hasMicsForm = lead.mics_sector || lead.mics_subsector || lead.mics_segment;
+                const canAudit = hasMicsForm || micsTitle;
 
-              return (
-                <TableRow key={lead.id} className="hover:bg-muted/20">
-                  <TableCell className="font-medium">{lead.full_name}</TableCell>
-                  <TableCell>{lead.phone || "-"}</TableCell>
-                  <TableCell>{lead.email || "-"}</TableCell>
-                  <TableCell className="sticky left-0 bg-background z-10">{lead.company || "-"}</TableCell>
-                  <TableCell>{lead.dma || "-"}</TableCell>
-                  <TableCell>
-                    {hasIndustry ? (
-                      <span className="text-[#0e0f4d] font-medium">{lead.company_industry}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {source !== "-" ? (
-                      <Badge variant={getSourceBadgeVariant(source)} className="text-xs">
-                        {source}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
-                      <div className="flex flex-col text-sm max-w-[200px]" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
-                        {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
-                          .filter(Boolean)
-                          .map((item, index) => (
-                            <span key={index} className="truncate">{item}</span>
-                          ))}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="border-l">
-                    {micsTitle ? (
-                      <span className="text-sm truncate max-w-[200px] block" title={micsTitle}>
-                        {micsTitle}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {hasNaics ? (
-                      <span className="font-mono text-sm">{lead.naics_code}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {lead.naics_title ? (
-                      <span className="text-sm truncate max-w-[200px] block" title={lead.naics_title}>
-                        {lead.naics_title}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {lead.naics_confidence !== null ? (
-                      <span className="text-sm">{lead.naics_confidence}%</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant={hasNaics ? "outline" : "default"}
-                      onClick={() => handleClassifyNaics(lead)}
-                      disabled={isClassifying}
-                    >
-                      {isClassifying ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                          Classifying...
-                        </>
-                      ) : hasNaics ? (
-                        "Re-classify"
+                return (
+                  <TableRow key={lead.id} className="hover:bg-muted/20">
+                    <TableCell className="font-medium">{lead.full_name}</TableCell>
+                    <TableCell>{lead.phone || "-"}</TableCell>
+                    <TableCell>{lead.email || "-"}</TableCell>
+                    <TableCell className="sticky left-0 bg-background z-10">{lead.company || "-"}</TableCell>
+                    <TableCell>{lead.dma || "-"}</TableCell>
+                    <TableCell>
+                      {hasIndustry ? (
+                        <span className="text-[#0e0f4d] font-medium">{lead.company_industry}</span>
                       ) : (
-                        "Classify NAICS"
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </Button>
+                    </TableCell>
+                    <TableCell>
+                      {source !== "-" ? (
+                        <Badge variant={getSourceBadgeVariant(source)} className="text-xs">
+                          {source}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
+                        <div className="flex flex-col text-sm max-w-[200px]" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
+                          {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+                            .filter(Boolean)
+                            .map((item, index) => (
+                              <span key={index} className="truncate">{item}</span>
+                            ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="border-l">
+                      {micsTitle ? (
+                        <span className="text-sm truncate max-w-[200px] block" title={micsTitle}>
+                          {micsTitle}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {hasNaics ? (
+                        <span className="font-mono text-sm">{lead.naics_code}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.naics_title ? (
+                        <span className="text-sm truncate max-w-[200px] block" title={lead.naics_title}>
+                          {lead.naics_title}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.naics_confidence !== null ? (
+                        <span className="text-sm">{lead.naics_confidence}%</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {auditResult ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge 
+                              variant={getAuditBadgeVariant(auditResult.verdict)} 
+                              className="cursor-help text-xs capitalize"
+                            >
+                              {getAuditIcon(auditResult.verdict)}
+                              {auditResult.verdict}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[300px]">
+                            <p className="text-sm">{auditResult.explanation}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleAudit(lead)}
+                          disabled={isAuditing || !canAudit}
+                        >
+                          {isAuditing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Audit"
+                          )}
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant={hasNaics ? "outline" : "default"}
+                        onClick={() => handleClassifyNaics(lead)}
+                        disabled={isClassifying}
+                      >
+                        {isClassifying ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            Classifying...
+                          </>
+                        ) : hasNaics ? (
+                          "Re-classify"
+                        ) : (
+                          "Classify NAICS"
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredLeads.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                    No leads found
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {filteredLeads.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                  No leads found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </TooltipProvider>
       </div>
     </div>
   );
