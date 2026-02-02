@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.classify-naics]
 verify_jwt = false
+
+[functions.audit-mics-classification]
+verify_jwt = false
