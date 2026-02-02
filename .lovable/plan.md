@@ -1,29 +1,46 @@
 
-# Add Left Border to MICS (NAICS) Column
+# Update MICS (Input) Display to Multi-line Format
 
 ## Overview
-Add a left border to the "MICS (NAICS)" column to visually separate the AI-generated classification results from the input data columns.
+Change the MICS hierarchy display in the Industry Enrichment table from a single-line format with " > " separators to a multi-line format where each level appears on its own line.
 
-## Changes
+## Current Behavior
+```
+Material Manufacture > Wood & Paper Products
+```
+
+## Proposed Behavior
+```
+Material Manufacture
+Wood & Paper Products
+```
+
+## Technical Changes
 
 ### File: `src/components/IndustryEnrichmentTable.tsx`
 
-**1. Add border to the table header (line 371)**
-```tsx
-// Before
-<TableHead className="font-semibold">MICS (NAICS)</TableHead>
+**Update the MICS (Input) cell rendering (lines 408-417)**
 
-// After
-<TableHead className="font-semibold border-l">MICS (NAICS)</TableHead>
-```
+Replace the single-line `.join(" > ")` display with a flex column layout that shows each hierarchy level on its own line:
 
-**2. Add border to the table body cells (line 419)**
 ```tsx
-// Before
 <TableCell>
-
-// After
-<TableCell className="border-l">
+  {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
+    <div className="flex flex-col text-sm max-w-[200px]" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
+      {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+        .filter(Boolean)
+        .map((item, index) => (
+          <span key={index} className="truncate">{item}</span>
+        ))}
+    </div>
+  ) : (
+    <span className="text-muted-foreground">-</span>
+  )}
+</TableCell>
 ```
 
-This adds a consistent left border on the "MICS (NAICS)" column for both the header and all data rows, creating a clear visual separation between input data (left side) and AI-generated classification results (right side).
+This change:
+- Uses a `flex flex-col` container to stack items vertically
+- Each MICS level (sector, subsector, segment) displays on its own line
+- Keeps the title attribute for full hover text
+- Maintains truncation for long values
