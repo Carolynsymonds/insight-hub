@@ -356,14 +356,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
+      <div className="border rounded-lg overflow-auto max-h-[70vh]">
         <Table className="min-w-[1100px]">
           <TableHeader>
-            <TableRow className="bg-muted/30">
+            <TableRow className="bg-muted/30 sticky top-0 z-20">
               <TableHead className="font-semibold">Name</TableHead>
               <TableHead className="font-semibold">Phone</TableHead>
               <TableHead className="font-semibold">Email</TableHead>
-              <TableHead className="font-semibold">Company</TableHead>
+              <TableHead className="font-semibold sticky left-0 bg-background z-30">Company</TableHead>
               <TableHead className="font-semibold">DMA</TableHead>
               <TableHead className="font-semibold">Industry</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
@@ -387,7 +387,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.phone || "-"}</TableCell>
                   <TableCell>{lead.email || "-"}</TableCell>
-                  <TableCell>{lead.company || "-"}</TableCell>
+                  <TableCell className="sticky left-0 bg-background z-10">{lead.company || "-"}</TableCell>
                   <TableCell>{lead.dma || "-"}</TableCell>
                   <TableCell>
                     {hasIndustry ? (
