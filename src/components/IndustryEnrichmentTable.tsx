@@ -83,11 +83,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [auditingLeads, setAuditingLeads] = useState<Set<string>>(new Set());
   const [auditResults, setAuditResults] = useState<Map<string, AuditResult>>(new Map());
+  const [isBulkAuditing, setIsBulkAuditing] = useState(false);
+  const [bulkAuditProgress, setBulkAuditProgress] = useState({ current: 0, total: 0 });
 
   // Get leads that need NAICS classification
   const leadsNeedingClassification = useMemo(() => {
     return leads.filter(l => !l.naics_code);
   }, [leads]);
+
 
   const handleBulkClassify = async () => {
     if (leadsNeedingClassification.length === 0) {
@@ -298,6 +301,15 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   }, [leads, industryFilter]);
 
+  // Get leads that can be audited (have MICS form data and not already audited)
+  const leadsNeedingAudit = useMemo(() => {
+    return filteredLeads.filter(l => {
+      const hasMicsForm = l.mics_sector || l.mics_subsector || l.mics_segment;
+      const alreadyAudited = auditResults.has(l.id);
+      return hasMicsForm && !alreadyAudited;
+    });
+  }, [filteredLeads, auditResults]);
+
   // Determine the source of industry data
   const getIndustrySource = (lead: Lead): string => {
     if (!lead.company_industry) return "-";
@@ -443,6 +455,95 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     });
   };
 
+  const handleBulkAudit = async () => {
+    if (leadsNeedingAudit.length === 0) {
+      toast({
+        title: "No Leads to Audit",
+        description: "All visible leads with MICS form data have been audited, or none have form data.",
+      });
+      return;
+    }
+
+    setIsBulkAuditing(true);
+    setBulkAuditProgress({ current: 0, total: leadsNeedingAudit.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < leadsNeedingAudit.length; i++) {
+      const lead = leadsNeedingAudit[i];
+      setBulkAuditProgress({ current: i + 1, total: leadsNeedingAudit.length });
+      setAuditingLeads(prev => new Set(prev).add(lead.id));
+
+      const micsForm = [lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+        .filter(Boolean)
+        .join(" > ");
+      const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
+
+      try {
+        const response = await supabase.functions.invoke("audit-mics-classification", {
+          body: {
+            company: lead.company,
+            description: lead.description,
+            micsForm,
+            micsNew,
+            naicsCode: lead.naics_code,
+            naicsTitle: lead.naics_title,
+          },
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+
+        const data = response.data;
+
+        if (data.error) {
+          if (data.error.includes("Rate limit")) {
+            toast({
+              title: "Rate Limited",
+              description: "Rate limits exceeded. Stopping bulk audit.",
+              variant: "destructive",
+            });
+            break;
+          } else if (data.error.includes("Payment required")) {
+            toast({
+              title: "Payment Required",
+              description: "Payment required. Stopping bulk audit.",
+              variant: "destructive",
+            });
+            break;
+          }
+          errorCount++;
+        } else {
+          setAuditResults(prev => new Map(prev).set(lead.id, {
+            verdict: data.verdict,
+            why_wrong: data.why_wrong,
+            why_right: data.why_right,
+          }));
+          successCount++;
+        }
+      } catch (error) {
+        console.error("Audit error for lead:", lead.id, error);
+        errorCount++;
+      } finally {
+        setAuditingLeads(prev => {
+          const next = new Set(prev);
+          next.delete(lead.id);
+          return next;
+        });
+      }
+    }
+
+    setIsBulkAuditing(false);
+    setBulkAuditProgress({ current: 0, total: 0 });
+
+    toast({
+      title: "Bulk Audit Complete",
+      description: `Successfully audited ${successCount} leads. ${errorCount > 0 ? `${errorCount} failed.` : ""}`,
+    });
+  };
+
   const handleExportCSV = () => {
     const headers = [
       "Name", "Phone", "Email", "Company", "DMA", 
@@ -516,6 +617,21 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             disabled={auditResults.size === 0}
           >
             Clear Audits
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBulkAudit}
+            disabled={isBulkAuditing || leadsNeedingAudit.length === 0}
+          >
+            {isBulkAuditing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                Auditing {bulkAuditProgress.current}/{bulkAuditProgress.total}
+              </>
+            ) : (
+              `Audit All (${leadsNeedingAudit.length})`
+            )}
           </Button>
           <Button
             variant="outline"
