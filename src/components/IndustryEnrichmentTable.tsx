@@ -407,11 +407,13 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                   </TableCell>
                   <TableCell>
                     {lead.mics_sector || lead.mics_subsector || lead.mics_segment ? (
-                      <span className="text-sm truncate max-w-[200px] block" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
+                      <div className="flex flex-col text-sm max-w-[200px]" title={[lead.mics_sector, lead.mics_subsector, lead.mics_segment].filter(Boolean).join(" > ")}>
                         {[lead.mics_sector, lead.mics_subsector, lead.mics_segment]
                           .filter(Boolean)
-                          .join(" > ")}
-                      </span>
+                          .map((item, index) => (
+                            <span key={index} className="truncate">{item}</span>
+                          ))}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
