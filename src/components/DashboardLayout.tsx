@@ -17,6 +17,9 @@ export function DashboardLayout({ children, activeView, onViewChange, selectedCa
     if (activeView === "home") {
       return null; // We'll show category info next to the sidebar trigger
     }
+    if (activeView === "industry-enrichment") {
+      return null; // Industry Enrichment has its own header in the content
+    }
     return "Add Leads";
   };
 
