@@ -1,119 +1,127 @@
 
-# Add NAICS Classification Button to Industry Enrichment Table
+# Industry Enrichment Category Selection
 
 ## Overview
-Create a new button that classifies leads into NAICS 2022 industry codes using AI, based on company name, existing industry classification, and nature of business (description/summary).
+This plan implements a two-step flow for the Industry Enrichment view: first display a category selection grid (matching the existing home page design), then show the Industry Enrichment table filtered by the selected category.
 
-## Data Flow
+## Current Behavior
+- Clicking "Industry Enrichment" in the sidebar immediately shows the full table with all leads
+- A dropdown filter exists in the table header to filter by category
 
-```text
-+-------------------+     +------------------+     +----------------+
-| Industry Table    | --> | classify-naics   | --> | leads table    |
-| Click "Classify"  |     | Edge Function    |     | naics_code     |
-|                   |     | (Lovable AI)     |     | naics_confidence|
-+-------------------+     +------------------+     +----------------+
+## Proposed Behavior
+1. Clicking "Industry Enrichment" shows a category selection grid (same design as home page)
+2. Each category card displays the category name and lead count
+3. Clicking a category card shows the Industry Enrichment table filtered to that category
+4. A "Back to Categories" navigation allows returning to the selection grid
 
-Input: company, company_industry, description
-Output: { "naics": 541512, "confidence": 85 }
+---
+
+## Technical Implementation
+
+### 1. Add State for Industry Enrichment Category Selection
+**File**: `src/pages/Index.tsx`
+
+Add a new state variable to track the selected category specifically for Industry Enrichment:
+
+```typescript
+const [industryEnrichmentCategory, setIndustryEnrichmentCategory] = useState<string | null>(null);
 ```
 
-## Implementation
+### 2. Reset Category on View Change
+**File**: `src/pages/Index.tsx`
 
-### 1. Database Migration
-Add two new columns to the `leads` table:
-- `naics_code` (text) - The NAICS 2022 code (e.g., "541512")
-- `naics_confidence` (integer) - Confidence percentage (0-100)
+Update `handleViewChange` to reset the industry enrichment category when switching views:
 
-### 2. Create Edge Function: `classify-naics`
-New function at `supabase/functions/classify-naics/index.ts`
-
-**Input:**
-- `leadId` - Required
-- `company` - Company name
-- `industry` - Current industry classification (`company_industry`)
-- `description` - Nature of business (from `description` field)
-
-**AI Prompt:**
-```text
-Given the following company information: 
-- Company name: [company]
-- Industry: [industry]
-- Nature of the business: [description]
-
-Categorise company into a best guess of which industry they operate in, 
-using the NAICS 2022 list. Determine your confidence in percentage.
-```
-
-**Tool Call Schema:**
-```json
-{
-  "name": "classify_naics",
-  "parameters": {
-    "naics": { "type": "string", "description": "NAICS 2022 code" },
-    "confidence": { "type": "number", "description": "Confidence 0-100" }
+```typescript
+const handleViewChange = (view: string) => {
+  setActiveView(view);
+  if (view === "home") {
+    setSelectedCategory(null);
   }
-}
+  // Reset industry enrichment category when switching away
+  if (view !== "industry-enrichment") {
+    setIndustryEnrichmentCategory(null);
+  }
+};
 ```
 
-**Database Update:**
-Updates `leads.naics_code` and `leads.naics_confidence`
+### 3. Update Industry Enrichment Rendering
+**File**: `src/pages/Index.tsx`
 
-### 3. Update Industry Enrichment Table UI
-Modify `src/components/IndustryEnrichmentTable.tsx`:
+Change the `industry-enrichment` view rendering (around line 1314) to conditionally show either the category grid or the table:
 
-- Add new columns: "NAICS Code" and "Confidence"
-- Add "Classify NAICS" button for each row
-- Button states: "Classify" (no NAICS) / "Re-classify" (has NAICS)
-- Loading state while classification is in progress
-- Display NAICS code and confidence percentage when available
-
-### 4. Update config.toml
-Add the new function configuration:
-```toml
-[functions.classify-naics]
-verify_jwt = false
+```tsx
+activeView === "industry-enrichment" ? (
+  industryEnrichmentCategory === null ? (
+    // Show category selection grid
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-[#0F0F4B] mb-2">Industry Enrichment</h2>
+        <p className="text-sm text-muted-foreground">
+          Select a category to view and enrich industry classifications
+        </p>
+      </div>
+      <div className="grid grid-cols-4 gap-8 max-w-[1100px]">
+        {CATEGORIES.map(category => {
+          const count = categoryCounts[category.name] || 0;
+          return { category, count };
+        })
+        .sort((a, b) => {
+          if (a.count > 0 && b.count === 0) return -1;
+          if (a.count === 0 && b.count > 0) return 1;
+          return b.count - a.count;
+        })
+        .map(({ category, count }) => (
+          <div
+            key={category.name}
+            className="flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#14124E] text-[#14124E] bg-white transition hover:bg-[#14124E] hover:text-white cursor-pointer"
+            onClick={() => setIndustryEnrichmentCategory(category.name)}
+          >
+            <span className="font-medium text-sm">{category.name}</span>
+            <span className="text-sm">{count} leads</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    // Show table with back button
+    <div className="space-y-4">
+      <Button 
+        variant="ghost" 
+        onClick={() => setIndustryEnrichmentCategory(null)}
+        className="mb-2"
+      >
+        ← Back to Categories
+      </Button>
+      <IndustryEnrichmentTable 
+        leads={leads.filter(l => l.category === industryEnrichmentCategory)} 
+        onEnrichComplete={fetchLeads} 
+      />
+    </div>
+  )
+)
 ```
 
-## UI Changes
+### 4. Update IndustryEnrichmentTable Component
+**File**: `src/components/IndustryEnrichmentTable.tsx`
 
-### Updated Table Structure
-```text
-+------+-------+---------+-----+----------+--------+------------+------------+------+--------+
-| Name | Phone | Company | DMA | Industry | Source | MICS Title | NAICS Code | Conf | Action |
-+------+-------+---------+-----+----------+--------+------------+------------+------+--------+
-| ...  | ...   | ...     | ... | Retail   | Clay   | ...        | 441110     | 92%  | [...]  |
-| ...  | ...   | ...     | ... | Tech     | Apollo | ...        | -          | -    | [...]  |
-+------+-------+---------+-----+----------+--------+------------+------------+------+--------+
-```
+Since the leads will now be pre-filtered by category from the parent, remove the category filter dropdown from the table header to avoid confusion. The category filter state and dropdown can be removed since filtering is handled at the parent level.
 
-### Button Behavior
-- **Primary button** ("Classify NAICS") when no NAICS code exists
-- **Outline button** ("Re-classify") when NAICS code already exists
-- **Loading spinner** during classification
-- **Success toast** showing the classified NAICS code and confidence
+Changes:
+- Remove `categoryFilter` state variable
+- Remove the category `Select` dropdown from the header
+- Remove category filtering from `filteredLeads` useMemo
+- Keep the "Classify All" button which will now correctly count only leads in the selected category
 
-## Files to Create/Modify
+---
 
-1. **New File:** `supabase/functions/classify-naics/index.ts`
-   - Edge function for NAICS classification using Lovable AI
+## Files Modified
+1. `src/pages/Index.tsx` - Add state, update view change handler, update rendering logic
+2. `src/components/IndustryEnrichmentTable.tsx` - Remove category dropdown (optional cleanup)
 
-2. **Modify:** `supabase/config.toml`
-   - Add classify-naics function configuration
-
-3. **Modify:** `src/components/IndustryEnrichmentTable.tsx`
-   - Add NAICS Code and Confidence columns
-   - Add "Classify NAICS" button
-   - Add loading and success states
-   - Update Lead interface with new fields
-
-4. **Database Migration:**
-   - Add `naics_code` (text, nullable)
-   - Add `naics_confidence` (integer, nullable)
-
-## Error Handling
-- 429 (Rate Limit): Display toast "Rate limits exceeded, please try again later"
-- 402 (Payment Required): Display toast "Payment required, please add funds to your workspace"
-- Other errors: Display specific error message in toast
-
-## Summary
-This adds a "Classify NAICS" button that uses Lovable AI to categorize companies into NAICS 2022 codes based on their name, existing industry classification, and business description. The results (code + confidence %) are stored in new database columns and displayed in the table.
+## User Experience Flow
+1. User clicks "Industry Enrichment" in sidebar
+2. Category grid appears showing all 11 categories with lead counts
+3. User clicks a category (e.g., "Vehicles" with 100 leads)
+4. Industry Enrichment table appears showing only leads from that category
+5. User can click "Back to Categories" to return to the grid and select a different category
