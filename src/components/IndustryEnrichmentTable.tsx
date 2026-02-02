@@ -569,7 +569,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                 const isAuditing = auditingLeads.has(lead.id);
                 const auditResult = auditResults.get(lead.id);
                 const hasMicsForm = lead.mics_sector || lead.mics_subsector || lead.mics_segment;
-                const canAudit = hasMicsForm || micsTitle;
+                const canAudit = hasMicsForm;
 
                 return (
                   <TableRow key={lead.id} className="hover:bg-muted/20">
