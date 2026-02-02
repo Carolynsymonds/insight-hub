@@ -367,8 +367,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <TableHead className="font-semibold">DMA</TableHead>
               <TableHead className="font-semibold">Industry</TableHead>
               <TableHead className="font-semibold">Source</TableHead>
-              <TableHead className="font-semibold">MICS (Input)</TableHead>
-              <TableHead className="font-semibold border-l">MICS (NAICS)</TableHead>
+              <TableHead className="font-semibold">MICS (form)</TableHead>
+              <TableHead className="font-semibold border-l">MICS (new)</TableHead>
               <TableHead className="font-semibold">NAICS Code</TableHead>
               <TableHead className="font-semibold">NAICS Title</TableHead>
               <TableHead className="font-semibold">Conf.</TableHead>
