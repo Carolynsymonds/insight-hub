@@ -100,6 +100,7 @@ const Index = () => {
   });
   const pipelineStopRef = useRef(false);
   const [statsCategoryFilter, setStatsCategoryFilter] = useState<string | null>(null);
+  const [industryEnrichmentCategory, setIndustryEnrichmentCategory] = useState<string | null>(null);
   const [diagnosisDialogOpen, setDiagnosisDialogOpen] = useState(false);
   const [selectedDiagnosisCategory, setSelectedDiagnosisCategory] = useState<string | null>(null);
   const [expandedValidSocials, setExpandedValidSocials] = useState(false);
@@ -1296,6 +1297,10 @@ const Index = () => {
     if (view === "home") {
       setSelectedCategory(null);
     }
+    // Reset industry enrichment category when switching away
+    if (view !== "industry-enrichment") {
+      setIndustryEnrichmentCategory(null);
+    }
   };
 
   if (loading) {
@@ -1312,7 +1317,51 @@ const Index = () => {
       ) : activeView === "admin" ? (
         <AdminDashboard />
       ) : activeView === "industry-enrichment" ? (
-        <IndustryEnrichmentTable leads={leads} onEnrichComplete={fetchLeads} />
+        industryEnrichmentCategory === null ? (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-[#0F0F4B] mb-2">Industry Enrichment</h2>
+              <p className="text-sm text-muted-foreground">
+                Select a category to view and enrich industry classifications
+              </p>
+            </div>
+            <div className="grid grid-cols-4 gap-8 max-w-[1100px]">
+              {CATEGORIES.map(category => {
+                const count = categoryCounts[category.name] || 0;
+                return { category, count };
+              })
+              .sort((a, b) => {
+                if (a.count > 0 && b.count === 0) return -1;
+                if (a.count === 0 && b.count > 0) return 1;
+                return b.count - a.count;
+              })
+              .map(({ category, count }) => (
+                <div
+                  key={category.name}
+                  className="flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#14124E] text-[#14124E] bg-white transition hover:bg-[#14124E] hover:text-white cursor-pointer"
+                  onClick={() => setIndustryEnrichmentCategory(category.name)}
+                >
+                  <span className="font-medium text-sm">{category.name}</span>
+                  <span className="text-sm">{count} leads</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIndustryEnrichmentCategory(null)}
+              className="mb-2"
+            >
+              ← Back to Categories
+            </Button>
+            <IndustryEnrichmentTable 
+              leads={leads.filter(l => l.category === industryEnrichmentCategory)} 
+              onEnrichComplete={fetchLeads} 
+            />
+          </div>
+        )
       ) : activeView === "statistics" ? (
         <div className="space-y-8">
           <div>            
