@@ -36,6 +36,7 @@ interface Lead {
   naics_code: string | null;
   naics_title: string | null;
   naics_confidence: number | null;
+  category: string;
   scraped_data_log: {
     apollo_data?: {
       industry?: string;
@@ -61,7 +62,23 @@ interface IndustryEnrichmentTableProps {
 
 type FilterOption = "all" | "enriched" | "not_enriched";
 
+const CATEGORIES = [
+  "All Categories",
+  "Marketing",
+  "Ecommerce",
+  "Website",
+  "Sales",
+  "Taking Payments",
+  "Operations",
+  "Finance",
+  "Utilities",
+  "Offices",
+  "Vehicles",
+  "Security",
+] as const;
+
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
+  const [categoryFilter, setCategoryFilter] = useState<string>("All Categories");
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
   const [naicsMicsTitles, setNaicsMicsTitles] = useState<Map<string, string | null>>(new Map());
@@ -272,15 +289,23 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
 
   // Filter leads based on selection
   const filteredLeads = useMemo(() => {
+    let result = leads;
+
+    // Apply category filter
+    if (categoryFilter !== "All Categories") {
+      result = result.filter(l => l.category === categoryFilter);
+    }
+
+    // Apply industry filter
     switch (industryFilter) {
       case "enriched":
-        return leads.filter(l => l.company_industry);
+        return result.filter(l => l.company_industry);
       case "not_enriched":
-        return leads.filter(l => !l.company_industry);
+        return result.filter(l => !l.company_industry);
       default:
-        return leads;
+        return result;
     }
-  }, [leads, industryFilter]);
+  }, [leads, categoryFilter, industryFilter]);
 
   // Determine the source of industry data
   const getIndustrySource = (lead: Lead): string => {
@@ -338,6 +363,18 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               `Classify All (${leadsNeedingClassification.length})`
             )}
           </Button>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={industryFilter} onValueChange={(value: FilterOption) => setIndustryFilter(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter leads" />
