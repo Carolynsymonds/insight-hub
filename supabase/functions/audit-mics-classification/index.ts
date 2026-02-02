@@ -19,7 +19,7 @@ serve(async (req) => {
     }
 
     // Build comparison prompt
-    const prompt = `Compare these two industry classifications for a company and determine if the user-submitted classification (MICS form) is accurate compared to the AI-derived NAICS classification.
+    const prompt = `Compare these two industry classifications for a company:
 
 Company: ${company || "Unknown"}
 Business Description: ${description || "No description available"}
@@ -29,13 +29,12 @@ MICS (new) - AI derived from NAICS: ${micsNew || "Not available"}
 NAICS Code: ${naicsCode || "Not classified"}
 NAICS Title: ${naicsTitle || "Not available"}
 
-Analyze and determine:
-1. Are these classifications aligned, partially aligned, or completely different?
-2. If different, explain specifically why MICS (form) may be incorrect (too broad, wrong sector, outdated terminology, etc.)
-3. Explain why MICS (new) / NAICS classification is more accurate based on the company's actual business
-4. Provide a verdict: "match" (classifications align), "mismatch" (clearly different), or "partial" (overlapping but not exact)
+Provide:
+1. A verdict: "match" (classifications align), "mismatch" (clearly different), or "partial" (overlapping but not exact)
+2. For mismatch/partial: Explain specifically WHY the MICS (form) is wrong or inaccurate
+3. Explain WHY the MICS (new) / NAICS classification is correct based on the company's actual business activities
 
-Be concise but specific. Reference the actual business activities when explaining.`;
+Be specific and reference actual business activities. Keep explanations concise (1-2 sentences each).`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -48,7 +47,7 @@ Be concise but specific. Reference the actual business activities when explainin
         messages: [
           { 
             role: "system", 
-            content: "You are an industry classification expert. Analyze company classifications and provide clear, actionable verdicts. Always respond using the audit_classification function." 
+            content: "You are an industry classification expert. Analyze company classifications and provide clear, structured verdicts explaining why form data is wrong and why NAICS classification is correct. Always respond using the audit_classification function." 
           },
           { role: "user", content: prompt }
         ],
@@ -66,12 +65,16 @@ Be concise but specific. Reference the actual business activities when explainin
                     enum: ["match", "mismatch", "partial"],
                     description: "match = classifications align, mismatch = clearly different, partial = overlapping but not exact"
                   },
-                  explanation: { 
+                  why_wrong: { 
                     type: "string",
-                    description: "Concise explanation (2-3 sentences) of why the form classification is correct/incorrect and why the NAICS classification is accurate"
+                    description: "Why MICS (form) is wrong or inaccurate. If match, explain why it's actually correct."
+                  },
+                  why_right: { 
+                    type: "string",
+                    description: "Why MICS (new)/NAICS classification is correct based on actual business activities."
                   }
                 },
-                required: ["verdict", "explanation"],
+                required: ["verdict", "why_wrong", "why_right"],
                 additionalProperties: false
               }
             }
