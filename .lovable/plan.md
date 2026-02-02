@@ -1,40 +1,114 @@
 
-# Make Header Row and Company Column Sticky
+# Add CSV Export to Industry Enrichment Table
 
 ## Overview
-Add sticky positioning to:
-1. The table header row (stays visible when scrolling down)
-2. Only the **Company** column (stays visible when scrolling right)
+Add a CSV export button to the Industry Enrichment table that exports all visible data with the specified columns matching the table display.
+
+## Export Columns
+1. Name
+2. Phone
+3. Email
+4. Company
+5. DMA
+6. Industry
+7. Source
+8. MICS (form)
+9. MICS (new)
+10. NAICS Code
+11. NAICS Title
+12. Conf.
 
 ## Technical Changes
 
 ### File: `src/components/IndustryEnrichmentTable.tsx`
 
-**1. Update the table container (line 359)**
-Change from `overflow-x-auto` to `overflow-auto max-h-[70vh]` to enable both horizontal and vertical scrolling:
+**1. Add Download icon import (line 20)**
 ```tsx
-<div className="border rounded-lg overflow-auto max-h-[70vh]">
+import { Loader2, Download } from "lucide-react";
 ```
 
-**2. Make the header row sticky (line 362)**
-Add sticky positioning to keep headers visible during vertical scroll:
+**2. Add export handler function (after line 316)**
+
+Create a new function `handleExportCSV` that:
+- Uses the `filteredLeads` array (respects current filter selection)
+- Gets the industry source using the existing `getIndustrySource` function
+- Looks up MICS (new) from `naicsMicsTitles` map
+- Formats MICS (form) by joining sector/subsector/segment with " > "
+- Wraps all fields in double quotes with proper escaping
+- Triggers a browser download
+
 ```tsx
-<TableRow className="bg-muted/30 sticky top-0 z-20">
+const handleExportCSV = () => {
+  const headers = [
+    "Name", "Phone", "Email", "Company", "DMA", 
+    "Industry", "Source", "MICS (form)", "MICS (new)", 
+    "NAICS Code", "NAICS Title", "Conf."
+  ];
+
+  const rows = filteredLeads.map((lead) => {
+    const source = getIndustrySource(lead);
+    const micsForm = [lead.mics_sector, lead.mics_subsector, lead.mics_segment]
+      .filter(Boolean)
+      .join(" > ");
+    const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
+    const confidence = lead.naics_confidence !== null ? `${lead.naics_confidence}%` : "";
+
+    return [
+      lead.full_name || "",
+      lead.phone || "",
+      lead.email || "",
+      lead.company || "",
+      lead.dma || "",
+      lead.company_industry || "",
+      source !== "-" ? source : "",
+      micsForm,
+      micsNew,
+      lead.naics_code || "",
+      lead.naics_title || "",
+      confidence
+    ];
+  });
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    )
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `industry-enrichment-${new Date().toISOString().split("T")[0]}.csv`);
+  link.click();
+  URL.revokeObjectURL(url);
+
+  toast({
+    title: "Export Complete",
+    description: `Exported ${filteredLeads.length} leads to CSV`
+  });
+};
 ```
 
-**3. Make the Company header sticky (line 366)**
-Add sticky left positioning with background and higher z-index for the intersection:
-```tsx
-<TableHead className="font-semibold sticky left-0 bg-background z-30">Company</TableHead>
-```
+**3. Add Export button to the header section (around line 327)**
 
-**4. Make the Company body cells sticky (line 390)**
-Add matching sticky positioning for body cells:
+Add a new button before the "Classify All" button:
+
 ```tsx
-<TableCell className="sticky left-0 bg-background z-10">{lead.company || "-"}</TableCell>
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleExportCSV}
+  disabled={filteredLeads.length === 0}
+>
+  <Download className="h-4 w-4 mr-1" />
+  Export CSV
+</Button>
 ```
 
 ## Visual Result
-- **Scroll down**: Entire header row stays fixed at top
-- **Scroll right**: Only the Company column stays fixed on the left (Name, Phone, Email columns scroll off-screen)
-- Company header cell uses `z-30` to stay on top when both sticky axes intersect
+- New "Export CSV" button appears in the header row next to "Classify All"
+- Button is disabled when no leads are displayed
+- Clicking exports the currently filtered leads to a CSV file named `industry-enrichment-YYYY-MM-DD.csv`
+- Shows a toast notification confirming the export count
