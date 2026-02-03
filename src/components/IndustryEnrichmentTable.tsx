@@ -23,7 +23,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Loader2, Download, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Loader2, Download, CheckCircle2, AlertTriangle, HelpCircle, Search, ChevronDown, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Lead {
@@ -47,6 +59,7 @@ interface Lead {
   audit_why_wrong: string | null;
   audit_why_right: string | null;
   audited_at: string | null;
+  industry_google_snippet: string | null;
   scraped_data_log: {
     apollo_data?: {
       industry?: string;
@@ -63,6 +76,14 @@ interface NaicsCode {
 interface ClayCompanyEnrichment {
   lead_id: string;
   industry_clay: string | null;
+}
+
+interface IndustrySearchResult {
+  position: number;
+  title: string;
+  link: string;
+  snippet?: string;
+  displayed_link?: string;
 }
 
 interface IndustryEnrichmentTableProps {
@@ -82,6 +103,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [auditingLeads, setAuditingLeads] = useState<Set<string>>(new Set());
   const [isBulkAuditing, setIsBulkAuditing] = useState(false);
   const [bulkAuditProgress, setBulkAuditProgress] = useState({ current: 0, total: 0 });
+  
+  // Enrich drawer state
+  const [enrichDrawerOpen, setEnrichDrawerOpen] = useState(false);
+  const [selectedLeadForEnrich, setSelectedLeadForEnrich] = useState<Lead | null>(null);
+  const [isSearchingIndustry, setIsSearchingIndustry] = useState(false);
+  const [searchResults, setSearchResults] = useState<IndustrySearchResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [logsOpen, setLogsOpen] = useState(false);
 
   // Get leads that need NAICS classification
   const leadsNeedingClassification = useMemo(() => {
@@ -652,6 +681,61 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     });
   };
 
+  const handleOpenEnrichDrawer = (lead: Lead) => {
+    setSelectedLeadForEnrich(lead);
+    setSearchResults([]);
+    setSearchQuery("");
+    setLogsOpen(false);
+    setEnrichDrawerOpen(true);
+  };
+
+  const handleSearchIndustry = async () => {
+    if (!selectedLeadForEnrich) return;
+
+    setIsSearchingIndustry(true);
+    setSearchResults([]);
+
+    try {
+      const response = await supabase.functions.invoke("search-industry-serper", {
+        body: {
+          leadId: selectedLeadForEnrich.id,
+          company: selectedLeadForEnrich.company,
+          dma: selectedLeadForEnrich.dma,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setSearchQuery(data.query);
+      setSearchResults(data.topResults || []);
+      setLogsOpen(true);
+
+      toast({
+        title: "Industry Search Complete",
+        description: data.snippet ? "Snippet saved to lead" : "No snippet found",
+      });
+
+      onEnrichComplete();
+    } catch (error) {
+      console.error("Industry search error:", error);
+      toast({
+        title: "Search Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingIndustry(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -875,23 +959,33 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant={hasNaics ? "outline" : "default"}
-                        onClick={() => handleClassifyNaics(lead)}
-                        disabled={isClassifying}
-                      >
-                        {isClassifying ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            Classifying...
-                          </>
-                        ) : hasNaics ? (
-                          "Re-classify"
-                        ) : (
-                          "Classify NAICS"
-                        )}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEnrichDrawer(lead)}
+                        >
+                          <Search className="h-4 w-4 mr-1" />
+                          Enrich
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={hasNaics ? "outline" : "default"}
+                          onClick={() => handleClassifyNaics(lead)}
+                          disabled={isClassifying}
+                        >
+                          {isClassifying ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              Classifying...
+                            </>
+                          ) : hasNaics ? (
+                            "Re-classify"
+                          ) : (
+                            "Classify NAICS"
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -907,6 +1001,104 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </Table>
         </TooltipProvider>
       </div>
+
+      {/* Enrich Industry Drawer */}
+      <Drawer open={enrichDrawerOpen} onOpenChange={setEnrichDrawerOpen} direction="right">
+        <DrawerContent direction="right" className="h-full">
+          <DrawerHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <DrawerTitle>Enrich Industry</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+          
+          {selectedLeadForEnrich && (
+            <div className="p-4 space-y-6 overflow-auto">
+              {/* Company Info */}
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm text-muted-foreground">Company</span>
+                  <p className="font-semibold text-lg">{selectedLeadForEnrich.company || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">DMA</span>
+                  <p className="font-medium">{selectedLeadForEnrich.dma || "N/A"}</p>
+                </div>
+              </div>
+
+              {/* Search Button */}
+              <div>
+                <Button
+                  onClick={handleSearchIndustry}
+                  disabled={isSearchingIndustry || !selectedLeadForEnrich.company}
+                  className="w-full"
+                >
+                  {isSearchingIndustry ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Find Industry
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Current Snippet */}
+              {selectedLeadForEnrich.industry_google_snippet && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Stored Snippet</span>
+                  <div className="p-3 bg-muted rounded-md text-sm">
+                    {selectedLeadForEnrich.industry_google_snippet}
+                  </div>
+                </div>
+              )}
+
+              {/* Search Results Logs */}
+              {searchResults.length > 0 && (
+                <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between">
+                      <span className="text-sm font-medium">Search Results ({searchResults.length})</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${logsOpen ? "rotate-180" : ""}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-2">
+                    {searchQuery && (
+                      <div className="text-xs text-muted-foreground bg-muted p-2 rounded font-mono">
+                        Query: {searchQuery}
+                      </div>
+                    )}
+                    {searchResults.map((result, index) => (
+                      <div key={index} className="border rounded-md p-3 space-y-1">
+                        <a 
+                          href={result.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-primary hover:underline line-clamp-2"
+                        >
+                          {result.title}
+                        </a>
+                        <p className="text-xs text-muted-foreground">{result.displayed_link}</p>
+                        {result.snippet && (
+                          <p className="text-sm text-foreground/80">{result.snippet}</p>
+                        )}
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
