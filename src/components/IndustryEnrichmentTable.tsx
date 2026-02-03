@@ -959,33 +959,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenEnrichDrawer(lead)}
-                        >
-                          <Search className="h-4 w-4 mr-1" />
-                          Enrich
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={hasNaics ? "outline" : "default"}
-                          onClick={() => handleClassifyNaics(lead)}
-                          disabled={isClassifying}
-                        >
-                          {isClassifying ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                              Classifying...
-                            </>
-                          ) : hasNaics ? (
-                            "Re-classify"
-                          ) : (
-                            "Classify NAICS"
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEnrichDrawer(lead)}
+                      >
+                        <Search className="h-4 w-4 mr-1" />
+                        Enrich
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -1030,8 +1011,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                 </div>
               </div>
 
-              {/* Search Button */}
-              <div>
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 <Button
                   onClick={handleSearchIndustry}
                   disabled={isSearchingIndustry || !selectedLeadForEnrich.company}
@@ -1049,7 +1030,39 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                     </>
                   )}
                 </Button>
+
+                <Button
+                  onClick={() => handleClassifyNaics(selectedLeadForEnrich)}
+                  disabled={classifyingLeads.has(selectedLeadForEnrich.id)}
+                  variant={selectedLeadForEnrich.naics_code ? "outline" : "default"}
+                  className="w-full"
+                >
+                  {classifyingLeads.has(selectedLeadForEnrich.id) ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Classifying...
+                    </>
+                  ) : selectedLeadForEnrich.naics_code ? (
+                    "Re-classify NAICS"
+                  ) : (
+                    "Classify NAICS"
+                  )}
+                </Button>
               </div>
+
+              {/* Current NAICS */}
+              {selectedLeadForEnrich.naics_code && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Current NAICS</span>
+                  <div className="p-3 bg-muted rounded-md text-sm space-y-1">
+                    <p><span className="font-mono">{selectedLeadForEnrich.naics_code}</span></p>
+                    <p className="text-muted-foreground">{selectedLeadForEnrich.naics_title}</p>
+                    {selectedLeadForEnrich.naics_confidence !== null && (
+                      <p className="text-xs text-muted-foreground">Confidence: {selectedLeadForEnrich.naics_confidence}%</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Current Snippet */}
               {selectedLeadForEnrich.industry_google_snippet && (
