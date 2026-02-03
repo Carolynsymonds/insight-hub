@@ -1005,14 +1005,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           <Button
             variant="outline"
             size="sm"
-            onClick={handleClearAudits}
-            disabled={!filteredLeads.some(l => l.audit_verdict !== null)}
-          >
-            Clear Audits
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={handleBulkAudit}
             disabled={isBulkAuditing || leadsNeedingAudit.length === 0}
           >
@@ -1033,21 +1025,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           >
             <Download className="h-4 w-4 mr-1" />
             Export CSV
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleBulkClassify}
-            disabled={isBulkClassifying || leadsNeedingClassification.length === 0}
-          >
-            {isBulkClassifying ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                Classifying {bulkProgress.current}/{bulkProgress.total}
-              </>
-            ) : (
-              `Classify All (${leadsNeedingClassification.length})`
-            )}
           </Button>
           <Button
             variant="default"
