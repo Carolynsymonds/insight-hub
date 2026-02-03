@@ -113,6 +113,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [logsOpen, setLogsOpen] = useState(false);
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
   const [isFindAndClassifying, setIsFindAndClassifying] = useState(false);
+  const [isBulkFindAndClassifying, setIsBulkFindAndClassifying] = useState(false);
+  const [bulkFindClassifyProgress, setBulkFindClassifyProgress] = useState({ current: 0, total: 0, company: "" });
 
   // Get leads that need NAICS classification
   const leadsNeedingClassification = useMemo(() => {
@@ -907,6 +909,92 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   };
 
+  const handleBulkFindAndClassify = async () => {
+    if (leadsNeedingClassification.length === 0) {
+      toast({
+        title: "No Leads to Process",
+        description: "All leads already have NAICS codes assigned.",
+      });
+      return;
+    }
+
+    setIsBulkFindAndClassifying(true);
+    setBulkFindClassifyProgress({ current: 0, total: leadsNeedingClassification.length, company: "" });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < leadsNeedingClassification.length; i++) {
+      const lead = leadsNeedingClassification[i];
+      setBulkFindClassifyProgress({ 
+        current: i + 1, 
+        total: leadsNeedingClassification.length, 
+        company: lead.company || "Unknown" 
+      });
+
+      try {
+        // Step 1: Find Industry
+        const searchResponse = await supabase.functions.invoke("search-industry-serper", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            dma: lead.dma,
+          },
+        });
+
+        if (searchResponse.error) throw new Error(searchResponse.error.message);
+        
+        const searchData = searchResponse.data;
+        if (searchData.error) {
+          if (searchData.error.includes("Rate limit")) {
+            toast({ title: "Rate Limited", description: "Stopping bulk operation.", variant: "destructive" });
+            break;
+          }
+          throw new Error(searchData.error);
+        }
+
+        const snippet = searchData.snippet;
+
+        // Step 2: Classify NAICS
+        const classifyResponse = await supabase.functions.invoke("classify-naics", {
+          body: {
+            leadId: lead.id,
+            company: lead.company,
+            industry: lead.company_industry,
+            description: lead.description,
+            googleSnippet: snippet || lead.industry_google_snippet,
+          },
+        });
+
+        if (classifyResponse.error) throw new Error(classifyResponse.error.message);
+        
+        const classifyData = classifyResponse.data;
+        if (classifyData.error) {
+          if (classifyData.error.includes("Rate limit") || classifyData.error.includes("Payment required")) {
+            toast({ title: "Rate Limited", description: "Stopping bulk operation.", variant: "destructive" });
+            break;
+          }
+          throw new Error(classifyData.error);
+        }
+
+        successCount++;
+      } catch (error) {
+        console.error("Bulk find and classify error for lead:", lead.id, error);
+        errorCount++;
+      }
+    }
+
+    setIsBulkFindAndClassifying(false);
+    setBulkFindClassifyProgress({ current: 0, total: 0, company: "" });
+
+    toast({
+      title: "Bulk Find & Classify Complete",
+      description: `Successfully processed ${successCount} leads.${errorCount > 0 ? ` ${errorCount} failed.` : ""}`,
+    });
+
+    onEnrichComplete();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -959,6 +1047,24 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               </>
             ) : (
               `Classify All (${leadsNeedingClassification.length})`
+            )}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleBulkFindAndClassify}
+            disabled={isBulkFindAndClassifying || leadsNeedingClassification.length === 0}
+          >
+            {isBulkFindAndClassifying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                {bulkFindClassifyProgress.current}/{bulkFindClassifyProgress.total}: {bulkFindClassifyProgress.company}
+              </>
+            ) : (
+              <>
+                <Search className="h-4 w-4 mr-1" />
+                Find & Classify All ({leadsNeedingClassification.length})
+              </>
             )}
           </Button>
           <Select value={industryFilter} onValueChange={(value: FilterOption) => setIndustryFilter(value)}>
