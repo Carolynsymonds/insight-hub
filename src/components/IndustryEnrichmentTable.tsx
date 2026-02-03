@@ -111,6 +111,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [searchResults, setSearchResults] = useState<IndustrySearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [logsOpen, setLogsOpen] = useState(false);
+  const [searchLogs, setSearchLogs] = useState<string[]>([]);
 
   // Get leads that need NAICS classification
   const leadsNeedingClassification = useMemo(() => {
@@ -687,6 +688,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     setSelectedLeadForEnrich(lead);
     setSearchResults([]);
     setSearchQuery("");
+    setSearchLogs([]);
     setLogsOpen(false);
     setEnrichDrawerOpen(true);
   };
@@ -696,8 +698,27 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
 
     setIsSearchingIndustry(true);
     setSearchResults([]);
+    setSearchLogs([]);
+
+    const logs: string[] = [];
+    const addLog = (message: string) => {
+      logs.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+      setSearchLogs([...logs]);
+    };
 
     try {
+      addLog(`Starting industry search for: ${selectedLeadForEnrich.company}`);
+      addLog(`DMA: ${selectedLeadForEnrich.dma || "N/A"}`);
+      
+      // Build query preview
+      const queryParts = [`"${selectedLeadForEnrich.company}"`];
+      if (selectedLeadForEnrich.dma) {
+        queryParts.push(`"${selectedLeadForEnrich.dma}"`);
+      }
+      queryParts.push("what does this company do");
+      addLog(`Query: ${queryParts.join(" ")}`);
+      addLog(`Calling SerpAPI...`);
+
       const response = await supabase.functions.invoke("search-industry-serper", {
         body: {
           leadId: selectedLeadForEnrich.id,
@@ -707,13 +728,24 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       });
 
       if (response.error) {
+        addLog(`❌ API Error: ${response.error.message}`);
         throw new Error(response.error.message);
       }
 
       const data = response.data;
 
       if (data.error) {
+        addLog(`❌ Search Error: ${data.error}`);
         throw new Error(data.error);
+      }
+
+      addLog(`✓ Search complete`);
+      addLog(`Results found: ${data.topResults?.length || 0}`);
+      
+      if (data.snippet) {
+        addLog(`✓ Main snippet extracted and saved`);
+      } else {
+        addLog(`⚠ No snippet found in results`);
       }
 
       setSearchQuery(data.query);
@@ -728,6 +760,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       onEnrichComplete();
     } catch (error) {
       console.error("Industry search error:", error);
+      addLog(`❌ Failed: ${error instanceof Error ? error.message : "Unknown error"}`);
       toast({
         title: "Search Failed",
         description: error instanceof Error ? error.message : "An error occurred",
@@ -1076,37 +1109,65 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                 </div>
               )}
 
-              {/* Search Results Logs */}
-              {searchResults.length > 0 && (
+              {/* Search Logs */}
+              {searchLogs.length > 0 && (
                 <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full justify-between">
-                      <span className="text-sm font-medium">Search Results ({searchResults.length})</span>
+                      <span className="text-sm font-medium">Search Logs</span>
                       <ChevronDown className={`h-4 w-4 transition-transform ${logsOpen ? "rotate-180" : ""}`} />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-3 pt-2">
+                    {/* Step-by-step logs */}
+                    <div className="bg-muted/50 rounded-md p-3 space-y-1 font-mono text-xs">
+                      {searchLogs.map((log, index) => (
+                        <div key={index} className="text-muted-foreground">
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Query used */}
                     {searchQuery && (
-                      <div className="text-xs text-muted-foreground bg-muted p-2 rounded font-mono">
-                        Query: {searchQuery}
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-muted-foreground">Search Query</span>
+                        <div className="text-xs bg-muted p-2 rounded font-mono break-all">
+                          {searchQuery}
+                        </div>
                       </div>
                     )}
-                    {searchResults.map((result, index) => (
-                      <div key={index} className="border rounded-md p-3 space-y-1">
-                        <a 
-                          href={result.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-primary hover:underline line-clamp-2"
-                        >
-                          {result.title}
-                        </a>
-                        <p className="text-xs text-muted-foreground">{result.displayed_link}</p>
-                        {result.snippet && (
-                          <p className="text-sm text-foreground/80">{result.snippet}</p>
-                        )}
+
+                    {/* Results */}
+                    {searchResults.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Top Results ({searchResults.length})
+                        </span>
+                        {searchResults.map((result, index) => (
+                          <div key={index} className="border rounded-md p-3 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">#{result.position}</Badge>
+                              <a 
+                                href={result.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-primary hover:underline line-clamp-1 flex-1"
+                              >
+                                {result.title}
+                              </a>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{result.displayed_link}</p>
+                            {result.snippet && (
+                              <p className="text-sm text-foreground/80 bg-muted/30 p-2 rounded">
+                                {index === 0 && <Badge variant="secondary" className="text-xs mr-2 mb-1">Main Snippet</Badge>}
+                                {result.snippet}
+                              </p>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </CollapsibleContent>
                 </Collapsible>
               )}
