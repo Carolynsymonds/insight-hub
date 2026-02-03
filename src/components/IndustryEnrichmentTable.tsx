@@ -145,6 +145,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             company: lead.company,
             industry: lead.company_industry,
             description: lead.description,
+            googleSnippet: lead.industry_google_snippet,
           },
         });
 
@@ -207,6 +208,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           company: lead.company,
           industry: lead.company_industry,
           description: lead.description,
+          googleSnippet: lead.industry_google_snippet,
         },
       });
 

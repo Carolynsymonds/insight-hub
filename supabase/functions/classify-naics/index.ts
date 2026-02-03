@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { leadId, company, industry, description } = await req.json();
+    const { leadId, company, industry, description, googleSnippet } = await req.json();
 
     if (!leadId) {
       return new Response(
@@ -30,6 +30,7 @@ serve(async (req) => {
 - Company name: ${company || "Unknown"}
 - Industry: ${industry || "Unknown"}
 - Nature of the business: ${description || "Unknown"}
+- Google search context: ${googleSnippet || "Not available"}
 
 Categorise company into a best guess of which industry they operate in, using the NAICS 2022 list. Determine your confidence in percentage.`;
 
