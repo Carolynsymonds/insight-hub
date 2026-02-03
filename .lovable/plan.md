@@ -1,60 +1,63 @@
 
 
-# Store All Search Snippets from Industry Search
+# Add Google Snippet to NAICS Classification Prompt
 
-## Problem
-Currently, the `search-industry-serper` function fetches 5 search results from Google but only stores the first snippet in `industry_google_snippet`. This loses valuable context from other search results.
-
-## Solution
-Combine all snippets from the top search results into a single text field, giving more comprehensive industry context.
+## Overview
+Update the NAICS classification process to include the `industry_google_snippet` field in the AI prompt, giving the classifier more context about what the company does based on Google search results.
 
 ## Changes Required
 
-### 1. Modify Edge Function: `supabase/functions/search-industry-serper/index.ts`
+### 1. Frontend: `src/components/IndustryEnrichmentTable.tsx`
 
-Update the logic to combine all snippets instead of just storing the first one:
+Pass the `industry_google_snippet` field to the edge function in both locations:
 
-**Current behavior (lines 73-76)**:
+**`handleClassifyNaics` function (~line 204-211)**:
 ```typescript
-// Store first snippet
-if (!topSnippet && result.snippet) {
-  topSnippet = result.snippet;
-}
+body: {
+  leadId: lead.id,
+  company: lead.company,
+  industry: lead.company_industry,
+  description: lead.description,
+  googleSnippet: lead.industry_google_snippet,  // ADD THIS
+},
 ```
 
-**New behavior** - Collect all snippets and combine them:
+**`handleBulkClassify` function (~line 142-149)**:
 ```typescript
-// Collect all snippets
-const allSnippets: string[] = [];
-for (let i = 0; i < Math.min(5, data.organic_results.length); i++) {
-  const result = data.organic_results[i];
-  // ... existing result processing ...
-  
-  if (result.snippet) {
-    allSnippets.push(result.snippet);
-  }
-}
-
-// Combine all snippets with separator
-const combinedSnippet = allSnippets.join(" | ");
+body: {
+  leadId: lead.id,
+  company: lead.company,
+  industry: lead.company_industry,
+  description: lead.description,
+  googleSnippet: lead.industry_google_snippet,  // ADD THIS
+},
 ```
 
-Then update the database with `combinedSnippet` instead of just `topSnippet`.
+### 2. Edge Function: `supabase/functions/classify-naics/index.ts`
 
-### 2. Deploy Edge Function
+**Extract the new parameter (line 15)**:
+```typescript
+const { leadId, company, industry, description, googleSnippet } = await req.json();
+```
 
-The function will be automatically redeployed after the change.
+**Update the prompt (lines 29-34)**:
+```typescript
+const prompt = `Given the following company information:
+- Company name: ${company || "Unknown"}
+- Industry: ${industry || "Unknown"}
+- Nature of the business: ${description || "Unknown"}
+- Google search context: ${googleSnippet || "Not available"}
+
+Categorise company into a best guess of which industry they operate in, using the NAICS 2022 list. Determine your confidence in percentage.`;
+```
 
 ## Result
-Instead of storing only:
-> "From shingle roofs to flat roofs, our amazing technicians guarantee quality workmanship..."
-
-It will store all snippets combined:
-> "From shingle roofs to flat roofs, our amazing technicians guarantee quality workmanship... | Choice Roofing is a full-service roofing company serving the Dallas-Fort Worth area... | Founded in 2015, Choice Roofing specializes in residential and commercial..."
+The AI classifier will now have access to real-world search snippets about the company, improving classification accuracy especially when the company name or description is vague.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/search-industry-serper/index.ts` | Combine all snippets instead of storing only the first |
+| `src/components/IndustryEnrichmentTable.tsx` | Add `googleSnippet` to both function invoke calls |
+| `supabase/functions/classify-naics/index.ts` | Extract `googleSnippet` param and include in prompt |
 
