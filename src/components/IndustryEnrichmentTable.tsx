@@ -43,6 +43,10 @@ interface Lead {
   naics_title: string | null;
   naics_confidence: number | null;
   category: string;
+  audit_verdict: string | null;
+  audit_why_wrong: string | null;
+  audit_why_right: string | null;
+  audited_at: string | null;
   scraped_data_log: {
     apollo_data?: {
       industry?: string;
@@ -68,12 +72,6 @@ interface IndustryEnrichmentTableProps {
 
 type FilterOption = "all" | "enriched" | "not_enriched";
 
-interface AuditResult {
-  verdict: "match" | "mismatch" | "partial";
-  why_wrong: string;
-  why_right: string;
-}
-
 export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnrichmentTableProps) {
   const [industryFilter, setIndustryFilter] = useState<FilterOption>("all");
   const [clayEnrichments, setClayEnrichments] = useState<Map<string, ClayCompanyEnrichment>>(new Map());
@@ -82,7 +80,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   const [isBulkClassifying, setIsBulkClassifying] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [auditingLeads, setAuditingLeads] = useState<Set<string>>(new Set());
-  const [auditResults, setAuditResults] = useState<Map<string, AuditResult>>(new Map());
   const [isBulkAuditing, setIsBulkAuditing] = useState(false);
   const [bulkAuditProgress, setBulkAuditProgress] = useState({ current: 0, total: 0 });
 
@@ -301,14 +298,14 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   }, [leads, industryFilter]);
 
-  // Get leads that can be audited (have MICS form data and not already audited)
+  // Get leads that can be audited (have MICS form data and not already audited in DB)
   const leadsNeedingAudit = useMemo(() => {
     return filteredLeads.filter(l => {
       const hasMicsForm = l.mics_sector || l.mics_subsector || l.mics_segment;
-      const alreadyAudited = auditResults.has(l.id);
+      const alreadyAudited = l.audit_verdict !== null;
       return hasMicsForm && !alreadyAudited;
     });
-  }, [filteredLeads, auditResults]);
+  }, [filteredLeads]);
 
   // Determine the source of industry data
   const getIndustrySource = (lead: Lead): string => {
@@ -395,16 +392,27 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         return;
       }
 
-      setAuditResults(prev => new Map(prev).set(lead.id, {
-        verdict: data.verdict,
-        why_wrong: data.why_wrong,
-        why_right: data.why_right,
-      }));
+      // Save to database
+      const { error: updateError } = await supabase
+        .from("leads")
+        .update({
+          audit_verdict: data.verdict,
+          audit_why_wrong: data.why_wrong,
+          audit_why_right: data.why_right,
+          audited_at: new Date().toISOString(),
+        })
+        .eq("id", lead.id);
+
+      if (updateError) {
+        console.error("Error saving audit to DB:", updateError);
+      }
 
       toast({
         title: "Audit Complete",
         description: `Verdict: ${data.verdict}`,
       });
+
+      onEnrichComplete();
     } catch (error) {
       console.error("Audit error:", error);
       toast({
@@ -447,12 +455,46 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     }
   };
 
-  const handleClearAudits = () => {
-    setAuditResults(new Map());
-    toast({
-      title: "Audits Cleared",
-      description: "All audit results have been reset.",
-    });
+  const handleClearAudits = async () => {
+    const leadIds = filteredLeads
+      .filter(l => l.audit_verdict !== null)
+      .map(l => l.id);
+
+    if (leadIds.length === 0) {
+      toast({
+        title: "No Audits to Clear",
+        description: "No audit results found for the current view.",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          audit_verdict: null,
+          audit_why_wrong: null,
+          audit_why_right: null,
+          audited_at: null,
+        })
+        .in("id", leadIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Audits Cleared",
+        description: `Cleared ${leadIds.length} audit results.`,
+      });
+
+      onEnrichComplete();
+    } catch (error) {
+      console.error("Error clearing audits:", error);
+      toast({
+        title: "Failed to Clear Audits",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBulkAudit = async () => {
@@ -516,11 +558,20 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           }
           errorCount++;
         } else {
-          setAuditResults(prev => new Map(prev).set(lead.id, {
-            verdict: data.verdict,
-            why_wrong: data.why_wrong,
-            why_right: data.why_right,
-          }));
+          // Save to database
+          const { error: updateError } = await supabase
+            .from("leads")
+            .update({
+              audit_verdict: data.verdict,
+              audit_why_wrong: data.why_wrong,
+              audit_why_right: data.why_right,
+              audited_at: new Date().toISOString(),
+            })
+            .eq("id", lead.id);
+
+          if (updateError) {
+            console.error("Error saving audit to DB:", updateError);
+          }
           successCount++;
         }
       } catch (error) {
@@ -542,6 +593,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       title: "Bulk Audit Complete",
       description: `Successfully audited ${successCount} leads. ${errorCount > 0 ? `${errorCount} failed.` : ""}`,
     });
+
+    onEnrichComplete();
   };
 
   const handleExportCSV = () => {
@@ -558,7 +611,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         .join(" > ");
       const micsNew = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) || "" : "";
       const confidence = lead.naics_confidence !== null ? `${lead.naics_confidence}%` : "";
-      const auditResult = auditResults.get(lead.id);
 
       return [
         lead.full_name || "",
@@ -573,9 +625,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
         lead.naics_code || "",
         lead.naics_title || "",
         confidence,
-        auditResult?.verdict || "",
-        auditResult?.why_wrong || "",
-        auditResult?.why_right || ""
+        lead.audit_verdict || "",
+        lead.audit_why_wrong || "",
+        lead.audit_why_right || ""
       ];
     });
 
@@ -611,7 +663,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             variant="outline"
             size="sm"
             onClick={handleClearAudits}
-            disabled={auditResults.size === 0}
+            disabled={!filteredLeads.some(l => l.audit_verdict !== null)}
           >
             Clear Audits
           </Button>
@@ -699,9 +751,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                 const micsTitle = lead.naics_code ? naicsMicsTitles.get(lead.naics_code) : null;
                 const isClassifying = classifyingLeads.has(lead.id);
                 const isAuditing = auditingLeads.has(lead.id);
-                const auditResult = auditResults.get(lead.id);
+                const hasAudit = lead.audit_verdict !== null;
                 const hasMicsForm = lead.mics_sector || lead.mics_subsector || lead.mics_segment;
-                const canAudit = hasMicsForm;
+                const canAudit = hasMicsForm && !hasAudit;
 
                 return (
                   <TableRow key={lead.id} className="hover:bg-muted/20">
@@ -772,23 +824,23 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       )}
                     </TableCell>
                     <TableCell>
-                      {auditResult ? (
+                      {hasAudit ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Badge 
-                              variant={getAuditBadgeVariant(auditResult.verdict)} 
+                              variant={getAuditBadgeVariant(lead.audit_verdict!)} 
                               className="cursor-help text-xs capitalize"
                             >
-                              {getAuditIcon(auditResult.verdict)}
-                              {auditResult.verdict}
+                              {getAuditIcon(lead.audit_verdict!)}
+                              {lead.audit_verdict}
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent side="left" className="max-w-[400px]">
                             <div className="space-y-1">
-                              {auditResult.verdict !== 'match' && (
-                                <p className="text-sm"><span className="font-semibold text-red-500">✗ Wrong:</span> {auditResult.why_wrong}</p>
+                              {lead.audit_verdict !== 'match' && (
+                                <p className="text-sm"><span className="font-semibold text-red-500">✗ Wrong:</span> {lead.audit_why_wrong}</p>
                               )}
-                              <p className="text-sm"><span className="font-semibold text-green-600">✓ Correct:</span> {auditResult.why_right}</p>
+                              <p className="text-sm"><span className="font-semibold text-green-600">✓ Correct:</span> {lead.audit_why_right}</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -808,15 +860,15 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
                       )}
                     </TableCell>
                     <TableCell className="max-w-[400px]">
-                      {auditResult ? (
+                      {hasAudit ? (
                         <div className="space-y-1 text-xs leading-relaxed">
-                          {auditResult.verdict !== 'match' && (
-                            <p><span className="font-semibold text-red-600">✗ Form Wrong:</span> {auditResult.why_wrong}</p>
+                          {lead.audit_verdict !== 'match' && (
+                            <p><span className="font-semibold text-red-600">✗ Form Wrong:</span> {lead.audit_why_wrong}</p>
                           )}
-                          {auditResult.verdict === 'match' && (
-                            <p><span className="font-semibold text-green-600">✓ Form Correct:</span> {auditResult.why_wrong}</p>
+                          {lead.audit_verdict === 'match' && (
+                            <p><span className="font-semibold text-green-600">✓ Form Correct:</span> {lead.audit_why_wrong}</p>
                           )}
-                          <p><span className="font-semibold text-green-600">✓ NAICS Correct:</span> {auditResult.why_right}</p>
+                          <p><span className="font-semibold text-green-600">✓ NAICS Correct:</span> {lead.audit_why_right}</p>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>

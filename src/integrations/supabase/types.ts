@@ -161,6 +161,10 @@ export type Database = {
         Row: {
           annual_revenue: string | null
           apollo_not_found: boolean | null
+          audit_verdict: string | null
+          audit_why_right: string | null
+          audit_why_wrong: string | null
+          audited_at: string | null
           category: string
           city: string | null
           company: string | null
@@ -248,6 +252,10 @@ export type Database = {
         Insert: {
           annual_revenue?: string | null
           apollo_not_found?: boolean | null
+          audit_verdict?: string | null
+          audit_why_right?: string | null
+          audit_why_wrong?: string | null
+          audited_at?: string | null
           category?: string
           city?: string | null
           company?: string | null
@@ -335,6 +343,10 @@ export type Database = {
         Update: {
           annual_revenue?: string | null
           apollo_not_found?: boolean | null
+          audit_verdict?: string | null
+          audit_why_right?: string | null
+          audit_why_wrong?: string | null
+          audited_at?: string | null
           category?: string
           city?: string | null
           company?: string | null
