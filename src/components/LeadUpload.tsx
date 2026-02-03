@@ -139,12 +139,13 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       
       if (!user) throw new Error("Not authenticated");
 
-      // Check for duplicate (same full_name AND company)
+      // Check for duplicate (same full_name AND company within the same category)
       if (formData.full_name && formData.company) {
         const { data: existingLead } = await supabase
           .from("leads")
           .select("id")
           .eq("user_id", user.id)
+          .eq("category", formData.category)
           .ilike("full_name", formData.full_name)
           .ilike("company", formData.company)
           .maybeSingle();
@@ -152,7 +153,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         if (existingLead) {
           toast({
             title: "Duplicate Lead",
-            description: `A lead with name "${formData.full_name}" at company "${formData.company}" already exists.`,
+            description: `A lead with name "${formData.full_name}" at company "${formData.company}" already exists in the "${formData.category}" category.`,
             variant: "destructive",
           });
           setLoading(false);
@@ -337,11 +338,12 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         upload_batch: nextBatch,
       }));
 
-      // Query existing leads to check for duplicates
+      // Query existing leads to check for duplicates (only within the same category)
       const { data: existingLeads } = await supabase
         .from("leads")
         .select("full_name, company")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("category", csvCategory);
 
       // Filter out duplicates
       const duplicates: string[] = [];
@@ -371,7 +373,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
       if (uniqueLeads.length === 0) {
         toast({
           title: "No New Leads",
-          description: `All ${leads.length} leads already exist in the database.`,
+          description: `All ${leads.length} leads already exist in the "${csvCategory}" category.`,
           variant: "destructive",
         });
         setLoading(false);
