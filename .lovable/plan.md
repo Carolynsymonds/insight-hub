@@ -1,63 +1,37 @@
 
+# Make Duplicate Lead Check Category-Specific
 
-# Add Google Snippet to NAICS Classification Prompt
-
-## Overview
-Update the NAICS classification process to include the `industry_google_snippet` field in the AI prompt, giving the classifier more context about what the company does based on Google search results.
+## The Problem
+Currently, when you upload leads to a new category, the system incorrectly marks them as duplicates if the same name/company combination exists in ANY category. The duplicate validation should only check for uniqueness **within the same category**.
 
 ## Changes Required
 
-### 1. Frontend: `src/components/IndustryEnrichmentTable.tsx`
+### 1. CSV Upload Duplicate Check (`src/components/LeadUpload.tsx`)
 
-Pass the `industry_google_snippet` field to the edge function in both locations:
+**Query existing leads with category filter (around line 341-344):**
+- Add `.eq("category", csvCategory)` to the Supabase query so it only fetches leads from the same category
 
-**`handleClassifyNaics` function (~line 204-211)**:
-```typescript
-body: {
-  leadId: lead.id,
-  company: lead.company,
-  industry: lead.company_industry,
-  description: lead.description,
-  googleSnippet: lead.industry_google_snippet,  // ADD THIS
-},
-```
+**Update comparison key (around line 350-351):**
+- Since the database query is now filtered by category, the comparison will automatically be category-specific
 
-**`handleBulkClassify` function (~line 142-149)**:
-```typescript
-body: {
-  leadId: lead.id,
-  company: lead.company,
-  industry: lead.company_industry,
-  description: lead.description,
-  googleSnippet: lead.industry_google_snippet,  // ADD THIS
-},
-```
+### 2. Manual Entry Duplicate Check (`src/components/LeadUpload.tsx`)
 
-### 2. Edge Function: `supabase/functions/classify-naics/index.ts`
+**Update the duplicate check query (around line 144-150):**
+- Add `.eq("category", formData.category)` to the query to check duplicates only within the selected category
 
-**Extract the new parameter (line 15)**:
-```typescript
-const { leadId, company, industry, description, googleSnippet } = await req.json();
-```
+### 3. Update Error Messages
+- Update the "No New Leads" message to clarify it's within the specific category
+- Update the "Duplicate Lead" toast to mention the category
 
-**Update the prompt (lines 29-34)**:
-```typescript
-const prompt = `Given the following company information:
-- Company name: ${company || "Unknown"}
-- Industry: ${industry || "Unknown"}
-- Nature of the business: ${description || "Unknown"}
-- Google search context: ${googleSnippet || "Not available"}
+## Technical Details
 
-Categorise company into a best guess of which industry they operate in, using the NAICS 2022 list. Determine your confidence in percentage.`;
-```
+| Location | Current Behavior | New Behavior |
+|----------|------------------|--------------|
+| CSV upload query (line 341-344) | Queries all leads for user | Queries leads for user + specific category |
+| Manual entry query (line 144-150) | Queries all leads for user | Queries leads for user + specific category |
+| Comparison logic | full_name + company | full_name + company (within category) |
 
 ## Result
-The AI classifier will now have access to real-world search snippets about the company, improving classification accuracy especially when the company name or description is vague.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/IndustryEnrichmentTable.tsx` | Add `googleSnippet` to both function invoke calls |
-| `supabase/functions/classify-naics/index.ts` | Extract `googleSnippet` param and include in prompt |
-
+- Users can upload the same leads to different categories (e.g., "Vehicles" and "Marketing")
+- Duplicate check only applies within each category
+- Same person at same company can exist in multiple categories as different lead records
