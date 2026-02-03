@@ -50,9 +50,9 @@ Deno.serve(async (req) => {
     const response = await fetch(url);
     const data = await response.json();
 
-    // Extract top results
+    // Extract top results and collect all snippets
     const topResults: OrganicResult[] = [];
-    let topSnippet: string | null = null;
+    const allSnippets: string[] = [];
 
     if (data.organic_results && Array.isArray(data.organic_results)) {
       console.log(`Total organic results: ${data.organic_results.length}`);
@@ -70,15 +70,18 @@ Deno.serve(async (req) => {
         
         console.log(`Result ${result.position}: ${JSON.stringify(organicResult, null, 2)}`);
 
-        // Store first snippet
-        if (!topSnippet && result.snippet) {
-          topSnippet = result.snippet;
+        // Collect all snippets
+        if (result.snippet) {
+          allSnippets.push(result.snippet);
         }
       }
     }
 
+    // Combine all snippets with separator
+    const combinedSnippet = allSnippets.length > 0 ? allSnippets.join(" | ") : null;
+
     console.log(`=== Search Complete ===`);
-    console.log(`Top snippet: ${topSnippet || "Not found"}`);
+    console.log(`Combined snippets (${allSnippets.length}): ${combinedSnippet || "Not found"}`);
 
     // Update the lead in the database with the snippet
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -88,7 +91,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from("leads")
       .update({ 
-        industry_google_snippet: topSnippet,
+        industry_google_snippet: combinedSnippet,
         updated_at: new Date().toISOString(),
       })
       .eq("id", leadId);
@@ -102,7 +105,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        snippet: topSnippet,
+        snippet: combinedSnippet,
         query,
         topResults,
       }),
