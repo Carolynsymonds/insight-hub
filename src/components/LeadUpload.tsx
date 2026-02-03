@@ -209,6 +209,11 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
   const parseCSV = (text: string): { headers: string[]; rows: string[][] } => {
     const lines = text.split("\n").filter(line => line.trim());
     
+    // Normalize whitespace: replace tabs and multiple spaces with single space
+    const normalizeWhitespace = (str: string): string => {
+      return str.replace(/\s+/g, ' ').trim();
+    };
+    
     // Parse a single CSV line handling quoted fields with commas
     const parseLine = (line: string): string[] => {
       const result: string[] = [];
@@ -229,16 +234,16 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
             inQuotes = !inQuotes;
           }
         } else if (char === ',' && !inQuotes) {
-          // End of field
-          result.push(current.trim());
+          // End of field - normalize whitespace
+          result.push(normalizeWhitespace(current));
           current = '';
         } else {
           current += char;
         }
       }
       
-      // Don't forget the last field
-      result.push(current.trim());
+      // Don't forget the last field - normalize whitespace
+      result.push(normalizeWhitespace(current));
       
       return result;
     };
