@@ -1,49 +1,60 @@
 
 
-# Fix Text Selection in Right-Side Drawer
+# Store All Search Snippets from Industry Search
 
 ## Problem
-The Vaul drawer component prevents text selection by default. This is a built-in behavior of the Vaul library to support drag-to-close gestures, but it makes it impossible to select/copy text content within the drawer.
+Currently, the `search-industry-serper` function fetches 5 search results from Google but only stores the first snippet in `industry_google_snippet`. This loses valuable context from other search results.
 
 ## Solution
-Add CSS classes to enable text selection within the drawer content by overriding the default `user-select: none` behavior.
+Combine all snippets from the top search results into a single text field, giving more comprehensive industry context.
 
 ## Changes Required
 
-### Modify `src/components/IndustryEnrichmentTable.tsx`
+### 1. Modify Edge Function: `supabase/functions/search-industry-serper/index.ts`
 
-Add `select-text` CSS class to the scrollable content area inside the drawer:
+Update the logic to combine all snippets instead of just storing the first one:
 
-**Line ~1020** - Update the content div:
-```tsx
-<div className="p-4 space-y-6 overflow-auto select-text">
+**Current behavior (lines 73-76)**:
+```typescript
+// Store first snippet
+if (!topSnippet && result.snippet) {
+  topSnippet = result.snippet;
+}
 ```
 
-This single change adds `user-select: text` to the content area, allowing users to select and copy text from the search results and company information.
+**New behavior** - Collect all snippets and combine them:
+```typescript
+// Collect all snippets
+const allSnippets: string[] = [];
+for (let i = 0; i < Math.min(5, data.organic_results.length); i++) {
+  const result = data.organic_results[i];
+  // ... existing result processing ...
+  
+  if (result.snippet) {
+    allSnippets.push(result.snippet);
+  }
+}
 
-## Alternative (if above doesn't work)
-
-If the simple class doesn't work due to Vaul's overlay handling, we may need to also update the DrawerContent component in `src/components/ui/drawer.tsx`:
-
-**Line ~35-45** - Add `select-text` to the content wrapper:
-```tsx
-<DrawerPrimitive.Content
-  ref={ref}
-  className={cn(
-    "fixed z-50 flex flex-col border bg-background select-text",
-    // ... rest of classes
-  )}
+// Combine all snippets with separator
+const combinedSnippet = allSnippets.join(" | ");
 ```
+
+Then update the database with `combinedSnippet` instead of just `topSnippet`.
+
+### 2. Deploy Edge Function
+
+The function will be automatically redeployed after the change.
+
+## Result
+Instead of storing only:
+> "From shingle roofs to flat roofs, our amazing technicians guarantee quality workmanship..."
+
+It will store all snippets combined:
+> "From shingle roofs to flat roofs, our amazing technicians guarantee quality workmanship... | Choice Roofing is a full-service roofing company serving the Dallas-Fort Worth area... | Founded in 2015, Choice Roofing specializes in residential and commercial..."
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/IndustryEnrichmentTable.tsx` | Add `select-text` class to drawer content div |
-| `src/components/ui/drawer.tsx` (if needed) | Add `select-text` class to DrawerContent |
-
-## Technical Note
-- Tailwind's `select-text` class applies `user-select: text`
-- This overrides the default `user-select: none` that Vaul applies for drag gestures
-- Since the drawer is `direction="right"`, drag-to-close isn't the primary interaction anyway
+| `supabase/functions/search-industry-serper/index.ts` | Combine all snippets instead of storing only the first |
 
