@@ -320,14 +320,37 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
   // Filter leads based on selection
   // Filter leads based on selection (category filtering is handled by parent)
   const filteredLeads = useMemo(() => {
+    let result: Lead[];
     switch (industryFilter) {
       case "enriched":
-        return leads.filter(l => l.company_industry);
+        result = leads.filter(l => l.company_industry);
+        break;
       case "not_enriched":
-        return leads.filter(l => !l.company_industry);
+        result = leads.filter(l => !l.company_industry);
+        break;
       default:
-        return leads;
+        result = [...leads];
     }
+    
+    // Sort: leads with NAICS codes first (most recently classified at top)
+    return result.sort((a, b) => {
+      // Leads with NAICS codes come first
+      const aHasNaics = !!a.naics_code;
+      const bHasNaics = !!b.naics_code;
+      
+      if (aHasNaics && !bHasNaics) return -1;
+      if (!aHasNaics && bHasNaics) return 1;
+      
+      // If both have NAICS, sort by confidence descending
+      if (aHasNaics && bHasNaics) {
+        const aConf = a.naics_confidence ?? 0;
+        const bConf = b.naics_confidence ?? 0;
+        if (aConf !== bConf) return bConf - aConf;
+      }
+      
+      // Fallback: sort by company name
+      return (a.company || '').localeCompare(b.company || '');
+    });
   }, [leads, industryFilter]);
 
   // Get leads that can be audited (have MICS form data and not already audited in DB)
