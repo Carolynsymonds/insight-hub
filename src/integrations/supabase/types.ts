@@ -205,6 +205,7 @@ export type Database = {
           founded_date: string | null
           full_name: string
           id: string
+          industry_google_snippet: string | null
           industry_relevance_explanation: string | null
           industry_relevance_score: number | null
           instagram: string | null
@@ -296,6 +297,7 @@ export type Database = {
           founded_date?: string | null
           full_name: string
           id?: string
+          industry_google_snippet?: string | null
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           instagram?: string | null
@@ -387,6 +389,7 @@ export type Database = {
           founded_date?: string | null
           full_name?: string
           id?: string
+          industry_google_snippet?: string | null
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
           instagram?: string | null
