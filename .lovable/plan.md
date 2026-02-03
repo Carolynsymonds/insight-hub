@@ -1,37 +1,166 @@
 
-# Make Duplicate Lead Check Category-Specific
+# Add Combined "Find Industry + Classify" Button
 
-## The Problem
-Currently, when you upload leads to a new category, the system incorrectly marks them as duplicates if the same name/company combination exists in ANY category. The duplicate validation should only check for uniqueness **within the same category**.
+## Overview
+Add a new button in the Enrich Industry drawer that sequentially executes:
+1. **Find Industry** - Search Google for company information and save the snippet
+2. **Classify NAICS** - Automatically trigger NAICS classification once search completes
+
+This provides a one-click workflow for complete industry enrichment.
 
 ## Changes Required
 
-### 1. CSV Upload Duplicate Check (`src/components/LeadUpload.tsx`)
+### File: `src/components/IndustryEnrichmentTable.tsx`
 
-**Query existing leads with category filter (around line 341-344):**
-- Add `.eq("category", csvCategory)` to the Supabase query so it only fetches leads from the same category
+#### 1. Add New State Variable (around line 114)
+```typescript
+const [isFindAndClassifying, setIsFindAndClassifying] = useState(false);
+```
 
-**Update comparison key (around line 350-351):**
-- Since the database query is now filtered by category, the comparison will automatically be category-specific
+#### 2. Create New Combined Handler Function (after `handleSearchIndustry` around line 795)
+```typescript
+const handleFindAndClassify = async () => {
+  if (!selectedLeadForEnrich) return;
 
-### 2. Manual Entry Duplicate Check (`src/components/LeadUpload.tsx`)
+  setIsFindAndClassifying(true);
+  setSearchResults([]);
+  setSearchLogs([]);
 
-**Update the duplicate check query (around line 144-150):**
-- Add `.eq("category", formData.category)` to the query to check duplicates only within the selected category
+  const logs: string[] = [];
+  const addLog = (message: string) => {
+    logs.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+    setSearchLogs([...logs]);
+  };
 
-### 3. Update Error Messages
-- Update the "No New Leads" message to clarify it's within the specific category
-- Update the "Duplicate Lead" toast to mention the category
+  try {
+    // Step 1: Find Industry
+    addLog(`=== Step 1: Find Industry ===`);
+    addLog(`Starting industry search for: ${selectedLeadForEnrich.company}`);
+    addLog(`DMA: ${selectedLeadForEnrich.dma || "N/A"}`);
+    
+    const queryParts = [`"${selectedLeadForEnrich.company}"`];
+    if (selectedLeadForEnrich.dma) {
+      queryParts.push(`"${selectedLeadForEnrich.dma}"`);
+    }
+    queryParts.push("what does this company do");
+    addLog(`Query: ${queryParts.join(" ")}`);
+    addLog(`Calling SerpAPI...`);
 
-## Technical Details
+    const searchResponse = await supabase.functions.invoke("search-industry-serper", {
+      body: {
+        leadId: selectedLeadForEnrich.id,
+        company: selectedLeadForEnrich.company,
+        dma: selectedLeadForEnrich.dma,
+      },
+    });
 
-| Location | Current Behavior | New Behavior |
-|----------|------------------|--------------|
-| CSV upload query (line 341-344) | Queries all leads for user | Queries leads for user + specific category |
-| Manual entry query (line 144-150) | Queries all leads for user | Queries leads for user + specific category |
-| Comparison logic | full_name + company | full_name + company (within category) |
+    if (searchResponse.error) {
+      addLog(`❌ API Error: ${searchResponse.error.message}`);
+      throw new Error(searchResponse.error.message);
+    }
+
+    const searchData = searchResponse.data;
+
+    if (searchData.error) {
+      addLog(`❌ Search Error: ${searchData.error}`);
+      throw new Error(searchData.error);
+    }
+
+    addLog(`✓ Search complete`);
+    addLog(`Results found: ${searchData.topResults?.length || 0}`);
+    
+    setSearchQuery(searchData.query);
+    setSearchResults(searchData.topResults || []);
+    setLogsOpen(true);
+
+    const snippet = searchData.snippet;
+    if (snippet) {
+      addLog(`✓ Main snippet extracted and saved`);
+    } else {
+      addLog(`⚠ No snippet found, continuing with classification anyway`);
+    }
+
+    // Step 2: Classify NAICS
+    addLog(``);
+    addLog(`=== Step 2: Classify NAICS ===`);
+    addLog(`Starting NAICS classification...`);
+
+    const classifyResponse = await supabase.functions.invoke("classify-naics", {
+      body: {
+        leadId: selectedLeadForEnrich.id,
+        company: selectedLeadForEnrich.company,
+        industry: selectedLeadForEnrich.company_industry,
+        description: selectedLeadForEnrich.description,
+        googleSnippet: snippet || selectedLeadForEnrich.industry_google_snippet,
+      },
+    });
+
+    if (classifyResponse.error) {
+      addLog(`❌ Classification API Error: ${classifyResponse.error.message}`);
+      throw new Error(classifyResponse.error.message);
+    }
+
+    const classifyData = classifyResponse.data;
+
+    if (classifyData.error) {
+      addLog(`❌ Classification Error: ${classifyData.error}`);
+      throw new Error(classifyData.error);
+    }
+
+    addLog(`✓ NAICS Classification complete`);
+    addLog(`Code: ${classifyData.naics_code}`);
+    addLog(`Title: ${classifyData.naics_title || "N/A"}`);
+    addLog(`Confidence: ${classifyData.naics_confidence}%`);
+
+    toast({
+      title: "Find & Classify Complete",
+      description: `Classified as ${classifyData.naics_code} with ${classifyData.naics_confidence}% confidence`,
+    });
+
+    onEnrichComplete();
+  } catch (error) {
+    console.error("Find and classify error:", error);
+    addLog(`❌ Failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    toast({
+      title: "Operation Failed",
+      description: error instanceof Error ? error.message : "An error occurred",
+      variant: "destructive",
+    });
+  } finally {
+    setIsFindAndClassifying(false);
+  }
+};
+```
+
+#### 3. Add New Button in Drawer UI (around line 1108, after the two existing buttons)
+```typescript
+<Button
+  onClick={handleFindAndClassify}
+  disabled={isFindAndClassifying || !selectedLeadForEnrich.company}
+  variant="secondary"
+  className="w-full"
+>
+  {isFindAndClassifying ? (
+    <>
+      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+      Finding & Classifying...
+    </>
+  ) : (
+    <>
+      <Search className="h-4 w-4 mr-2" />
+      Find Industry + Classify
+    </>
+  )}
+</Button>
+```
+
+## Button Layout in Drawer
+
+| Button | Behavior |
+|--------|----------|
+| **Find Industry** | Searches Google only |
+| **Classify NAICS** | Classifies only (uses existing snippet if available) |
+| **Find Industry + Classify** (NEW) | Searches Google, then auto-classifies with fresh snippet |
 
 ## Result
-- Users can upload the same leads to different categories (e.g., "Vehicles" and "Marketing")
-- Duplicate check only applies within each category
-- Same person at same company can exist in multiple categories as different lead records
+Users can now perform the complete industry enrichment workflow with a single click. The logs will show both steps with clear section headers, making it easy to trace what happened.
