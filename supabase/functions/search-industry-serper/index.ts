@@ -50,9 +50,10 @@ Deno.serve(async (req) => {
     const response = await fetch(url);
     const data = await response.json();
 
-    // Extract top results and collect all snippets
+    // Extract top results and collect snippets
     const topResults: OrganicResult[] = [];
-    const allSnippets: string[] = [];
+    let mainSnippet: string | null = null;
+    const topSnippets: { position: number; title: string; snippet: string; link: string }[] = [];
 
     if (data.organic_results && Array.isArray(data.organic_results)) {
       console.log(`Total organic results: ${data.organic_results.length}`);
@@ -70,18 +71,26 @@ Deno.serve(async (req) => {
         
         console.log(`Result ${result.position}: ${JSON.stringify(organicResult, null, 2)}`);
 
-        // Collect all snippets
-        if (result.snippet) {
-          allSnippets.push(result.snippet);
+        // Store first snippet as main
+        if (!mainSnippet && result.snippet) {
+          mainSnippet = result.snippet;
+        }
+
+        // Collect top 3 snippets with context
+        if (result.snippet && topSnippets.length < 3) {
+          topSnippets.push({
+            position: result.position,
+            title: result.title,
+            snippet: result.snippet,
+            link: result.link,
+          });
         }
       }
     }
 
-    // Combine all snippets with separator
-    const combinedSnippet = allSnippets.length > 0 ? allSnippets.join(" | ") : null;
-
     console.log(`=== Search Complete ===`);
-    console.log(`Combined snippets (${allSnippets.length}): ${combinedSnippet || "Not found"}`);
+    console.log(`Main snippet: ${mainSnippet || "Not found"}`);
+    console.log(`Extra snippets stored: ${topSnippets.length}`);
 
     // Update the lead in the database with the snippet
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -91,7 +100,8 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from("leads")
       .update({ 
-        industry_google_snippet: combinedSnippet,
+        industry_google_snippet: mainSnippet,
+        industry_snippets_extra: topSnippets.length > 0 ? topSnippets : null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", leadId);
@@ -105,7 +115,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        snippet: combinedSnippet,
+        snippet: mainSnippet,
         query,
         topResults,
       }),

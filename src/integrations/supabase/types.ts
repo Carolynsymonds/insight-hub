@@ -208,6 +208,7 @@ export type Database = {
           industry_google_snippet: string | null
           industry_relevance_explanation: string | null
           industry_relevance_score: number | null
+          industry_snippets_extra: Json | null
           instagram: string | null
           instagram_confidence: number | null
           instagram_source_url: string | null
@@ -300,6 +301,7 @@ export type Database = {
           industry_google_snippet?: string | null
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
+          industry_snippets_extra?: Json | null
           instagram?: string | null
           instagram_confidence?: number | null
           instagram_source_url?: string | null
@@ -392,6 +394,7 @@ export type Database = {
           industry_google_snippet?: string | null
           industry_relevance_explanation?: string | null
           industry_relevance_score?: number | null
+          industry_snippets_extra?: Json | null
           instagram?: string | null
           instagram_confidence?: number | null
           instagram_source_url?: string | null
