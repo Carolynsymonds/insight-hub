@@ -1049,7 +1049,6 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
               <SelectValue placeholder="Filter leads" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Leads</SelectItem>
               <SelectItem value="enriched">Enriched Only</SelectItem>
               <SelectItem value="not_enriched">Not Enriched</SelectItem>
             </SelectContent>
