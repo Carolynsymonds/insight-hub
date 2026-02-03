@@ -1017,7 +1017,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           </DrawerHeader>
           
           {selectedLeadForEnrich && (
-            <div className="p-4 space-y-6 overflow-auto">
+            <div className="p-4 space-y-6 overflow-auto select-text">
               {/* Company Info */}
               <div className="space-y-2">
                 <div>
