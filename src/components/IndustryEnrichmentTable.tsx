@@ -804,6 +804,11 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     setSearchResults([]);
     setSearchLogs([]);
 
+    // Performance tracking
+    const operationStart = Date.now();
+    let searchDuration = 0;
+    let classifyDuration = 0;
+
     const logs: string[] = [];
     const addLog = (message: string) => {
       logs.push(`[${new Date().toLocaleTimeString()}] ${message}`);
@@ -824,6 +829,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       addLog(`Query: ${queryParts.join(" ")}`);
       addLog(`Calling SerpAPI...`);
 
+      // Start timing for search
+      const searchStart = Date.now();
+
       const searchResponse = await supabase.functions.invoke("search-industry-serper", {
         body: {
           leadId: selectedLeadForEnrich.id,
@@ -831,6 +839,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           dma: selectedLeadForEnrich.dma,
         },
       });
+
+      // Calculate search duration
+      searchDuration = (Date.now() - searchStart) / 1000;
 
       if (searchResponse.error) {
         addLog(`❌ API Error: ${searchResponse.error.message}`);
@@ -845,6 +856,7 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       }
 
       addLog(`✓ Search complete`);
+      addLog(`⏱ Search completed in ${searchDuration.toFixed(2)}s`);
       addLog(`Results found: ${searchData.topResults?.length || 0}`);
       
       setSearchQuery(searchData.query);
@@ -863,6 +875,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       addLog(`=== Step 2: Classify NAICS ===`);
       addLog(`Starting NAICS classification...`);
 
+      // Start timing for classify
+      const classifyStart = Date.now();
+
       const classifyResponse = await supabase.functions.invoke("classify-naics", {
         body: {
           leadId: selectedLeadForEnrich.id,
@@ -872,6 +887,9 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           googleSnippet: snippet || selectedLeadForEnrich.industry_google_snippet,
         },
       });
+
+      // Calculate classify duration
+      classifyDuration = (Date.now() - classifyStart) / 1000;
 
       if (classifyResponse.error) {
         addLog(`❌ Classification API Error: ${classifyResponse.error.message}`);
@@ -886,13 +904,25 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       }
 
       addLog(`✓ NAICS Classification complete`);
+      addLog(`⏱ Classification completed in ${classifyDuration.toFixed(2)}s`);
       addLog(`Code: ${classifyData.naics_code}`);
       addLog(`Title: ${classifyData.naics_title || "N/A"}`);
       addLog(`Confidence: ${classifyData.naics_confidence}%`);
 
+      // Calculate total duration and log summary
+      const totalDuration = (Date.now() - operationStart) / 1000;
+      addLog(``);
+      addLog(`=== Performance Summary ===`);
+      addLog(`Search: ${searchDuration.toFixed(2)}s`);
+      addLog(`Classify: ${classifyDuration.toFixed(2)}s`);
+      addLog(`Total: ${totalDuration.toFixed(2)}s`);
+
+      // Console log for debugging
+      console.log(`[Find & Classify] ${selectedLeadForEnrich.company} - Search: ${searchDuration.toFixed(2)}s, Classify: ${classifyDuration.toFixed(2)}s, Total: ${totalDuration.toFixed(2)}s`);
+
       toast({
         title: "Find & Classify Complete",
-        description: `Classified as ${classifyData.naics_code} with ${classifyData.naics_confidence}% confidence`,
+        description: `Classified as ${classifyData.naics_code} (${classifyData.naics_confidence}%) in ${totalDuration.toFixed(1)}s`,
       });
 
       onEnrichComplete();
