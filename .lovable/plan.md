@@ -1,123 +1,112 @@
 
 
-# Monitor Performance of "Find & Classify All"
+# Add Performance Monitoring to Individual "Find Industry + Classify" Button
 
 ## Overview
-Add performance tracking to the "Find & Classify All" button that captures timing metrics for each step (search and classify) and displays a summary when the operation completes. This will help you understand how long each API call takes and identify any bottlenecks.
+Add timing metrics to the individual "Find Industry + Classify" button in the Enrich Industry drawer. This will track how long each step (search and classify) takes and display the results both in the existing search logs area and in a summary toast.
 
 ## What Will Be Tracked
 
 | Metric | Description |
 |--------|-------------|
-| Total Duration | Overall time from start to finish |
-| Search Time (per lead) | Time for each `search-industry-serper` call |
-| Classify Time (per lead) | Time for each `classify-naics` call |
-| Average Times | Mean duration for each step type |
-| Success/Failure Rate | Count of successful vs failed operations |
+| Total Duration | Overall time from button click to completion |
+| Search Time | Time for the `search-industry-serper` call |
+| Classify Time | Time for the `classify-naics` call |
 
 ## Implementation Approach
 
-### 1. Track Timing in Handler Function
+### Update `handleFindAndClassify` Function
 
-Update `handleBulkFindAndClassify` in `IndustryEnrichmentTable.tsx` to:
-
-- Record start time for the entire operation
-- Time each individual API call (search and classify)
-- Store per-lead timing data in an array
-- Calculate averages and totals at the end
-
-### 2. Display Performance Summary
-
-Show a detailed toast or modal at completion with:
-
-- Total processing time
-- Average time per lead
-- Breakdown: search vs classify time
-- Fastest/slowest lead processing
-
-### 3. Console Logging for Debugging
-
-Add structured console logs that output:
-```
-[Find & Classify] Lead 1/10: Company Name
-  ├─ Search: 1.2s
-  ├─ Classify: 2.3s
-  └─ Total: 3.5s
-```
+Wrap each API call with timing using `Date.now()` and add performance logs to the existing drawer logs panel.
 
 ## Technical Changes
 
 ### File: `src/components/IndustryEnrichmentTable.tsx`
 
-#### Add Performance State (around line 117)
-```typescript
-const [performanceMetrics, setPerformanceMetrics] = useState<{
-  totalDuration: number;
-  searchTimes: number[];
-  classifyTimes: number[];
-  leadTimes: { company: string; search: number; classify: number; total: number }[];
-} | null>(null);
-```
+#### Modify `handleFindAndClassify` (lines 800-910)
 
-#### Update Handler Function
-Wrap each API call with timing:
+Add timing instrumentation:
 
-```typescript
-const handleBulkFindAndClassify = async () => {
-  // ... existing validation ...
+```text
+const handleFindAndClassify = async () => {
+  if (!selectedLeadForEnrich) return;
 
+  setIsFindAndClassifying(true);
+  setSearchResults([]);
+  setSearchLogs([]);
+
+  // NEW: Performance tracking
   const operationStart = Date.now();
-  const searchTimes: number[] = [];
-  const classifyTimes: number[] = [];
-  const leadTimes: { company: string; search: number; classify: number; total: number }[] = [];
+  let searchDuration = 0;
+  let classifyDuration = 0;
 
-  for (let i = 0; i < leadsNeedingClassification.length; i++) {
-    const lead = leadsNeedingClassification[i];
-    const leadStart = Date.now();
+  const logs: string[] = [];
+  const addLog = (message: string) => {
+    logs.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+    setSearchLogs([...logs]);
+  };
+
+  try {
+    // Step 1: Find Industry
+    addLog(`=== Step 1: Find Industry ===`);
+    addLog(`Starting industry search for: ${selectedLeadForEnrich.company}`);
+    // ... existing query building code ...
     
-    // Step 1: Find Industry - with timing
+    // NEW: Start timing for search
     const searchStart = Date.now();
+    
     const searchResponse = await supabase.functions.invoke("search-industry-serper", { ... });
-    const searchDuration = (Date.now() - searchStart) / 1000;
-    searchTimes.push(searchDuration);
     
-    // Step 2: Classify - with timing
-    const classifyStart = Date.now();
-    const classifyResponse = await supabase.functions.invoke("classify-naics", { ... });
-    const classifyDuration = (Date.now() - classifyStart) / 1000;
-    classifyTimes.push(classifyDuration);
+    // NEW: Calculate search duration
+    searchDuration = (Date.now() - searchStart) / 1000;
+    addLog(`⏱ Search completed in ${searchDuration.toFixed(2)}s`);
     
-    const leadTotal = (Date.now() - leadStart) / 1000;
-    leadTimes.push({ company: lead.company || "Unknown", search: searchDuration, classify: classifyDuration, total: leadTotal });
-    
-    console.log(`[Find & Classify] ${i + 1}/${total}: ${lead.company} - Search: ${searchDuration.toFixed(2)}s, Classify: ${classifyDuration.toFixed(2)}s`);
-  }
+    // ... existing error handling and result processing ...
 
-  const totalDuration = (Date.now() - operationStart) / 1000;
-  
-  // Calculate averages
-  const avgSearch = searchTimes.reduce((a, b) => a + b, 0) / searchTimes.length;
-  const avgClassify = classifyTimes.reduce((a, b) => a + b, 0) / classifyTimes.length;
-  
-  // Show detailed summary
-  toast({
-    title: "Bulk Find & Classify Complete",
-    description: `Processed ${successCount} leads in ${totalDuration.toFixed(1)}s. Avg: ${avgSearch.toFixed(1)}s search + ${avgClassify.toFixed(1)}s classify per lead.`,
-  });
-  
-  // Log full metrics to console
-  console.table(leadTimes);
+    // Step 2: Classify NAICS
+    addLog(`=== Step 2: Classify NAICS ===`);
+    
+    // NEW: Start timing for classify
+    const classifyStart = Date.now();
+    
+    const classifyResponse = await supabase.functions.invoke("classify-naics", { ... });
+    
+    // NEW: Calculate classify duration
+    classifyDuration = (Date.now() - classifyStart) / 1000;
+    addLog(`⏱ Classification completed in ${classifyDuration.toFixed(2)}s`);
+    
+    // ... existing result processing ...
+
+    // NEW: Calculate total duration and log summary
+    const totalDuration = (Date.now() - operationStart) / 1000;
+    addLog(``);
+    addLog(`=== Performance Summary ===`);
+    addLog(`Search: ${searchDuration.toFixed(2)}s`);
+    addLog(`Classify: ${classifyDuration.toFixed(2)}s`);
+    addLog(`Total: ${totalDuration.toFixed(2)}s`);
+
+    // NEW: Console log for debugging
+    console.log(`[Find & Classify] ${selectedLeadForEnrich.company} - Search: ${searchDuration.toFixed(2)}s, Classify: ${classifyDuration.toFixed(2)}s, Total: ${totalDuration.toFixed(2)}s`);
+
+    // NEW: Enhanced toast with timing
+    toast({
+      title: "Find & Classify Complete",
+      description: `Classified as ${classifyData.naics_code} (${classifyData.naics_confidence}%) in ${totalDuration.toFixed(1)}s`,
+    });
+    
+    // ... rest of function ...
+  }
 };
 ```
 
 ## Result
 
-After clicking "Find & Classify All", you'll see:
+After clicking "Find Industry + Classify" in the drawer, you'll see:
 
-1. **Real-time progress** in the button (already exists)
-2. **Console logs** for each lead with timing breakdown
-3. **Summary toast** showing total time and averages
-4. **Console table** with full per-lead metrics for analysis
+1. **Real-time timing in drawer logs** - Each step shows duration (e.g., "Search completed in 1.23s")
+2. **Performance summary section** - At the end of the logs showing breakdown
+3. **Enhanced toast** - Shows total time alongside classification result
+4. **Console log** - Single line with all timing metrics for debugging
 
-This gives you visibility into API performance without requiring a database table, making it easy to identify if the search or classify step is the bottleneck.
+This matches the bulk operation's monitoring approach while leveraging the drawer's existing log display for immediate visibility.
 
