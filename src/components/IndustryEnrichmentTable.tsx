@@ -921,11 +921,24 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     setIsBulkFindAndClassifying(true);
     setBulkFindClassifyProgress({ current: 0, total: leadsNeedingClassification.length, company: "" });
 
+    // Performance tracking
+    const operationStart = Date.now();
+    const searchTimes: number[] = [];
+    const classifyTimes: number[] = [];
+    const leadTimes: { company: string; search: number; classify: number; total: number }[] = [];
+
     let successCount = 0;
     let errorCount = 0;
+    const total = leadsNeedingClassification.length;
+
+    console.log(`[Find & Classify] Starting bulk operation for ${total} leads`);
 
     for (let i = 0; i < leadsNeedingClassification.length; i++) {
       const lead = leadsNeedingClassification[i];
+      const leadStart = Date.now();
+      let searchDuration = 0;
+      let classifyDuration = 0;
+      
       setBulkFindClassifyProgress({ 
         current: i + 1, 
         total: leadsNeedingClassification.length, 
@@ -933,7 +946,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
       });
 
       try {
-        // Step 1: Find Industry
+        // Step 1: Find Industry - with timing
+        const searchStart = Date.now();
         const searchResponse = await supabase.functions.invoke("search-industry-serper", {
           body: {
             leadId: lead.id,
@@ -941,6 +955,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             dma: lead.dma,
           },
         });
+        searchDuration = (Date.now() - searchStart) / 1000;
+        searchTimes.push(searchDuration);
 
         if (searchResponse.error) throw new Error(searchResponse.error.message);
         
@@ -955,7 +971,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
 
         const snippet = searchData.snippet;
 
-        // Step 2: Classify NAICS
+        // Step 2: Classify NAICS - with timing
+        const classifyStart = Date.now();
         const classifyResponse = await supabase.functions.invoke("classify-naics", {
           body: {
             leadId: lead.id,
@@ -965,6 +982,8 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
             googleSnippet: snippet || lead.industry_google_snippet,
           },
         });
+        classifyDuration = (Date.now() - classifyStart) / 1000;
+        classifyTimes.push(classifyDuration);
 
         if (classifyResponse.error) throw new Error(classifyResponse.error.message);
         
@@ -977,9 +996,26 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
           throw new Error(classifyData.error);
         }
 
+        const leadTotal = (Date.now() - leadStart) / 1000;
+        leadTimes.push({ 
+          company: lead.company || "Unknown", 
+          search: searchDuration, 
+          classify: classifyDuration, 
+          total: leadTotal 
+        });
+        
+        console.log(`[Find & Classify] ${i + 1}/${total}: ${lead.company} - Search: ${searchDuration.toFixed(2)}s, Classify: ${classifyDuration.toFixed(2)}s, Total: ${leadTotal.toFixed(2)}s`);
+
         successCount++;
       } catch (error) {
         console.error("Bulk find and classify error for lead:", lead.id, error);
+        const leadTotal = (Date.now() - leadStart) / 1000;
+        leadTimes.push({ 
+          company: lead.company || "Unknown", 
+          search: searchDuration, 
+          classify: classifyDuration, 
+          total: leadTotal 
+        });
         errorCount++;
       }
     }
@@ -987,9 +1023,23 @@ export function IndustryEnrichmentTable({ leads, onEnrichComplete }: IndustryEnr
     setIsBulkFindAndClassifying(false);
     setBulkFindClassifyProgress({ current: 0, total: 0, company: "" });
 
+    // Calculate performance metrics
+    const totalDuration = (Date.now() - operationStart) / 1000;
+    const avgSearch = searchTimes.length > 0 ? searchTimes.reduce((a, b) => a + b, 0) / searchTimes.length : 0;
+    const avgClassify = classifyTimes.length > 0 ? classifyTimes.reduce((a, b) => a + b, 0) / classifyTimes.length : 0;
+    const avgTotal = avgSearch + avgClassify;
+
+    // Log performance summary to console
+    console.log(`\n[Find & Classify] === Performance Summary ===`);
+    console.log(`Total Duration: ${totalDuration.toFixed(1)}s`);
+    console.log(`Leads Processed: ${successCount} success, ${errorCount} failed`);
+    console.log(`Average per lead: ${avgTotal.toFixed(2)}s (Search: ${avgSearch.toFixed(2)}s + Classify: ${avgClassify.toFixed(2)}s)`);
+    console.log(`\n[Find & Classify] Per-lead breakdown:`);
+    console.table(leadTimes);
+
     toast({
       title: "Bulk Find & Classify Complete",
-      description: `Successfully processed ${successCount} leads.${errorCount > 0 ? ` ${errorCount} failed.` : ""}`,
+      description: `Processed ${successCount} leads in ${totalDuration.toFixed(1)}s. Avg: ${avgSearch.toFixed(1)}s search + ${avgClassify.toFixed(1)}s classify per lead.`,
     });
 
     onEnrichComplete();
