@@ -1,4 +1,4 @@
-import { Home, UserPlus, LogOut, BarChart3, Shield, Settings, Loader2, Building2 } from "lucide-react";
+import { Home, UserPlus, LogOut, BarChart3, Shield, Settings, Loader2, Building2, Sparkles } from "lucide-react";
 import logo from "@/assets/smart-leads-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +42,12 @@ const menuItems: {
     title: "Industry Enrichment",
     icon: Building2,
     view: "industry-enrichment",
+    allowedRoles: ["admin", "user"],
+  },
+  {
+    title: "Advanced Company Signals",
+    icon: Sparkles,
+    view: "advanced-signals",
     allowedRoles: ["admin", "user"],
   },
   {

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LeadUpload from "@/components/LeadUpload";
 import LeadsTable from "@/components/LeadsTable";
 import { IndustryEnrichmentTable } from "@/components/IndustryEnrichmentTable";
+import { AdvancedCompanySignals } from "@/components/AdvancedCompanySignals";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/hooks/useAdmin";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -1316,6 +1317,8 @@ const Index = () => {
         <AccountSettings />
       ) : activeView === "admin" ? (
         <AdminDashboard />
+      ) : activeView === "advanced-signals" ? (
+        <AdvancedCompanySignals leads={leads} onEnrichComplete={fetchLeads} />
       ) : activeView === "industry-enrichment" ? (
         industryEnrichmentCategory === null ? (
           <div className="space-y-6">
