@@ -108,5 +108,8 @@ verify_jwt = false
 [functions.audit-mics-classification]
 verify_jwt = false
 
+[functions.find-commercial-news]
+verify_jwt = false
+
 [functions.search-industry-serper]
 verify_jwt = false
