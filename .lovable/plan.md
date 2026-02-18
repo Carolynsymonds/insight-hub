@@ -1,95 +1,57 @@
 
 
-# Find News Enrichment Action
+# Add "Find Domain" Button to Advanced Company Signals Drawer
 
 ## Overview
-Add a "Find News" button inside the enrichment drawer that searches for commercially relevant news about a company using SerpAPI, then uses AI to analyze results and return a structured verdict with event type, headline, summary, confidence, and recency.
+Add a "Find Domain" button inside the enrichment drawer (alongside the existing "Find News" button) that runs the same 3-source domain enrichment logic used in the main Leads Table: Apollo, Google, and Email validation.
 
 ## Changes
 
-### 1. New Edge Function: `find-commercial-news`
-**File: `supabase/functions/find-commercial-news/index.ts`**
+### 1. Update `src/components/AdvancedCompanySignals.tsx`
 
-- Accepts `leadId`, `company`, and optional `domain`
-- Constructs SerpAPI search query: `"{{company}}" AND (funding OR expansion OR partnership OR launch)`
-- Fetches top 10 Google search results via SerpAPI
-- Sends results to Lovable AI (`google/gemini-3-flash-preview`) with a system prompt that:
-  - Only considers results clearly about the correct company
-  - Ignores similarly named companies, blog spam, directories, job boards
-  - Uses tool calling to return structured output
-- Uses tool calling to extract one of two structured responses:
+Add a new section in the drawer above or below the "Commercial News" section:
 
-**If relevant news found:**
-```json
-{
-  "news_found": true,
-  "event_type": "funding",
-  "headline": "Acme Corp raises $50M Series B",
-  "event_summary": "Acme Corp announced a $50M Series B round led by Sequoia Capital to expand fleet operations.",
-  "source_url": "https://techcrunch.com/...",
-  "estimated_recency": "recent",
-  "confidence_score": 85
-}
+- **"Find Domain" section** with a button (Search icon) that triggers the 3-step enrichment:
+  - Step 1: Search Apollo (`enrich-lead` with `source: "apollo"`)
+  - Step 2: Search Google (`enrich-lead` with `source: "google"`)
+  - Step 3: Check Email (`enrich-lead` with `source: "email"`, only if lead has an email)
+  - Step 4: If no domain found, run `diagnose-enrichment`
+
+- **Loading state**: Shows a spinner with step indicator text ("Searching Apollo (1/3)...", "Searching Google (2/3)...", etc.)
+
+- **Results display**: After completion, show the lead's current domain (refetched from database) with:
+  - Domain as a clickable link
+  - Enrichment source badge
+  - Confidence percentage
+  - "No domain found" message if all sources fail
+
+- **State variables**: `findingDomain` (boolean), `findDomainStep` (string for step text), `domainResult` (refetched lead domain info)
+
+- The button calls `onEnrichComplete` after finishing to refresh the leads list
+
+### Logic (mirrors `handleFindDomain` from LeadsTable.tsx)
+
+```text
+1. Call enrich-lead (source: "apollo") with lead's company, city, state, mics_sector, email
+2. Call enrich-lead (source: "google") with same params
+3. If lead.email exists, call enrich-lead (source: "email") with same params
+4. Refetch lead from DB to check if domain was found
+5. If no domain found, call diagnose-enrichment
+6. Show toast with result
+7. Call onEnrichComplete to refresh parent
 ```
 
-**If no relevant news:**
-```json
-{
-  "news_found": false,
-  "reason": "Search results reference similarly named companies, none match the target in Dallas, TX.",
-  "confidence_score": 70
-}
-```
+### UI Layout in Drawer
+The drawer body will have two sections stacked vertically:
 
-- Stores the result as JSON in the lead's `news` field
-- Returns the structured result to the frontend
+1. **Company Domain** -- Find Domain button, loading steps, result display
+2. **Commercial News** -- existing Find News functionality (unchanged)
 
-**Secrets used (all already configured):**
-- `SERPAPI_KEY` for Google search
-- `LOVABLE_API_KEY` for AI analysis
-
-### 2. Update `supabase/config.toml`
-- Add `[functions.find-commercial-news]` with `verify_jwt = false`
-
-### 3. Update Drawer UI
-**File: `src/components/AdvancedCompanySignals.tsx`**
-
-Replace the placeholder content in the drawer body with:
-- A "Find News" button (with `Newspaper` icon) to trigger the search
-- Loading spinner while processing
-- Results display:
-  - **If news found**: Event type badge, headline, event summary, source link, recency tag, and confidence bar
-  - **If no news**: "No commercially relevant news found" with the AI's reason
-- If the lead already has news data in its `news` field, display existing results with option to re-run
+Both sections use the same visual pattern: heading, action button, loading state, results.
 
 ## Technical Details
 
-### AI Tool Calling Schema
-The edge function uses tool calling (not raw JSON prompting) to extract structured output:
-
-```text
-Tool: analyze_company_news
-Parameters:
-  - news_found: boolean
-  - event_type: enum [funding, expansion, partnership, launch, acquisition, contract, other]
-  - headline: string (max 20 words)
-  - event_summary: string (1-2 sentences)
-  - source_url: string
-  - estimated_recency: enum [recent, 6-12 months, old, unknown]
-  - confidence_score: integer 0-100
-  - reason: string (only when news_found=false)
-```
-
-### System Prompt (key instructions)
-- "Only consider results clearly referring to the correct company"
-- "Use the company domain (if provided) to validate matches"
-- "Ignore similarly named companies, blog spam, directories, job boards"
-- "If uncertain whether a result is about the correct company, exclude it"
-
-### UI States in Drawer
-1. **Idle** -- "Find News" button visible
-2. **Loading** -- Spinner with "Searching for commercial news..."
-3. **Result (found)** -- Event type badge, headline, summary, source link, recency, confidence
-4. **Result (not found)** -- Muted message with AI reason and confidence
-5. **Error** -- Toast notification with retry option
-
+- Reuses the existing `enrich-lead` and `diagnose-enrichment` edge functions (no new backend code needed)
+- Passes `lead.company`, `lead.city`, `lead.state`, `lead.mics_sector`, and `lead.email` from the selected lead
+- After enrichment completes, refetches the lead row to display updated domain/confidence/source
+- Uses toast notifications for success/failure feedback consistent with the main Leads Table behavior
