@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { EditLeadDialog } from "./EditLeadDialog";
 
 type Lead = Tables<"leads">;
 
@@ -74,6 +75,8 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newsResult, setNewsResult] = useState<NewsResult | null>(null);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const handleEnrichClick = (lead: Lead) => {
     setSelectedLead(lead);
@@ -144,10 +147,16 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
                   <TableCell className="border-l">{lead.full_name}</TableCell>
                   <TableCell>{lead.phone || "—"}</TableCell>
                   <TableCell className="border-l text-center">
-                    <Button size="sm" variant="outline" onClick={() => handleEnrichClick(lead)}>
-                      <Sparkles className="mr-1 h-3 w-3" />
-                      Enrich
-                    </Button>
+                    <div className="flex flex-col items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEnrichClick(lead)}>
+                        <Sparkles className="mr-1 h-3 w-3" />
+                        Enrich
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditingLead(lead); setShowEditDialog(true); }}>
+                        <Pencil className="mr-1 h-3 w-3" />
+                        Edit
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -264,6 +273,12 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
           </div>
         </DrawerContent>
       </Drawer>
+      <EditLeadDialog
+        lead={editingLead}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={onEnrichComplete}
+      />
     </div>
   );
 }
