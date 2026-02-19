@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Search, Globe, CheckCircle } from "lucide-react";
+import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -74,81 +74,11 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newsResult, setNewsResult] = useState<NewsResult | null>(null);
-  const [findingDomain, setFindingDomain] = useState(false);
-  const [findDomainStep, setFindDomainStep] = useState("");
-  const [domainResult, setDomainResult] = useState<{ domain: string | null; enrichment_source: string | null; enrichment_confidence: number | null } | null>(null);
-  const [calculatingScore, setCalculatingScore] = useState(false);
-  const [matchScoreResult, setMatchScoreResult] = useState<{ match_score: number | null; match_score_source: string | null } | null>(null);
 
   const handleEnrichClick = (lead: Lead) => {
     setSelectedLead(lead);
     setNewsResult(parseNewsData(lead));
-    setDomainResult(lead.domain ? { domain: lead.domain, enrichment_source: lead.enrichment_source, enrichment_confidence: lead.enrichment_confidence } : null);
-    setMatchScoreResult(lead.match_score != null ? { match_score: lead.match_score, match_score_source: lead.match_score_source } : null);
     setDrawerOpen(true);
-  };
-
-  const handleFindDomain = async () => {
-    if (!selectedLead) return;
-    setFindingDomain(true);
-    try {
-      const body = {
-        leadId: selectedLead.id,
-        company: selectedLead.company,
-        city: selectedLead.city,
-        state: selectedLead.state,
-        mics_sector: selectedLead.mics_sector,
-        email: selectedLead.email,
-      };
-
-      setFindDomainStep("Searching Apollo (1/3)...");
-      await supabase.functions.invoke("enrich-lead", { body: { ...body, source: "apollo" } });
-
-      setFindDomainStep("Searching Google (2/3)...");
-      await supabase.functions.invoke("enrich-lead", { body: { ...body, source: "google" } });
-
-      if (selectedLead.email) {
-        setFindDomainStep("Checking Email (3/3)...");
-        await supabase.functions.invoke("enrich-lead", { body: { ...body, source: "email" } });
-      }
-
-      setFindDomainStep("Finalizing...");
-      const { data: updatedLead } = await supabase.from("leads").select("domain, enrichment_source, enrichment_confidence").eq("id", selectedLead.id).single();
-
-      if (updatedLead?.domain) {
-        setDomainResult({ domain: updatedLead.domain, enrichment_source: updatedLead.enrichment_source, enrichment_confidence: updatedLead.enrichment_confidence });
-        toast({ title: "Domain found", description: updatedLead.domain });
-      } else {
-        await supabase.functions.invoke("diagnose-enrichment", { body: { leadId: selectedLead.id } });
-        setDomainResult(null);
-        toast({ title: "No domain found", description: "All sources exhausted. Diagnosis saved.", variant: "destructive" });
-      }
-      onEnrichComplete();
-    } catch (err: any) {
-      toast({ title: "Domain search failed", description: err.message || "Unknown error", variant: "destructive" });
-    } finally {
-      setFindingDomain(false);
-      setFindDomainStep("");
-    }
-  };
-
-  const handleCalculateMatchScore = async () => {
-    if (!selectedLead) return;
-    setCalculatingScore(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("calculate-match-score", {
-        body: { leadId: selectedLead.id },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setMatchScoreResult({ match_score: data.matchScore, match_score_source: data.matchScoreSource });
-      toast({ title: "Match Score calculated", description: `${data.matchScore}% (${data.matchScoreSource})` });
-      onEnrichComplete();
-    } catch (err: any) {
-      toast({ title: "Match score failed", description: err.message || "Unknown error", variant: "destructive" });
-    } finally {
-      setCalculatingScore(false);
-    }
   };
 
   const handleFindNews = async () => {
@@ -243,121 +173,6 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
           </DrawerHeader>
 
           <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-            {/* Find Domain Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Company Domain</h3>
-                {domainResult && (
-                  <Button size="sm" variant="ghost" onClick={handleFindDomain} disabled={findingDomain}>
-                    <RefreshCw className={`h-3 w-3 mr-1 ${findingDomain ? "animate-spin" : ""}`} />
-                    Re-run
-                  </Button>
-                )}
-              </div>
-
-              {!domainResult && !findingDomain && (
-                <Button onClick={handleFindDomain} variant="outline" className="w-full">
-                  <Search className="mr-2 h-4 w-4" />
-                  Find Domain
-                </Button>
-              )}
-
-              {findingDomain && (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  <span className="text-sm">{findDomainStep}</span>
-                </div>
-              )}
-
-              {domainResult && !findingDomain && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a
-                      href={`https://${domainResult.domain}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      {domainResult.domain}
-                    </a>
-                    {domainResult.enrichment_source && (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {domainResult.enrichment_source}
-                      </Badge>
-                    )}
-                  </div>
-                  {domainResult.enrichment_confidence != null && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Confidence</span>
-                        <span>{domainResult.enrichment_confidence}%</span>
-                      </div>
-                      <Progress value={domainResult.enrichment_confidence} className="h-2" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="border-t" />
-
-            {/* Match Score Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Match Score</h3>
-                {matchScoreResult && (
-                  <Button size="sm" variant="ghost" onClick={handleCalculateMatchScore} disabled={calculatingScore}>
-                    <RefreshCw className={`h-3 w-3 mr-1 ${calculatingScore ? "animate-spin" : ""}`} />
-                    Re-run
-                  </Button>
-                )}
-              </div>
-
-              {!matchScoreResult && !calculatingScore && (
-                <Button onClick={handleCalculateMatchScore} variant="default" className="w-full">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Calculate Match Score
-                </Button>
-              )}
-
-              {calculatingScore && (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  <span className="text-sm">Calculating match score...</span>
-                </div>
-              )}
-
-              {matchScoreResult && !calculatingScore && (
-                <div className="rounded-lg border p-4 space-y-3">
-                  <p className="text-xs text-muted-foreground">Overall Match Score</p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl font-bold text-foreground">{matchScoreResult.match_score}%</span>
-                    <Badge className={
-                      (matchScoreResult.match_score ?? 0) >= 80
-                        ? "bg-green-100 text-green-800 border-green-200"
-                        : (matchScoreResult.match_score ?? 0) >= 50
-                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                          : "bg-red-100 text-red-800 border-red-200"
-                    }>
-                      {(matchScoreResult.match_score ?? 0) >= 80 ? "High" : (matchScoreResult.match_score ?? 0) >= 50 ? "Medium" : "Low"}
-                    </Badge>
-                  </div>
-                  {matchScoreResult.match_score_source && (
-                    <div className="text-xs text-muted-foreground">
-                      <span>Determined by: </span>
-                      <span className="font-medium capitalize">{matchScoreResult.match_score_source.replace(/_/g, " ")}</span>
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <Progress value={matchScoreResult.match_score ?? 0} className="h-2" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t" />
-
             {/* Find News Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
