@@ -29,18 +29,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=30&type=establishment&key=${apiKey}`;
-    const response = await fetch(url);
+    // Use Places API (New) - Nearby Search
+    const url = `https://places.googleapis.com/v1/places:searchNearby`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "places.displayName,places.types,places.businessStatus",
+      },
+      body: JSON.stringify({
+        includedTypes: ["establishment"],
+        maxResultCount: 5,
+        locationRestriction: {
+          circle: {
+            center: { latitude, longitude },
+            radius: 30.0,
+          },
+        },
+      }),
+    });
     const data = await response.json();
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+    if (data.error) {
       return new Response(
-        JSON.stringify({ error: `Google Places API error: ${data.status}`, error_message: data.error_message }),
+        JSON.stringify({ error: `Google Places API error: ${data.error.status}`, error_message: data.error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const results = data.results || [];
+    const results = data.places || [];
 
     const commercialTypes = [
       "store", "office", "warehouse", "finance", "point_of_interest",
@@ -56,11 +74,11 @@ Deno.serve(async (req) => {
     for (const place of results) {
       const types: string[] = place.types || [];
       const hasCommercialType = types.some((t: string) => commercialTypes.includes(t));
-      const isOperational = place.business_status === "OPERATIONAL" || !place.business_status;
+      const isOperational = place.businessStatus === "OPERATIONAL" || !place.businessStatus;
 
       if (hasCommercialType && isOperational) {
         classification = "commercial";
-        nearbyBusinessName = place.name || null;
+        nearbyBusinessName = place.displayName?.text || null;
         nearbyTypes = types;
         break;
       }
