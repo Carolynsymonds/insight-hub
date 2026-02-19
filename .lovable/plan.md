@@ -1,19 +1,21 @@
 
 
-# Remove Find Domain and Match Score from Enrichment Drawer
+# Add Optional Domain Field to Manual Lead Entry
 
 ## Overview
-Remove the "Company Domain" and "Match Score" sections from the Advanced Company Signals enrichment drawer, keeping only the "Commercial News" section.
+Add a "Company Domain" input field to the manual lead entry form, allowing users to optionally provide a domain when adding a new lead.
 
 ## Changes
 
-### File: `src/components/AdvancedCompanySignals.tsx`
+### File: `src/components/LeadUpload.tsx`
 
-1. **Remove state variables**: `findingDomain`, `findDomainStep`, `domainResult`, `calculatingScore`, `matchScoreResult`
-2. **Remove handlers**: `handleFindDomain`, `handleCalculateMatchScore`
-3. **Remove imports** no longer needed: `RefreshCw`, `Search`, `Globe`, `CheckCircle`
-4. **Remove drawer sections**: The "Company Domain" block (Find Domain button, loading state, domain result display) and the "Match Score" block (Calculate Match Score button, loading state, score display), along with their divider `<div className="border-t" />` elements
-5. **Remove initialization logic** in `handleEnrichClick` that sets `domainResult` and `matchScoreResult` from lead data
+1. **Add `domain` to `formData` state** (line 94 area): Add `domain: ""` to the initial state object.
 
-The drawer will only contain the "Commercial News" section with the Find News button.
+2. **Add `domain` field to the form UI** (after the Company field around line 497): Add a new input field labeled "Company Domain (optional)" with placeholder text like "e.g. acmecorp.com".
+
+3. **Reset `domain` on submit** (line 178 area): Include `domain: ""` in the form reset object after successful submission.
+
+4. **Add `domain` to CSV column mappings** (line 51 area): Add `"domain": { dbField: "domain", label: "Domain" }` so CSV uploads also support domain columns.
+
+No backend changes needed -- the `leads` table already has a `domain` text column.
 
