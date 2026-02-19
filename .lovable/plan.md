@@ -1,42 +1,53 @@
 
-# Add "First Line Address" Column
+
+# Add "Classify Address Type" via Google Geocoding API
 
 ## Overview
-Add a new "First Line Address" field to the leads system -- from database schema through to the lead entry form and the Advanced Company Signals table display.
+Add a new "Classify Address Type" section in the Enrichment drawer (below Commercial News) that geocodes the lead's address using the Google Geocoding API, returning and saving latitude and longitude.
 
 ## Changes
 
-### 1. Database Migration
-Add a new nullable `first_line_address` (text) column to the `leads` table.
+### 1. New Edge Function: `geocode-address`
 
-```sql
-ALTER TABLE public.leads ADD COLUMN first_line_address text;
-```
+Create `supabase/functions/geocode-address/index.ts` that:
+- Accepts `leadId`, `first_line_address`, `state`, `zipcode`
+- Builds address string: `{first_line_address}, {state} {zipcode}`
+- Calls `https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={GOOGLE_MAPS_API_KEY}`
+- Extracts `lat` and `lng` from `results[0].geometry.location`
+- Extracts `location_type` from `results[0].geometry.location_type` (ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE) -- this is the "address type classification"
+- Extracts formatted address components (e.g., street_number, route, locality, etc.)
+- Updates the lead's `latitude` and `longitude` columns in the database
+- Returns `{ success, latitude, longitude, location_type, formatted_address }`
+- Uses the existing `GOOGLE_MAPS_API_KEY` secret (already configured)
 
-### 2. Lead Upload Form (`src/components/LeadUpload.tsx`)
+### 2. Update Enrichment Drawer (`src/components/AdvancedCompanySignals.tsx`)
 
-- Add `first_line_address: ""` to the `formData` state and reset object
-- Add a new Input field labeled "First Line Address" in the manual entry form (placed near the other address fields like City/State/Zip)
-- Add CSV column mappings so CSV uploads can map this field:
-  - `"first_line_address"` -> `first_line_address`
-  - `"address"` -> `first_line_address`
-  - `"street_address"` -> `first_line_address`
-  - `"address_line_1"` -> `first_line_address`
+Add a new section below "Commercial News" in the drawer:
 
-### 3. Advanced Company Signals Table (`src/components/AdvancedCompanySignals.tsx`)
+- **Title**: "Classify Address Type"
+- **Button**: "Geocode Address" (with a MapPin icon) -- shown when no geocode result exists
+- **Loading state**: spinner while calling the edge function
+- **Results display**:
+  - Location type badge (color-coded: ROOFTOP = green, RANGE_INTERPOLATED = blue, GEOMETRIC_CENTER = yellow, APPROXIMATE = orange)
+  - Formatted address from Google
+  - Latitude and Longitude values
+  - Re-run button to refresh
+- **Disabled state**: Button disabled if the lead has no `first_line_address` and no `zipcode`
 
-- Add "Address" column header in the Company group section (update colSpan from 5 to 6)
-- Add table cell displaying `lead.first_line_address || "---"`
-- Position it after Domain, before City
-- Update empty state colSpan from 8 to 9
-- Add "Address" to the CSV export headers and data mapping
+### 3. State Management
 
-### 4. Edit Lead Dialog (`src/components/EditLeadDialog.tsx`)
-
-- Add `first_line_address` to the field configuration so users can edit the address after creation
+- Add `geocodeLoading` boolean state
+- Add `geocodeResult` state to hold `{ latitude, longitude, location_type, formatted_address }`
+- Pre-populate `geocodeResult` from `selectedLead.latitude`/`selectedLead.longitude` when opening the drawer (if already geocoded)
 
 ## Technical Details
 
-- The new column is nullable with no default, so existing leads will show "---" until populated
-- CSV uploads with an "address" or "first_line_address" header will auto-map to this field
-- No RLS policy changes needed since the existing leads policies cover all columns
+- The `GOOGLE_MAPS_API_KEY` secret is already configured -- no new secrets needed
+- The `leads` table already has `latitude` and `longitude` columns -- no database migration needed
+- The Google Geocoding API `location_type` field classifies the address precision:
+  - **ROOFTOP**: Exact street address match
+  - **RANGE_INTERPOLATED**: Approximated between two precise points
+  - **GEOMETRIC_CENTER**: Center of a region (e.g., a city block)
+  - **APPROXIMATE**: General area only
+- Edge function config: `verify_jwt = false` in `supabase/config.toml` (validates auth in code)
+
