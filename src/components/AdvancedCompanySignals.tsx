@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil, Search, Download } from "lucide-react";
+import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil, Search, Download, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -38,6 +38,13 @@ interface NewsResult {
   reason?: string;
   searched_at?: string;
   search_query?: string;
+}
+
+interface GeocodeResult {
+  latitude: number;
+  longitude: number;
+  location_type: string;
+  formatted_address: string;
 }
 
 interface AdvancedCompanySignalsProps {
@@ -79,6 +86,8 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [geocodeResult, setGeocodeResult] = useState<GeocodeResult | null>(null);
 
   const filteredLeads = leads.filter((lead) =>
     (lead.company || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -111,8 +120,53 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const handleEnrichClick = (lead: Lead) => {
     setSelectedLead(lead);
     setNewsResult(parseNewsData(lead));
+    // Pre-populate geocode result if lead already has coordinates
+    if (lead.latitude && lead.longitude) {
+      setGeocodeResult({
+        latitude: lead.latitude,
+        longitude: lead.longitude,
+        location_type: "",
+        formatted_address: "",
+      });
+    } else {
+      setGeocodeResult(null);
+    }
     setDrawerOpen(true);
   };
+
+  const handleGeocodeAddress = async () => {
+    if (!selectedLead) return;
+    setGeocodeLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("geocode-address", {
+        body: {
+          leadId: selectedLead.id,
+          first_line_address: (selectedLead as any).first_line_address,
+          state: selectedLead.state,
+          zipcode: selectedLead.zipcode,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.success) {
+        setGeocodeResult(data as GeocodeResult);
+        onEnrichComplete();
+      }
+    } catch (err: any) {
+      toast({ title: "Geocoding failed", description: err.message || "Unknown error", variant: "destructive" });
+    } finally {
+      setGeocodeLoading(false);
+    }
+  };
+
+  const locationTypeColors: Record<string, string> = {
+    ROOFTOP: "bg-green-100 text-green-800 border-green-200",
+    RANGE_INTERPOLATED: "bg-blue-100 text-blue-800 border-blue-200",
+    GEOMETRIC_CENTER: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    APPROXIMATE: "bg-orange-100 text-orange-800 border-orange-200",
+  };
+
+  const hasAddress = !!(selectedLead && ((selectedLead as any).first_line_address || selectedLead.zipcode));
 
   const handleFindNews = async () => {
     if (!selectedLead) return;
@@ -315,6 +369,56 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* Classify Address Type Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Classify Address Type</h3>
+                {geocodeResult && geocodeResult.location_type && (
+                  <Button size="sm" variant="ghost" onClick={handleGeocodeAddress} disabled={geocodeLoading}>
+                    <RefreshCw className={`h-3 w-3 mr-1 ${geocodeLoading ? "animate-spin" : ""}`} />
+                    Re-run
+                  </Button>
+                )}
+              </div>
+
+              {!geocodeResult?.location_type && !geocodeLoading && (
+                <Button onClick={handleGeocodeAddress} variant="outline" className="w-full" disabled={!hasAddress}>
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Geocode Address
+                </Button>
+              )}
+
+              {geocodeLoading && (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span className="text-sm">Geocoding address...</span>
+                </div>
+              )}
+
+              {geocodeResult && geocodeResult.location_type && !geocodeLoading && (
+                <div className="space-y-3">
+                  <Badge className={locationTypeColors[geocodeResult.location_type] || "bg-muted text-muted-foreground"}>
+                    {geocodeResult.location_type}
+                  </Badge>
+
+                  {geocodeResult.formatted_address && (
+                    <p className="text-sm text-muted-foreground">{geocodeResult.formatted_address}</p>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Latitude</span>
+                      <p className="font-medium">{geocodeResult.latitude}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Longitude</span>
+                      <p className="font-medium">{geocodeResult.longitude}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
