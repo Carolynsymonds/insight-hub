@@ -1,53 +1,62 @@
 
 
-# Add "Classify Address Type" via Google Geocoding API
+# Add "Classify Commercial vs Residential" via Google Places Nearby Search
 
 ## Overview
-Add a new "Classify Address Type" section in the Enrichment drawer (below Commercial News) that geocodes the lead's address using the Google Geocoding API, returning and saving latitude and longitude.
+Add a new "Classify Location" button below the Classify Address Type section in the enrichment drawer. After geocoding returns lat/lng, this button calls Google Places Nearby Search to determine if the address is **Commercial** or **Residential**.
 
 ## Changes
 
-### 1. New Edge Function: `geocode-address`
+### 1. New Edge Function: `classify-location`
 
-Create `supabase/functions/geocode-address/index.ts` that:
-- Accepts `leadId`, `first_line_address`, `state`, `zipcode`
-- Builds address string: `{first_line_address}, {state} {zipcode}`
-- Calls `https://maps.googleapis.com/maps/api/geocode/json?address={encoded_address}&key={GOOGLE_MAPS_API_KEY}`
-- Extracts `lat` and `lng` from `results[0].geometry.location`
-- Extracts `location_type` from `results[0].geometry.location_type` (ROOFTOP, RANGE_INTERPOLATED, GEOMETRIC_CENTER, APPROXIMATE) -- this is the "address type classification"
-- Extracts formatted address components (e.g., street_number, route, locality, etc.)
-- Updates the lead's `latitude` and `longitude` columns in the database
-- Returns `{ success, latitude, longitude, location_type, formatted_address }`
-- Uses the existing `GOOGLE_MAPS_API_KEY` secret (already configured)
+Create `supabase/functions/classify-location/index.ts` that:
+- Accepts `leadId`, `latitude`, `longitude`
+- Calls `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=30&type=establishment&key={GOOGLE_MAPS_API_KEY}`
+- Classifies based on the response:
+  - **Commercial**: If results contain establishments with types like `store`, `office`, `warehouse`, `finance`, `point_of_interest`, etc., and `business_status` is `OPERATIONAL`
+  - **Residential**: If no establishments found, only `street_address`, or no business profiles
+- Saves the classification to the lead (a new `address_classification` column, or reuse an existing field)
+- Returns `{ classification: "commercial" | "residential", nearby_business_name, nearby_types }`
+- Uses the existing `GOOGLE_MAPS_API_KEY` secret
 
-### 2. Update Enrichment Drawer (`src/components/AdvancedCompanySignals.tsx`)
+### 2. Database Migration
 
-Add a new section below "Commercial News" in the drawer:
+Add a nullable column to store the classification:
 
-- **Title**: "Classify Address Type"
-- **Button**: "Geocode Address" (with a MapPin icon) -- shown when no geocode result exists
-- **Loading state**: spinner while calling the edge function
+```sql
+ALTER TABLE public.leads ADD COLUMN address_classification text;
+```
+
+### 3. Update `supabase/config.toml`
+
+Add entry for the new function:
+
+```toml
+[functions.classify-location]
+verify_jwt = false
+```
+
+### 4. Update Enrichment Drawer (`src/components/AdvancedCompanySignals.tsx`)
+
+Add a new section below Classify Address Type:
+
+- **Title**: "Location Classification"
+- **Button**: "Classify Location" (with a Building icon) -- only enabled when lat/lng are available (after geocoding)
+- **Loading state**: Spinner while calling the edge function
 - **Results display**:
-  - Location type badge (color-coded: ROOFTOP = green, RANGE_INTERPOLATED = blue, GEOMETRIC_CENTER = yellow, APPROXIMATE = orange)
-  - Formatted address from Google
-  - Latitude and Longitude values
+  - Badge: green for "Commercial", amber for "Residential"
+  - If commercial: show the nearest business name and types found
   - Re-run button to refresh
-- **Disabled state**: Button disabled if the lead has no `first_line_address` and no `zipcode`
-
-### 3. State Management
-
-- Add `geocodeLoading` boolean state
-- Add `geocodeResult` state to hold `{ latitude, longitude, location_type, formatted_address }`
-- Pre-populate `geocodeResult` from `selectedLead.latitude`/`selectedLead.longitude` when opening the drawer (if already geocoded)
+- **State**: Add `classifyLoading` and `classifyResult` states
+- Pre-populate from `lead.address_classification` when opening the drawer
 
 ## Technical Details
 
-- The `GOOGLE_MAPS_API_KEY` secret is already configured -- no new secrets needed
-- The `leads` table already has `latitude` and `longitude` columns -- no database migration needed
-- The Google Geocoding API `location_type` field classifies the address precision:
-  - **ROOFTOP**: Exact street address match
-  - **RANGE_INTERPOLATED**: Approximated between two precise points
-  - **GEOMETRIC_CENTER**: Center of a region (e.g., a city block)
-  - **APPROXIMATE**: General area only
-- Edge function config: `verify_jwt = false` in `supabase/config.toml` (validates auth in code)
+- No new secrets needed -- reuses `GOOGLE_MAPS_API_KEY`
+- The 30m radius is intentionally small to check the exact address location
+- The classification logic in the edge function:
+  1. If `results` array is empty or all results only have `street_address` type --> "residential"
+  2. If any result has establishment-related types AND `business_status === "OPERATIONAL"` --> "commercial"
+  3. Fallback: "residential"
+- The button is disabled until geocoding has been completed (lat/lng must exist)
 
