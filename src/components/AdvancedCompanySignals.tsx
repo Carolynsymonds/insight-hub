@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil } from "lucide-react";
+import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil, Search, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -77,6 +78,35 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const [newsResult, setNewsResult] = useState<NewsResult | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredLeads = leads.filter((lead) =>
+    (lead.company || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const escapeCsvValue = (value: string) => {
+    if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Company Name", "Phone", "City", "State", "Zip", "Full Name", "Contact Phone"];
+    const rows = filteredLeads.map((lead) =>
+      [lead.company, lead.phone, lead.city, lead.state, lead.zipcode, lead.full_name, lead.phone]
+        .map((v) => escapeCsvValue(v || ""))
+        .join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "advanced-signals-export.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleEnrichClick = (lead: Lead) => {
     setSelectedLead(lead);
@@ -110,6 +140,22 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-foreground">Advanced Company Signals</h2>
 
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by company name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Download className="mr-1 h-3 w-3" />
+          Export CSV
+        </Button>
+      </div>
+
       <div className="border rounded-lg overflow-auto">
         <Table>
           <TableHeader>
@@ -130,14 +176,14 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.length === 0 ? (
+            {filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                  No leads uploaded yet
+                  {searchQuery ? "No leads match your search" : "No leads uploaded yet"}
                 </TableCell>
               </TableRow>
             ) : (
-              leads.map((lead) => (
+              filteredLeads.map((lead) => (
                 <TableRow key={lead.id}>
                   <TableCell className="font-medium">{lead.company || "—"}</TableCell>
                   <TableCell>{lead.phone || "—"}</TableCell>
