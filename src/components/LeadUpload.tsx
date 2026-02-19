@@ -75,6 +75,10 @@ const COLUMN_MAPPINGS: Record<string, { dbField: string; label: string }> = {
   "truck": { dbField: "truck_types", label: "Truck Types" },
   "features": { dbField: "features", label: "Features" },
   "domain": { dbField: "domain", label: "Domain" },
+  "first_line_address": { dbField: "first_line_address", label: "First Line Address" },
+  "address": { dbField: "first_line_address", label: "First Line Address" },
+  "street_address": { dbField: "first_line_address", label: "First Line Address" },
+  "address_line_1": { dbField: "first_line_address", label: "First Line Address" },
 };
 
 interface PreviewData {
@@ -108,6 +112,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
     vehicles_count: "",
     confirm_vehicles_50_plus: "",
     domain: "",
+    first_line_address: "",
   });
 
   const handleTruckTypeChange = (truckType: string, checked: boolean) => {
@@ -193,6 +198,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         vehicles_count: "",
         confirm_vehicles_50_plus: "",
         domain: "",
+        first_line_address: "",
       });
       setSelectedTruckTypes([]);
       setSelectedFeatures([]);
@@ -505,6 +511,16 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                       value={formData.domain}
                       onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
                       placeholder="e.g. acmecorp.com"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="first_line_address">First Line Address</Label>
+                    <Input
+                      id="first_line_address"
+                      value={formData.first_line_address}
+                      onChange={(e) => setFormData({ ...formData, first_line_address: e.target.value })}
+                      placeholder="e.g. 123 Main St"
                       disabled={loading}
                     />
                   </div>

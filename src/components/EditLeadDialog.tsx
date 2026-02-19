@@ -57,6 +57,7 @@ const FIELD_CONFIG: { key: string; label: string; type: "text" | "textarea" }[] 
   { key: "phone", label: "Phone", type: "text" },
   { key: "company", label: "Company", type: "text" },
   { key: "domain", label: "Company Domain", type: "text" },
+  { key: "first_line_address", label: "First Line Address", type: "text" },
   { key: "city", label: "City", type: "text" },
   { key: "state", label: "State", type: "text" },
   { key: "zipcode", label: "Zipcode", type: "text" },

@@ -92,9 +92,9 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   };
 
   const handleExportCSV = () => {
-    const headers = ["Company Name", "Domain", "City", "State", "Zip", "Full Name", "Contact Phone"];
+    const headers = ["Company Name", "Domain", "Address", "City", "State", "Zip", "Full Name", "Contact Phone"];
     const rows = filteredLeads.map((lead) =>
-      [lead.company, lead.domain, lead.city, lead.state, lead.zipcode, lead.full_name, lead.phone]
+      [lead.company, lead.domain, (lead as any).first_line_address, lead.city, lead.state, lead.zipcode, lead.full_name, lead.phone]
         .map((v) => escapeCsvValue(v || ""))
         .join(",")
     );
@@ -160,13 +160,14 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead colSpan={5} className="text-center border-b-2 font-bold text-xs uppercase tracking-wider">Company</TableHead>
+              <TableHead colSpan={6} className="text-center border-b-2 font-bold text-xs uppercase tracking-wider">Company</TableHead>
               <TableHead colSpan={2} className="text-center border-b-2 border-l font-bold text-xs uppercase tracking-wider">Contact</TableHead>
               <TableHead className="border-b-2 border-l" />
             </TableRow>
             <TableRow>
               <TableHead>Company Name</TableHead>
               <TableHead>Domain</TableHead>
+              <TableHead>Address</TableHead>
               <TableHead>City</TableHead>
               <TableHead>State</TableHead>
               <TableHead>Zip</TableHead>
@@ -178,7 +179,7 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
                   {searchQuery ? "No leads match your search" : "No leads uploaded yet"}
                 </TableCell>
               </TableRow>
@@ -187,6 +188,7 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
                 <TableRow key={lead.id}>
                   <TableCell className="font-medium">{lead.company || "—"}</TableCell>
                   <TableCell>{lead.domain || "—"}</TableCell>
+                  <TableCell>{(lead as any).first_line_address || "—"}</TableCell>
                   <TableCell>{lead.city || "—"}</TableCell>
                   <TableCell>{lead.state || "—"}</TableCell>
                   <TableCell>{lead.zipcode || "—"}</TableCell>
