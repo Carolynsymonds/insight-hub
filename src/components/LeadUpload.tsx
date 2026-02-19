@@ -74,6 +74,7 @@ const COLUMN_MAPPINGS: Record<string, { dbField: string; label: string }> = {
   "truck_types": { dbField: "truck_types", label: "Truck Types" },
   "truck": { dbField: "truck_types", label: "Truck Types" },
   "features": { dbField: "features", label: "Features" },
+  "domain": { dbField: "domain", label: "Domain" },
 };
 
 interface PreviewData {
@@ -106,6 +107,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
     category: defaultCategory || "",
     vehicles_count: "",
     confirm_vehicles_50_plus: "",
+    domain: "",
   });
 
   const handleTruckTypeChange = (truckType: string, checked: boolean) => {
@@ -190,6 +192,7 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
         category: defaultCategory || "",
         vehicles_count: "",
         confirm_vehicles_50_plus: "",
+        domain: "",
       });
       setSelectedTruckTypes([]);
       setSelectedFeatures([]);
@@ -492,6 +495,16 @@ const LeadUpload = ({ onUploadComplete, defaultCategory }: LeadUploadProps) => {
                       id="company"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="domain">Company Domain (optional)</Label>
+                    <Input
+                      id="domain"
+                      value={formData.domain}
+                      onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                      placeholder="e.g. acmecorp.com"
                       disabled={loading}
                     />
                   </div>
