@@ -1,42 +1,42 @@
 
-
-# Add Search and CSV Export to Advanced Company Signals
+# Add "First Line Address" Column
 
 ## Overview
-Add a search bar to filter leads by company name and a CSV export button to download the visible table data.
+Add a new "First Line Address" field to the leads system -- from database schema through to the lead entry form and the Advanced Company Signals table display.
 
 ## Changes
 
-### File: `src/components/AdvancedCompanySignals.tsx`
+### 1. Database Migration
+Add a new nullable `first_line_address` (text) column to the `leads` table.
 
-1. **Add search state** -- new `searchQuery` state variable to track the search input.
+```sql
+ALTER TABLE public.leads ADD COLUMN first_line_address text;
+```
 
-2. **Filter leads** -- create a `filteredLeads` array that filters the `leads` prop by matching `company` name against the search query (case-insensitive). Use `filteredLeads` in the table rendering instead of `leads`.
+### 2. Lead Upload Form (`src/components/LeadUpload.tsx`)
 
-3. **Add toolbar above the table** (between the heading and the table border div, around line 111-112):
-   - A search `Input` with a `Search` icon and placeholder "Search by company name..."
-   - A "Export CSV" `Button` with a `Download` icon, aligned to the right
+- Add `first_line_address: ""` to the `formData` state and reset object
+- Add a new Input field labeled "First Line Address" in the manual entry form (placed near the other address fields like City/State/Zip)
+- Add CSV column mappings so CSV uploads can map this field:
+  - `"first_line_address"` -> `first_line_address`
+  - `"address"` -> `first_line_address`
+  - `"street_address"` -> `first_line_address`
+  - `"address_line_1"` -> `first_line_address`
 
-4. **CSV export function** -- `handleExportCSV`:
-   - Exports the **filtered** leads (what's currently visible in the table)
-   - Columns: Company Name, Phone, City, State, Zip, Full Name, Contact Phone
-   - Uses proper CSV escaping (wrapping values containing commas/quotes in double quotes)
-   - Creates a Blob, generates a download link, and triggers the download as `advanced-signals-export.csv`
+### 3. Advanced Company Signals Table (`src/components/AdvancedCompanySignals.tsx`)
 
-5. **New imports**: `Search` and `Download` icons from lucide-react, `Input` from UI components.
+- Add "Address" column header in the Company group section (update colSpan from 5 to 6)
+- Add table cell displaying `lead.first_line_address || "---"`
+- Position it after Domain, before City
+- Update empty state colSpan from 8 to 9
+- Add "Address" to the CSV export headers and data mapping
+
+### 4. Edit Lead Dialog (`src/components/EditLeadDialog.tsx`)
+
+- Add `first_line_address` to the field configuration so users can edit the address after creation
 
 ## Technical Details
 
-```
-Layout:
-+--------------------------------------------------+
-| Advanced Company Signals                         |
-| [Search by company name...] [Export CSV]         |
-| +----------------------------------------------+ |
-| | Company | Phone | City | State | Zip | ...   | |
-| +----------------------------------------------+ |
-```
-
-- Search is instant (client-side filter on the already-loaded leads array)
-- CSV export respects the current search filter
-- Empty state message updates to "No leads match your search" when filtering produces zero results
+- The new column is nullable with no default, so existing leads will show "---" until populated
+- CSV uploads with an "address" or "first_line_address" header will auto-map to this field
+- No RLS policy changes needed since the existing leads policies cover all columns
