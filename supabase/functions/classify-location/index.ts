@@ -39,12 +39,11 @@ Deno.serve(async (req) => {
         "X-Goog-FieldMask": "places.displayName,places.types,places.businessStatus",
       },
       body: JSON.stringify({
-        includedTypes: ["establishment"],
-        maxResultCount: 5,
+        maxResultCount: 10,
         locationRestriction: {
           circle: {
             center: { latitude, longitude },
-            radius: 30.0,
+            radius: 50.0,
           },
         },
       }),
