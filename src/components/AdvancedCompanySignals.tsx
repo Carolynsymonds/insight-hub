@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil, Search, Download, MapPin } from "lucide-react";
+import { X, Sparkles, Newspaper, Loader2, ExternalLink, RefreshCw, Pencil, Search, Download, MapPin, Building } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -45,6 +45,12 @@ interface GeocodeResult {
   longitude: number;
   location_type: string;
   formatted_address: string;
+}
+
+interface ClassifyResult {
+  classification: "commercial" | "residential";
+  nearby_business_name: string | null;
+  nearby_types: string[];
 }
 
 interface AdvancedCompanySignalsProps {
@@ -88,6 +94,8 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
   const [searchQuery, setSearchQuery] = useState("");
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [geocodeResult, setGeocodeResult] = useState<GeocodeResult | null>(null);
+  const [classifyLoading, setClassifyLoading] = useState(false);
+  const [classifyResult, setClassifyResult] = useState<ClassifyResult | null>(null);
 
   const filteredLeads = leads.filter((lead) =>
     (lead.company || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -130,6 +138,16 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
       });
     } else {
       setGeocodeResult(null);
+    }
+    // Pre-populate classify result
+    if ((lead as any).address_classification) {
+      setClassifyResult({
+        classification: (lead as any).address_classification,
+        nearby_business_name: null,
+        nearby_types: [],
+      });
+    } else {
+      setClassifyResult(null);
     }
     setDrawerOpen(true);
   };
@@ -189,6 +207,29 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
       setLoading(false);
     }
   };
+
+  const handleClassifyLocation = async () => {
+    if (!selectedLead) return;
+    const lat = geocodeResult?.latitude ?? selectedLead.latitude;
+    const lng = geocodeResult?.longitude ?? selectedLead.longitude;
+    if (lat == null || lng == null) return;
+    setClassifyLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("classify-location", {
+        body: { leadId: selectedLead.id, latitude: lat, longitude: lng },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setClassifyResult(data as ClassifyResult);
+      onEnrichComplete();
+    } catch (err: any) {
+      toast({ title: "Classification failed", description: err.message || "Unknown error", variant: "destructive" });
+    } finally {
+      setClassifyLoading(false);
+    }
+  };
+
+  const hasCoordinates = !!(geocodeResult?.latitude || selectedLead?.latitude);
 
   return (
     <div className="space-y-4">
@@ -419,6 +460,55 @@ export function AdvancedCompanySignals({ leads, onEnrichComplete }: AdvancedComp
                       <p className="font-medium">{geocodeResult.longitude}</p>
                     </div>
                   </div>
+                </div>
+              )}
+             </div>
+
+            {/* Location Classification Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Location Classification</h3>
+                {classifyResult && (
+                  <Button size="sm" variant="ghost" onClick={handleClassifyLocation} disabled={classifyLoading}>
+                    <RefreshCw className={`h-3 w-3 mr-1 ${classifyLoading ? "animate-spin" : ""}`} />
+                    Re-run
+                  </Button>
+                )}
+              </div>
+
+              {!classifyResult && !classifyLoading && (
+                <Button onClick={handleClassifyLocation} variant="outline" className="w-full" disabled={!hasCoordinates}>
+                  <Building className="mr-2 h-4 w-4" />
+                  Classify Location
+                </Button>
+              )}
+
+              {classifyLoading && (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span className="text-sm">Classifying location...</span>
+                </div>
+              )}
+
+              {classifyResult && !classifyLoading && (
+                <div className="space-y-3">
+                  <Badge className={classifyResult.classification === "commercial" ? "bg-green-100 text-green-800 border-green-200" : "bg-amber-100 text-amber-800 border-amber-200"}>
+                    {classifyResult.classification === "commercial" ? "Commercial" : "Residential"}
+                  </Badge>
+
+                  {classifyResult.classification === "commercial" && classifyResult.nearby_business_name && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Nearest Business</span>
+                      <p className="text-sm font-medium">{classifyResult.nearby_business_name}</p>
+                      {classifyResult.nearby_types.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {classifyResult.nearby_types.slice(0, 5).map((type) => (
+                            <Badge key={type} variant="outline" className="text-xs">{type.replace(/_/g, " ")}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
