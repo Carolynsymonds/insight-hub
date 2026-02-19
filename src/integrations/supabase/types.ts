@@ -202,6 +202,7 @@ export type Database = {
           facebook_source_url: string | null
           facebook_validated: boolean | null
           features: string | null
+          first_line_address: string | null
           founded_date: string | null
           full_name: string
           id: string
@@ -295,6 +296,7 @@ export type Database = {
           facebook_source_url?: string | null
           facebook_validated?: boolean | null
           features?: string | null
+          first_line_address?: string | null
           founded_date?: string | null
           full_name: string
           id?: string
@@ -388,6 +390,7 @@ export type Database = {
           facebook_source_url?: string | null
           facebook_validated?: boolean | null
           features?: string | null
+          first_line_address?: string | null
           founded_date?: string | null
           full_name?: string
           id?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN first_line_address text;
