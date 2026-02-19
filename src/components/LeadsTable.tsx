@@ -3187,7 +3187,7 @@ const LeadsTable = ({
                           </TableCell>
                         </>}
                       <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col items-end gap-2">
                           <Drawer direction="right" open={openDrawer === lead.id} onOpenChange={open => {
                       setOpenDrawer(open ? lead.id : null);
                       if (open) {
@@ -3198,8 +3198,9 @@ const LeadsTable = ({
                       }
                     }} dismissible={false}>
                             <DrawerTrigger asChild>
-                              <Button size="sm" variant="outline" title="Enrich">
-                                <Search className="h-4 w-4" />
+                              <Button size="sm" variant="outline">
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Enrich
                               </Button>
                             </DrawerTrigger>
                             <DrawerContent direction="right" className="bg-background [&_*]:select-text [&_button]:select-none [&_[role=button]]:select-none">
@@ -5579,8 +5580,9 @@ const LeadsTable = ({
                               </div>
                             </DrawerContent>
                           </Drawer>
-                          <Button size="sm" variant="outline" title="Edit" onClick={() => { setEditingLead(lead); setShowEditDialog(true); }}>
-                            <Pencil className="h-4 w-4" />
+                          <Button size="sm" variant="outline" onClick={() => { setEditingLead(lead); setShowEditDialog(true); }}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
                           </Button>
                         </div>
                       </TableCell>
