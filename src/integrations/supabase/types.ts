@@ -159,6 +159,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          address_classification: string | null
           annual_revenue: string | null
           apollo_not_found: boolean | null
           audit_verdict: string | null
@@ -253,6 +254,7 @@ export type Database = {
           zipcode: string | null
         }
         Insert: {
+          address_classification?: string | null
           annual_revenue?: string | null
           apollo_not_found?: boolean | null
           audit_verdict?: string | null
@@ -347,6 +349,7 @@ export type Database = {
           zipcode?: string | null
         }
         Update: {
+          address_classification?: string | null
           annual_revenue?: string | null
           apollo_not_found?: boolean | null
           audit_verdict?: string | null
