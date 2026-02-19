@@ -9,7 +9,7 @@ import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, Drawer
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap, Globe, ArrowRight } from "lucide-react";
+import { Search, Sparkles, Loader2, Trash2, ExternalLink, Link2, Info, X, MapPin, CheckCircle, XCircle, Users, Mail, Newspaper, ChevronRight, ChevronDown, Linkedin, Instagram, Facebook, ChevronsRight, Twitter, Github, ArrowDown, Download, FileText, Shield, Zap, Globe, ArrowRight, Pencil } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StickyScrollTable } from "./StickyScrollTable";
 import { EnrichContactStepper } from "./EnrichContactStepper";
 import { attemptDomainFallback } from "@/lib/domainFallback";
+import { EditLeadDialog } from "./EditLeadDialog";
 interface EnrichmentLog {
   timestamp: string;
   action: string;
@@ -444,6 +445,8 @@ const LeadsTable = ({
     profile_match_score: number | null;
     profile_match_confidence: string | null;
   }>>({});
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   // Use external filter if provided, otherwise use internal state
   const domainFilter = externalDomainFilter ?? internalDomainFilter;
@@ -2511,7 +2514,8 @@ const LeadsTable = ({
             </Select>
           </div>}
 
-        
+
+
       </div>
 
       <StickyScrollTable className="overflow-x-auto">
@@ -3194,7 +3198,7 @@ const LeadsTable = ({
                       }
                     }} dismissible={false}>
                             <DrawerTrigger asChild>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" title="Enrich">
                                 <Search className="h-4 w-4" />
                               </Button>
                             </DrawerTrigger>
@@ -5575,6 +5579,9 @@ const LeadsTable = ({
                               </div>
                             </DrawerContent>
                           </Drawer>
+                          <Button size="sm" variant="outline" title="Edit" onClick={() => { setEditingLead(lead); setShowEditDialog(true); }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>)}
@@ -5972,6 +5979,13 @@ const LeadsTable = ({
           {!contactsModalLead?.company_contacts?.length && !contactsModalLead?.contact_email && <p className="text-muted-foreground text-center py-4">No contacts found</p>}
         </DialogContent>
       </Dialog>
+
+      <EditLeadDialog
+        lead={editingLead}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={onEnrichComplete}
+      />
     </>;
 };
 export default LeadsTable;
